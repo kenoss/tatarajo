@@ -1,4 +1,4 @@
-use crate::Smallvil;
+use crate::Sabiniwm;
 use smithay::desktop::Window;
 use smithay::input::pointer::{
     AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
@@ -10,16 +10,16 @@ use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::utils::{Logical, Point};
 
 pub struct MoveSurfaceGrab {
-    pub start_data: PointerGrabStartData<Smallvil>,
+    pub start_data: PointerGrabStartData<Sabiniwm>,
     pub window: Window,
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl PointerGrab<Smallvil> for MoveSurfaceGrab {
+impl PointerGrab<Sabiniwm> for MoveSurfaceGrab {
     fn motion(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         _focus: Option<(WlSurface, Point<i32, Logical>)>,
         event: &MotionEvent,
     ) {
@@ -34,8 +34,8 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn relative_motion(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         focus: Option<(WlSurface, Point<i32, Logical>)>,
         event: &RelativeMotionEvent,
     ) {
@@ -44,8 +44,8 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn button(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &ButtonEvent,
     ) {
         handle.button(data, event);
@@ -62,21 +62,21 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn axis(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         details: AxisFrame,
     ) {
         handle.axis(data, details)
     }
 
-    fn frame(&mut self, data: &mut Smallvil, handle: &mut PointerInnerHandle<'_, Smallvil>) {
+    fn frame(&mut self, data: &mut Sabiniwm, handle: &mut PointerInnerHandle<'_, Sabiniwm>) {
         handle.frame(data);
     }
 
     fn gesture_swipe_begin(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &GestureSwipeBeginEvent,
     ) {
         handle.gesture_swipe_begin(data, event)
@@ -84,8 +84,8 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn gesture_swipe_update(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &GestureSwipeUpdateEvent,
     ) {
         handle.gesture_swipe_update(data, event)
@@ -93,8 +93,8 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn gesture_swipe_end(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &GestureSwipeEndEvent,
     ) {
         handle.gesture_swipe_end(data, event)
@@ -102,8 +102,8 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn gesture_pinch_begin(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &GesturePinchBeginEvent,
     ) {
         handle.gesture_pinch_begin(data, event)
@@ -111,8 +111,8 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn gesture_pinch_update(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &GesturePinchUpdateEvent,
     ) {
         handle.gesture_pinch_update(data, event)
@@ -120,8 +120,8 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn gesture_pinch_end(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &GesturePinchEndEvent,
     ) {
         handle.gesture_pinch_end(data, event)
@@ -129,8 +129,8 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn gesture_hold_begin(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &GestureHoldBeginEvent,
     ) {
         handle.gesture_hold_begin(data, event)
@@ -138,14 +138,14 @@ impl PointerGrab<Smallvil> for MoveSurfaceGrab {
 
     fn gesture_hold_end(
         &mut self,
-        data: &mut Smallvil,
-        handle: &mut PointerInnerHandle<'_, Smallvil>,
+        data: &mut Sabiniwm,
+        handle: &mut PointerInnerHandle<'_, Sabiniwm>,
         event: &GestureHoldEndEvent,
     ) {
         handle.gesture_hold_end(data, event)
     }
 
-    fn start_data(&self) -> &PointerGrabStartData<Smallvil> {
+    fn start_data(&self) -> &PointerGrabStartData<Sabiniwm> {
         &self.start_data
     }
 }

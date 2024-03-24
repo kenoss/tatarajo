@@ -1,4 +1,4 @@
-use crate::{CalloopData, Smallvil};
+use crate::{CalloopData, Sabiniwm};
 use smithay::backend::renderer::damage::OutputDamageTracker;
 use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
 use smithay::backend::renderer::gles::GlesRenderer;
@@ -31,7 +31,7 @@ pub fn init_winit(
             model: "Winit".into(),
         },
     );
-    let _global = output.create_global::<Smallvil>(display_handle);
+    let _global = output.create_global::<Sabiniwm>(display_handle);
     output.change_current_state(
         Some(mode),
         Some(Transform::Flipped180),

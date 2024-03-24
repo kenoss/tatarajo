@@ -16,7 +16,7 @@ use smithay::wayland::socket::ListeningSocketSource;
 use std::ffi::OsString;
 use std::sync::Arc;
 
-pub struct Smallvil {
+pub struct Sabiniwm {
     pub start_time: std::time::Instant,
     pub socket_name: OsString,
     pub display_handle: DisplayHandle,
@@ -29,14 +29,14 @@ pub struct Smallvil {
     pub xdg_shell_state: XdgShellState,
     pub shm_state: ShmState,
     pub output_manager_state: OutputManagerState,
-    pub seat_state: SeatState<Smallvil>,
+    pub seat_state: SeatState<Sabiniwm>,
     pub data_device_state: DataDeviceState,
     pub popups: PopupManager,
 
     pub seat: Seat<Self>,
 }
 
-impl Smallvil {
+impl Sabiniwm {
     pub fn new(event_loop: &mut EventLoop<CalloopData>, display: Display<Self>) -> Self {
         let start_time = std::time::Instant::now();
 
@@ -93,7 +93,7 @@ impl Smallvil {
     }
 
     fn init_wayland_listener(
-        display: Display<Smallvil>,
+        display: Display<Sabiniwm>,
         event_loop: &mut EventLoop<CalloopData>,
     ) -> OsString {
         // Creates a new listening socket, automatically choosing the next available `wayland` socket name.
