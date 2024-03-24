@@ -1,15 +1,13 @@
 use crate::Smallvil;
-use smithay::{
-    desktop::Window,
-    input::pointer::{
-        AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
-        GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent,
-        GestureSwipeEndEvent, GestureSwipeUpdateEvent, GrabStartData as PointerGrabStartData,
-        MotionEvent, PointerGrab, PointerInnerHandle, RelativeMotionEvent,
-    },
-    reexports::wayland_server::protocol::wl_surface::WlSurface,
-    utils::{Logical, Point},
+use smithay::desktop::Window;
+use smithay::input::pointer::{
+    AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
+    GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent,
+    GestureSwipeUpdateEvent, GrabStartData as PointerGrabStartData, MotionEvent, PointerGrab,
+    PointerInnerHandle, RelativeMotionEvent,
 };
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::utils::{Logical, Point};
 
 pub struct MoveSurfaceGrab {
     pub start_data: PointerGrabStartData<Smallvil>,

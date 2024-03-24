@@ -1,16 +1,13 @@
 #![allow(irrefutable_let_patterns)]
 
-mod handlers;
-
 mod grabs;
+mod handlers;
 mod input;
 mod state;
 mod winit;
 
-use smithay::reexports::{
-    calloop::EventLoop,
-    wayland_server::{Display, DisplayHandle},
-};
+use smithay::reexports::calloop::EventLoop;
+use smithay::reexports::wayland_server::{Display, DisplayHandle};
 pub use state::Smallvil;
 
 pub struct CalloopData {

@@ -1,19 +1,12 @@
-use std::time::Duration;
-
-use smithay::{
-    backend::{
-        renderer::{
-            damage::OutputDamageTracker, element::surface::WaylandSurfaceRenderElement,
-            gles::GlesRenderer,
-        },
-        winit::{self, WinitEvent},
-    },
-    output::{Mode, Output, PhysicalProperties, Subpixel},
-    reexports::calloop::EventLoop,
-    utils::{Rectangle, Transform},
-};
-
 use crate::{CalloopData, Smallvil};
+use smithay::backend::renderer::damage::OutputDamageTracker;
+use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
+use smithay::backend::renderer::gles::GlesRenderer;
+use smithay::backend::winit::{self, WinitEvent};
+use smithay::output::{Mode, Output, PhysicalProperties, Subpixel};
+use smithay::reexports::calloop::EventLoop;
+use smithay::utils::{Rectangle, Transform};
+use std::time::Duration;
 
 pub fn init_winit(
     event_loop: &mut EventLoop<CalloopData>,

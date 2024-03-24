@@ -1,19 +1,16 @@
 use crate::Smallvil;
-use smithay::{
-    desktop::{Space, Window},
-    input::pointer::{
-        AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
-        GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent,
-        GestureSwipeEndEvent, GestureSwipeUpdateEvent, GrabStartData as PointerGrabStartData,
-        MotionEvent, PointerGrab, PointerInnerHandle, RelativeMotionEvent,
-    },
-    reexports::{
-        wayland_protocols::xdg::shell::server::xdg_toplevel,
-        wayland_server::protocol::wl_surface::WlSurface,
-    },
-    utils::{Logical, Point, Rectangle, Size},
-    wayland::{compositor, shell::xdg::SurfaceCachedState},
+use smithay::desktop::{Space, Window};
+use smithay::input::pointer::{
+    AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
+    GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent,
+    GestureSwipeUpdateEvent, GrabStartData as PointerGrabStartData, MotionEvent, PointerGrab,
+    PointerInnerHandle, RelativeMotionEvent,
 };
+use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::utils::{Logical, Point, Rectangle, Size};
+use smithay::wayland::compositor;
+use smithay::wayland::shell::xdg::SurfaceCachedState;
 use std::cell::RefCell;
 
 bitflags::bitflags! {
