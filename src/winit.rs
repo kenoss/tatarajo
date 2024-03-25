@@ -1,4 +1,5 @@
 use crate::{CalloopData, Sabiniwm};
+use big_s::S;
 use smithay::backend::renderer::damage::OutputDamageTracker;
 use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
 use smithay::backend::renderer::gles::GlesRenderer;
@@ -25,12 +26,12 @@ pub fn init_winit(
     };
 
     let output = Output::new(
-        "winit".to_string(),
+        S("winit"),
         PhysicalProperties {
             size: (0, 0).into(),
             subpixel: Subpixel::Unknown,
-            make: "Smithay".into(),
-            model: "Winit".into(),
+            make: S("Smithay"),
+            model: S("Winit"),
         },
     );
     let _global = output.create_global::<Sabiniwm>(display_handle);
