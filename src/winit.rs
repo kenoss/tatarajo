@@ -12,8 +12,10 @@ pub fn init_winit(
     event_loop: &mut EventLoop<CalloopData>,
     data: &mut CalloopData,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let display_handle = &mut data.display_handle;
-    let state = &mut data.state;
+    let CalloopData {
+        ref mut state,
+        ref mut display_handle,
+    } = data;
 
     let (mut backend, winit) = winit::init()?;
 
@@ -49,8 +51,10 @@ pub fn init_winit(
     event_loop
         .handle()
         .insert_source(winit, move |event, _, data| {
-            let display = &mut data.display_handle;
-            let state = &mut data.state;
+            let CalloopData {
+                ref mut state,
+                ref mut display_handle,
+            } = data;
 
             match event {
                 WinitEvent::Resized { size, .. } => {
@@ -99,7 +103,7 @@ pub fn init_winit(
 
                     state.space.refresh();
                     state.popups.cleanup();
-                    let _ = display.flush_clients();
+                    let _ = display_handle.flush_clients();
 
                     // Ask for redraw to schedule new frame.
                     backend.window().request_redraw();
