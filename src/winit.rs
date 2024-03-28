@@ -1,4 +1,4 @@
-use crate::{CalloopData, Sabiniwm};
+use crate::state::{CalloopData, Sabiniwm};
 use big_s::S;
 use smithay::backend::renderer::damage::OutputDamageTracker;
 use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
@@ -12,13 +12,13 @@ use std::time::Duration;
 pub fn init_winit(
     event_loop: &mut EventLoop<CalloopData>,
     data: &mut CalloopData,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> anyhow::Result<()> {
     let CalloopData {
         ref mut state,
         ref mut display_handle,
     } = data;
 
-    let (mut backend, winit) = winit::init()?;
+    let (mut backend, winit) = winit::init().map_err(|e| anyhow::anyhow!(format!("{:?}", e)))?;
 
     let mode = Mode {
         size: backend.window_size(),
@@ -114,7 +114,8 @@ pub fn init_winit(
                 }
                 _ => (),
             };
-        })?;
+        })
+        .map_err(|x| anyhow::anyhow!(x.error))?;
 
     Ok(())
 }

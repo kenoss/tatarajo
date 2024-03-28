@@ -1,4 +1,3 @@
-use crate::CalloopData;
 use smithay::desktop::{PopupManager, Space, Window, WindowSurfaceType};
 use smithay::input::{Seat, SeatState};
 use smithay::reexports::calloop::generic::Generic;
@@ -15,6 +14,11 @@ use smithay::wayland::shm::ShmState;
 use smithay::wayland::socket::ListeningSocketSource;
 use std::ffi::OsString;
 use std::sync::Arc;
+
+pub(crate) struct CalloopData {
+    pub state: Sabiniwm,
+    pub display_handle: DisplayHandle,
+}
 
 pub struct Sabiniwm {
     pub start_time: std::time::Instant,
@@ -37,7 +41,41 @@ pub struct Sabiniwm {
 }
 
 impl Sabiniwm {
-    pub fn new(event_loop: &mut EventLoop<CalloopData>, display: Display<Self>) -> Self {
+    pub fn start() -> anyhow::Result<()> {
+        let mut event_loop: EventLoop<CalloopData> = EventLoop::try_new()?;
+
+        let display: Display<Sabiniwm> = Display::new()?;
+        let display_handle = display.handle();
+        let state = Sabiniwm::new(&mut event_loop, display);
+
+        let mut data = CalloopData {
+            state,
+            display_handle,
+        };
+
+        crate::winit::init_winit(&mut event_loop, &mut data)?;
+
+        let mut args = std::env::args().skip(1);
+        let flag = args.next();
+        let arg = args.next();
+
+        match (flag.as_deref(), arg) {
+            (Some("-c") | Some("--command"), Some(command)) => {
+                std::process::Command::new(command).spawn().ok();
+            }
+            _ => {
+                std::process::Command::new("weston-terminal").spawn().ok();
+            }
+        }
+
+        event_loop.run(None, &mut data, move |_| {
+            // Sabiniwm is running
+        })?;
+
+        Ok(())
+    }
+
+    fn new(event_loop: &mut EventLoop<CalloopData>, display: Display<Self>) -> Self {
         let start_time = std::time::Instant::now();
 
         let dh = display.handle();
