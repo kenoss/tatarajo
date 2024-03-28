@@ -1,5 +1,6 @@
 use crate::action::Action;
 use crate::input::{KeySeq, Keymap};
+use crate::view::view::View;
 use smithay::desktop::{PopupManager, Space, Window, WindowSurfaceType};
 use smithay::input::{Seat, SeatState};
 use smithay::reexports::calloop::generic::Generic;
@@ -7,6 +8,7 @@ use smithay::reexports::calloop::{EventLoop, Interest, LoopSignal, Mode, PostAct
 use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason};
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::reexports::wayland_server::{Display, DisplayHandle};
+use smithay::utils::Rectangle;
 use smithay::utils::{Logical, Point};
 use smithay::wayland::compositor::{CompositorClientState, CompositorState};
 use smithay::wayland::output::OutputManagerState;
@@ -43,6 +45,8 @@ pub struct Sabiniwm {
 
     pub keymap: Keymap<Action>,
     pub keyseq: KeySeq,
+
+    pub view: View,
 }
 
 impl Sabiniwm {
@@ -111,6 +115,9 @@ impl Sabiniwm {
         // Get the loop signal, used to stop the event loop
         let loop_signal = event_loop.get_signal();
 
+        let rect = Rectangle::from_loc_and_size((0, 0), (1280, 720));
+        let view = View::new(rect);
+
         Self {
             start_time,
             display_handle: dh,
@@ -130,6 +137,8 @@ impl Sabiniwm {
 
             keymap,
             keyseq: KeySeq::new(),
+
+            view,
         }
     }
 

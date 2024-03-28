@@ -59,6 +59,7 @@ pub fn init_winit(
 
             match event {
                 WinitEvent::Resized { size, .. } => {
+                    dbg!(&size);
                     output.change_current_state(
                         Some(Mode {
                             size,
@@ -68,6 +69,9 @@ pub fn init_winit(
                         None,
                         None,
                     );
+                    state
+                        .view
+                        .resize_output(size.to_logical(1), &mut state.space);
                 }
                 WinitEvent::Input(event) => state.process_input_event(event),
                 WinitEvent::Redraw => {

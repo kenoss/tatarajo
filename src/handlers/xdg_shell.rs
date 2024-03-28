@@ -24,7 +24,9 @@ impl XdgShellHandler for Sabiniwm {
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = Window::new_wayland_window(surface);
-        self.space.map_element(window, (0, 0), false);
+        self.space.map_element(window.clone(), (0, 0), false);
+        self.view.register_window(window);
+        self.view.layout(&mut self.space);
     }
 
     fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {

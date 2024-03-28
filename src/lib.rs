@@ -11,7 +11,10 @@ mod grabs;
 mod handlers;
 pub mod input;
 mod input_event;
+mod model;
 mod state;
+mod util;
+mod view;
 mod winit;
 
 pub use state::Sabiniwm;
