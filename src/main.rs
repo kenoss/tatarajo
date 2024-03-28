@@ -7,12 +7,34 @@ use sabiniwm::action::Action;
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
 use sabiniwm::Sabiniwm;
 
-fn main() -> Result<()> {
-    if let Ok(env_filter) = tracing_subscriber::EnvFilter::try_from_default_env() {
-        tracing_subscriber::fmt().with_env_filter(env_filter).init();
-    } else {
-        tracing_subscriber::fmt().init();
+fn tracing_init() -> Result<()> {
+    use time::macros::format_description;
+    use time::UtcOffset;
+    use tracing_subscriber::fmt::time::OffsetTime;
+    use tracing_subscriber::EnvFilter;
+
+    match std::env::var("RUST_LOG") {
+        Err(std::env::VarError::NotPresent) => {}
+        _ => {
+            let offset = UtcOffset::current_local_offset().expect("should get local offset!");
+            let timer = OffsetTime::new(
+                offset,
+                format_description!("[hour]:[minute]:[second].[subsecond digits:3]"),
+            );
+            tracing_subscriber::fmt()
+                .with_env_filter(EnvFilter::from_default_env())
+                .with_timer(timer)
+                .with_line_number(true)
+                .with_ansi(true)
+                .init();
+        }
     }
+
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    tracing_init()?;
 
     let keyseq_serde = KeySeqSerde::new(hashmap! {
         S("C") => ModMask::CONTROL,
