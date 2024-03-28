@@ -7,7 +7,10 @@ edition = "2021"
 anyhow = "1.0.81"
 big_s = "1.0.2"
 bitflags = "2.2.1"
+itertools = "0.12.1"
+maplit = "1.0.2"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+xkbcommon = "0.7.0"
 
 [dependencies.smithay]
 git = "https://github.com/Smithay/smithay"
@@ -18,3 +21,6 @@ features = [
     "wayland_frontend",
     "desktop",
 ]
+
+[dev-dependencies]
+rstest = "0.18.2"

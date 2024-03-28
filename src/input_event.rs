@@ -1,4 +1,7 @@
+use crate::input::keymap::KeymapEntry;
+use crate::input::KeySeq;
 use crate::state::Sabiniwm;
+use smithay::backend::input::KeyState;
 use smithay::backend::input::{
     AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
     KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent,
@@ -21,7 +24,38 @@ impl Sabiniwm {
                     event.state(),
                     serial,
                     time,
-                    |_, _, _| FilterResult::Forward,
+                    |this, _, keysym_handle| match event.state() {
+                        KeyState::Pressed => {
+                            let was_empty = this.keyseq.is_empty();
+                            for key in KeySeq::extract(&keysym_handle).into_vec() {
+                                this.keyseq.push(key);
+                                match this.keymap.get(&this.keyseq).clone() {
+                                    KeymapEntry::Complete(x) => {
+                                        this.keyseq.clear();
+                                        this.process_action(&x);
+                                        return FilterResult::Intercept(());
+                                    }
+                                    KeymapEntry::Incomplete => {}
+                                    KeymapEntry::None => {
+                                        this.keyseq.clear();
+                                        if was_empty {
+                                            return FilterResult::Forward;
+                                        } else {
+                                            return FilterResult::Intercept(());
+                                        }
+                                    }
+                                }
+                            }
+                            FilterResult::Intercept(())
+                        }
+                        KeyState::Released => {
+                            if this.keyseq.is_empty() {
+                                FilterResult::Forward
+                            } else {
+                                FilterResult::Intercept(())
+                            }
+                        }
+                    },
                 );
             }
             InputEvent::PointerMotion { .. } => {}
