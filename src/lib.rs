@@ -1,6 +1,6 @@
 mod grabs;
 mod handlers;
-mod input;
+mod input_event;
 mod state;
 mod winit;
 
