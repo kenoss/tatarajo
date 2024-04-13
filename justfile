@@ -2,7 +2,7 @@ check:
   cargo build && cargo clippy && cargo fmt -- --check
 
 check-strict:
-  export RUSTFLAGS='-D warnings'; cargo build && cargo clippy && cargo fmt -- --check
+  export CARGO_TARGET_DIR=target/check-strict RUSTFLAGS='-D warnings'; just check
 
 run *ARGS:
   cargo run {{ARGS}}
