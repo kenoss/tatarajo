@@ -78,6 +78,11 @@ impl<T> NonEmptyFocusedVec<T> {
     }
 
     #[inline]
+    pub fn as_vec(&self) -> &Vec<T> {
+        &self.vec
+    }
+
+    #[inline]
     pub fn push(&mut self, x: T) {
         self.vec.push(x);
     }
@@ -95,5 +100,10 @@ impl<T> NonEmptyFocusedVec<T> {
     #[inline]
     pub fn focused_index(&self) -> usize {
         self.focus
+    }
+
+    #[inline]
+    pub fn focused_index_mut(&mut self) -> &mut usize {
+        &mut self.focus
     }
 }

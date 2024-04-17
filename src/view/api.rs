@@ -1,5 +1,5 @@
 use crate::util::Id;
-use crate::view::layout_node::LayoutNode;
+use crate::view::layout_node::{LayoutMessage, LayoutNode};
 use crate::view::stackset::StackSet;
 use crate::view::view::ViewState;
 use crate::view::window::Window;
@@ -48,5 +48,28 @@ impl ViewLayoutApi<'_> {
             rect: self.rect,
         };
         node.get_focused_window_id(&mut api)
+    }
+}
+
+pub struct ViewHandleMessageApi<'state> {
+    pub(super) state: &'state mut ViewState,
+}
+
+impl ViewHandleMessageApi<'_> {
+    pub fn stackset(&self) -> &StackSet {
+        &self.state.stackset
+    }
+
+    pub fn handle_message(
+        &mut self,
+        id: Id<LayoutNode>,
+        message: &LayoutMessage,
+    ) -> std::ops::ControlFlow<()> {
+        // Safety: LayoutNode is borrowed only by this method and this method doesn't allow recursive use of LayoutNode.
+        // TODO: Consider to use Rc and Weak.
+        let node = self.state.nodes.get_mut(&id).unwrap().as_ptr();
+        let node = unsafe { &mut *node };
+        let mut api = ViewHandleMessageApi { state: self.state };
+        node.handle_message(&mut api, message)
     }
 }

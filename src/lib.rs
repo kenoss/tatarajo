@@ -14,7 +14,7 @@ mod input_event;
 mod model;
 mod state;
 mod util;
-mod view;
+pub mod view;
 mod winit;
 
 pub use state::Sabiniwm;

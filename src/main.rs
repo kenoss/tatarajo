@@ -3,8 +3,9 @@ extern crate maplit;
 
 use anyhow::Result;
 use big_s::S;
-use sabiniwm::action::Action;
+use sabiniwm::action::{Action, ActionFnI, ActionMoveFocus};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
+use sabiniwm::view::predefined::LayoutMessageSelect;
 use sabiniwm::Sabiniwm;
 
 fn tracing_init() -> Result<()> {
@@ -45,6 +46,9 @@ fn main() -> Result<()> {
     let kbd = |s| keyseq_serde.kbd(s).unwrap();
     let keymap = Keymap::new(hashmap! {
         kbd("H-c H-c t") => Action::spawn("alacritty"),
+        kbd("H-space") => LayoutMessageSelect::Next.into(),
+        kbd("H-c t") => ActionMoveFocus::Next.into_action(),
+        kbd("H-c h") => ActionMoveFocus::Prev.into_action(),
     });
 
     Sabiniwm::start(keymap)?;

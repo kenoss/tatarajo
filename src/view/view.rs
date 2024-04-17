@@ -1,9 +1,10 @@
 use crate::model::grid_geometry::RectangleExt;
 use crate::util::Id;
 use crate::util::NonEmptyFocusedVec;
-use crate::view::api::ViewLayoutApi;
+use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
+use crate::view::layout_node::LayoutMessage;
 use crate::view::layout_node::LayoutNode;
-use crate::view::predefined::{LayoutNodeSelect, LayoutNodeStackSet, LayoutTall};
+use crate::view::predefined::{LayoutFull, LayoutNodeSelect, LayoutTall};
 use crate::view::stackset::StackSet;
 use crate::view::window::Window;
 use smithay::utils::{Logical, Rectangle, Size};
@@ -32,19 +33,19 @@ impl View {
         let windows = HashMap::new();
 
         let node = LayoutNode::from(LayoutTall {});
-        let node_id = node.id();
-        let layouts = vec![node_id];
-        let stackset = StackSet::new(layouts);
-        nodes.insert(node_id, RefCell::new(node));
+        let node_id0 = node.id();
+        nodes.insert(node_id0, RefCell::new(node));
 
-        let node = LayoutNode::from(LayoutNodeStackSet {});
-        let node_id = node.id();
-        nodes.insert(node_id, RefCell::new(node));
+        let node = LayoutNode::from(LayoutFull {});
+        let node_id1 = node.id();
+        nodes.insert(node_id1, RefCell::new(node));
 
-        let layouts = NonEmptyFocusedVec::new(vec![node_id], 0);
+        let layouts = NonEmptyFocusedVec::new(vec![node_id0, node_id1], 0);
         let node = LayoutNode::from(LayoutNodeSelect::new(layouts));
         let node_id = node.id();
         nodes.insert(node_id, RefCell::new(node));
+
+        let stackset = StackSet::new();
 
         let state = ViewState {
             stackset,
@@ -84,6 +85,7 @@ impl View {
         };
         api.layout_node(root_node_id, rect);
 
+        // Reflect layout to Space.
         while let Some((window_id, rect)) = self.state.layout_queue.pop_front() {
             let rect = rect.shrink((8, 8, 8, 8));
             let smithay_window = self.state.smithay_windows.get(&window_id).unwrap();
@@ -103,6 +105,20 @@ impl View {
         }
 
         assert!(self.state.layout_queue.is_empty());
+    }
+
+    pub fn handle_layout_message(
+        &mut self,
+        message: &LayoutMessage,
+        space: &mut smithay::desktop::Space<smithay::desktop::Window>,
+    ) {
+        let root_node_id = self.state.root_node_id;
+        let mut api = ViewHandleMessageApi {
+            state: &mut self.state,
+        };
+        api.handle_message(root_node_id, message);
+
+        self.layout(space);
     }
 
     pub fn resize_output(

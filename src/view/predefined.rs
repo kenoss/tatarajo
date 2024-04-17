@@ -2,24 +2,10 @@ use crate::model::grid_geometry::RectangleExt;
 use crate::model::grid_geometry::SplitSpec;
 use crate::util::Id;
 use crate::util::NonEmptyFocusedVec;
-use crate::view::api::ViewLayoutApi;
-use crate::view::layout_node::{LayoutNode, LayoutNodeI};
+use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
+use crate::view::layout_node::{LayoutMessage, LayoutMessageI, LayoutNode, LayoutNodeI};
 use crate::view::window::Window;
 pub use itertools::izip;
-
-pub struct LayoutNodeStackSet {}
-
-impl LayoutNodeI for LayoutNodeStackSet {
-    fn layout(&self, api: &mut ViewLayoutApi) {
-        let id = *api.stackset().workspaces().focus().layouts().focus();
-        api.layout_node(id, *api.rect())
-    }
-
-    fn get_focused_window_id(&self, api: &mut ViewLayoutApi) -> Option<Id<Window>> {
-        let id = *api.stackset().workspaces().focus().layouts().focus();
-        api.get_focused_window_id(id)
-    }
-}
 
 pub struct LayoutFull {}
 
@@ -64,6 +50,14 @@ impl LayoutNodeI for LayoutTall {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum LayoutMessageSelect {
+    Next,
+    Prev,
+}
+
+impl LayoutMessageI for LayoutMessageSelect {}
+
 pub struct LayoutNodeSelect {
     node_ids: NonEmptyFocusedVec<Id<LayoutNode>>,
 }
@@ -83,5 +77,26 @@ impl LayoutNodeI for LayoutNodeSelect {
     fn get_focused_window_id(&self, api: &mut ViewLayoutApi) -> Option<Id<Window>> {
         let node_id = *self.node_ids.focus();
         api.get_focused_window_id(node_id)
+    }
+
+    fn handle_message(
+        &mut self,
+        _api: &mut ViewHandleMessageApi,
+        message: &LayoutMessage,
+    ) -> std::ops::ControlFlow<()> {
+        let Some(message) = message.downcast_ref::<LayoutMessageSelect>() else {
+            return std::ops::ControlFlow::Continue(());
+        };
+
+        let d = match message {
+            LayoutMessageSelect::Next => 1,
+            LayoutMessageSelect::Prev => -1,
+        };
+        // For simplicity. I believe no one use layouts more than 16.
+        let len: isize = self.node_ids.as_vec().len().try_into().unwrap();
+        let i = self.node_ids.focused_index_mut();
+        *i = ((*i as isize) + d).rem_euclid(len) as usize;
+
+        std::ops::ControlFlow::Break(())
     }
 }

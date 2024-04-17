@@ -1,6 +1,5 @@
 use crate::util::Id;
 use crate::util::{FocusedVec, NonEmptyFocusedVec};
-use crate::view::layout_node::LayoutNode;
 use crate::view::window::Window;
 
 pub struct StackSet {
@@ -9,15 +8,12 @@ pub struct StackSet {
 
 pub struct Workspace {
     // tag: String,
-    // FIXME: LayoutNode -> StackLayout
-    pub(super) layouts: NonEmptyFocusedVec<Id<LayoutNode>>,
     pub(super) stack: FocusedVec<Id<Window>>,
 }
 
 impl StackSet {
-    pub(super) fn new(layouts: Vec<Id<LayoutNode>>) -> Self {
+    pub(super) fn new() -> Self {
         let workspace = Workspace {
-            layouts: NonEmptyFocusedVec::new(layouts, 0),
             stack: FocusedVec::default(),
         };
         Self {
@@ -33,10 +29,6 @@ impl StackSet {
 impl Workspace {
     pub fn stack(&self) -> &FocusedVec<Id<Window>> {
         &self.stack
-    }
-
-    pub fn layouts(&self) -> &NonEmptyFocusedVec<Id<LayoutNode>> {
-        &self.layouts
     }
 
     pub fn focus_next_window(&mut self, count: isize) {
