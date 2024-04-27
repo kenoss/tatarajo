@@ -1,7 +1,8 @@
 use crate::action::Action;
 use crate::input::{KeySeq, Keymap};
 use crate::view::view::View;
-use smithay::desktop::{PopupManager, Space, Window, WindowSurfaceType};
+use crate::view::window::Window;
+use smithay::desktop::{PopupManager, Space, WindowSurfaceType};
 use smithay::input::{Seat, SeatState};
 use smithay::reexports::calloop::generic::Generic;
 use smithay::reexports::calloop::{EventLoop, Interest, LoopSignal, Mode, PostAction};

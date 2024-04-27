@@ -6,7 +6,7 @@ use crate::view::layout_node::LayoutMessage;
 use crate::view::layout_node::LayoutNode;
 use crate::view::predefined::{LayoutFull, LayoutNodeSelect, LayoutTall};
 use crate::view::stackset::StackSet;
-use crate::view::window::Window;
+use crate::view::window::{Border, Rgba, Window, WindowProps};
 use smithay::utils::{Logical, Rectangle, Size};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
@@ -22,7 +22,6 @@ pub(super) struct ViewState {
     // TODO: Rename.
     pub(super) layout_queue: VecDeque<(Id<Window>, Rectangle<i32, Logical>)>,
     pub(super) windows: HashMap<Id<Window>, Window>,
-    pub(super) smithay_windows: HashMap<Id<Window>, smithay::desktop::Window>,
     pub(super) root_node_id: Id<LayoutNode>,
     pub(super) rect: Rectangle<i32, Logical>,
 }
@@ -30,7 +29,6 @@ pub(super) struct ViewState {
 impl View {
     pub fn new(rect: Rectangle<i32, Logical>) -> Self {
         let mut nodes = HashMap::new();
-        let windows = HashMap::new();
 
         let node = LayoutNode::from(LayoutTall {});
         let node_id0 = node.id();
@@ -51,8 +49,7 @@ impl View {
             stackset,
             nodes,
             layout_queue: VecDeque::new(),
-            windows,
-            smithay_windows: HashMap::new(),
+            windows: HashMap::new(),
             root_node_id: node_id,
             rect,
         };
@@ -71,7 +68,7 @@ impl View {
         self.state.windows.get(&window_id)
     }
 
-    pub fn layout(&mut self, space: &mut smithay::desktop::Space<smithay::desktop::Window>) {
+    pub fn layout(&mut self, space: &mut smithay::desktop::Space<Window>) {
         use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
 
         assert!(self.state.layout_queue.is_empty());
@@ -85,11 +82,23 @@ impl View {
         };
         api.layout_node(root_node_id, rect);
 
-        // Reflect layout to Space.
+        // Reflect layout to the space and surfaces.
         while let Some((window_id, rect)) = self.state.layout_queue.pop_front() {
-            let rect = rect.shrink((8, 8, 8, 8));
-            let smithay_window = self.state.smithay_windows.get(&window_id).unwrap();
-            let Some(surface) = smithay_window.toplevel() else {
+            let margin = 8.into();
+            let border = Border {
+                dim: 2.into(),
+                active_rgba: Rgba::from_rgba(0x556b2fff),
+                inactive_rgba: Rgba::from_rgba(0x00000000),
+            };
+            let rect = rect.shrink(margin).shrink(border.dim.clone());
+            let props = WindowProps {
+                geometry: rect,
+                border,
+            };
+            let window = self.state.windows.get_mut(&window_id).unwrap();
+            window.set_props(props);
+            space.map_element(window.clone(), rect.loc, false);
+            let Some(surface) = window.toplevel() else {
                 continue;
             };
             surface.with_pending_state(|state| {
@@ -101,7 +110,6 @@ impl View {
                 state.size = Some(rect.size);
             });
             surface.send_pending_configure();
-            space.map_element(smithay_window.clone(), rect.loc, false);
         }
 
         assert!(self.state.layout_queue.is_empty());
@@ -110,7 +118,7 @@ impl View {
     pub fn handle_layout_message(
         &mut self,
         message: &LayoutMessage,
-        space: &mut smithay::desktop::Space<smithay::desktop::Window>,
+        space: &mut smithay::desktop::Space<Window>,
     ) {
         let root_node_id = self.state.root_node_id;
         let mut api = ViewHandleMessageApi {
@@ -119,29 +127,64 @@ impl View {
         api.handle_message(root_node_id, message);
 
         self.layout(space);
+        self.reflect_focus(space);
     }
 
     pub fn resize_output(
         &mut self,
         size: Size<i32, Logical>,
-        space: &mut smithay::desktop::Space<smithay::desktop::Window>,
+        space: &mut smithay::desktop::Space<Window>,
     ) {
         self.state.rect = Rectangle::from_loc_and_size((0, 0), size);
         self.layout(space);
     }
 
-    pub fn register_window(&mut self, smithay_window: smithay::desktop::Window) {
-        let window = Window::new();
+    pub fn register_window(&mut self, smithay_window: smithay::desktop::Window) -> Id<Window> {
+        let window = Window::new(smithay_window);
+        let window_id = window.id();
         self.state
             .stackset
             .workspaces
             .focus_mut()
             .stack
-            .push(window.id());
-        self.state
-            .smithay_windows
-            .insert(window.id(), smithay_window);
-        self.state.windows.insert(window.id(), window);
+            .push(window_id);
+        self.state.windows.insert(window_id, window);
+
+        window_id
+    }
+
+    pub fn reflect_focus(&self, space: &mut smithay::desktop::Space<Window>) {
+        let Some(window_id) = self.state.stackset.workspaces.focus().stack.focus() else {
+            return;
+        };
+        let window = self.state.windows.get(window_id).unwrap();
+        space.raise_element(window, true);
+    }
+
+    pub fn set_focus(&mut self, id: Id<Window>, space: &mut smithay::desktop::Space<Window>) {
+        let mut indice = None;
+        for (i, ws) in self.state.stackset.workspaces.as_vec().iter().enumerate() {
+            for (j, &window_id) in ws.stack.as_vec().iter().enumerate() {
+                if window_id == id {
+                    indice = Some((i, j));
+                    break;
+                }
+            }
+        }
+        let Some((i, j)) = indice else {
+            return;
+        };
+
+        *self.state.stackset.workspaces.focused_index_mut() = i;
+        *self
+            .state
+            .stackset
+            .workspaces
+            .focus_mut()
+            .stack
+            .focused_index_mut() = j;
+
+        self.reflect_focus(space);
     }
 
     pub fn focused_window(&self) -> Option<&Window> {

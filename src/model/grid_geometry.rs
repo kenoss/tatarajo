@@ -1,3 +1,4 @@
+use crate::view::window::Peel;
 use smithay::utils::{Logical, Rectangle};
 use std::ops::Range;
 
@@ -14,7 +15,8 @@ pub trait RectangleExt: Sized {
     fn split_horizontally_2(&self, specs: [SplitSpec; 2]) -> [Self; 2];
     fn split_vertically(&self, specs: &[SplitSpec]) -> Vec<Self>;
     fn split_horizontally(&self, specs: &[SplitSpec]) -> Vec<Self>;
-    fn shrink(&self, dim: (usize, usize, usize, usize)) -> Self;
+    fn shrink(&self, dim: Peel) -> Self;
+    fn inflate(&self, dim: Peel) -> Self;
 }
 
 impl RectangleExt for Rectangle<i32, Logical> {
@@ -60,13 +62,33 @@ impl RectangleExt for Rectangle<i32, Logical> {
             .collect()
     }
 
-    fn shrink(
-        &self,
-        (top, right, bottom, left): (usize, usize, usize, usize),
-    ) -> Rectangle<i32, Logical> {
+    fn shrink(&self, dim: Peel) -> Rectangle<i32, Logical> {
+        let Peel {
+            top,
+            right,
+            bottom,
+            left,
+        } = dim;
         let (top, right, bottom, left) = (top as i32, right as i32, bottom as i32, left as i32);
         let loc = (self.loc.x + right, self.loc.y + top);
-        let size = (self.size.w - (right + left), self.size.h - (top + bottom));
+        let w = right + left;
+        let h = top + bottom;
+        let size = (0.max(self.size.w - w), 0.max(self.size.h - h));
+        Rectangle::from_loc_and_size(loc, size)
+    }
+
+    fn inflate(&self, dim: Peel) -> Rectangle<i32, Logical> {
+        let Peel {
+            top,
+            right,
+            bottom,
+            left,
+        } = dim;
+        let (top, right, bottom, left) = (top as i32, right as i32, bottom as i32, left as i32);
+        let loc = (self.loc.x - right, self.loc.y - top);
+        let w = right + left;
+        let h = top + bottom;
+        let size = (self.size.w + w, self.size.h + h);
         Rectangle::from_loc_and_size(loc, size)
     }
 }

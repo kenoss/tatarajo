@@ -1,5 +1,7 @@
+use crate::view::window::Window;
 use crate::Sabiniwm;
-use smithay::desktop::{Space, Window};
+use smithay::desktop::space::SpaceElement;
+use smithay::desktop::Space;
 use smithay::input::pointer::{
     AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
     GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent,
@@ -38,7 +40,7 @@ impl From<xdg_toplevel::ResizeEdge> for ResizeEdge {
 
 pub struct ResizeSurfaceGrab {
     start_data: PointerGrabStartData<Sabiniwm>,
-    window: Window,
+    window: smithay::desktop::Window,
 
     edges: ResizeEdge,
 
@@ -49,7 +51,7 @@ pub struct ResizeSurfaceGrab {
 impl ResizeSurfaceGrab {
     pub fn start(
         start_data: PointerGrabStartData<Sabiniwm>,
-        window: Window,
+        window: smithay::desktop::Window,
         edges: ResizeEdge,
         initial_window_rect: Rectangle<i32, Logical>,
     ) -> Self {

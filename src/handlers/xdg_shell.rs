@@ -1,9 +1,10 @@
 use crate::grabs::{MoveSurfaceGrab, ResizeSurfaceGrab};
+use crate::view::window::Window;
 use crate::Sabiniwm;
 use smithay::delegate_xdg_shell;
-use smithay::desktop::{
-    find_popup_root_surface, get_popup_toplevel_coords, PopupKind, PopupManager, Space, Window,
-};
+use smithay::desktop::space::SpaceElement;
+use smithay::desktop::{find_popup_root_surface, get_popup_toplevel_coords};
+use smithay::desktop::{PopupKind, PopupManager, Space};
 use smithay::input::pointer::{Focus, GrabStartData as PointerGrabStartData};
 use smithay::input::Seat;
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
@@ -23,10 +24,10 @@ impl XdgShellHandler for Sabiniwm {
     }
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
-        let window = Window::new_wayland_window(surface);
-        self.space.map_element(window.clone(), (0, 0), false);
-        self.view.register_window(window);
+        let window = smithay::desktop::Window::new_wayland_window(surface);
+        let window_id = self.view.register_window(window);
         self.view.layout(&mut self.space);
+        self.view.set_focus(window_id, &mut self.space);
     }
 
     fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {
@@ -106,7 +107,7 @@ impl XdgShellHandler for Sabiniwm {
 
             let grab = ResizeSurfaceGrab::start(
                 start_data,
-                window,
+                window.smithay_window().clone(),
                 edges.into(),
                 Rectangle::from_loc_and_size(initial_window_location, initial_window_size),
             );

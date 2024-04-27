@@ -100,15 +100,15 @@ impl Sabiniwm {
                         .element_under(pointer.current_location())
                         .map(|(w, l)| (w.clone(), l))
                     {
-                        self.space.raise_element(&window, true);
+                        self.view.set_focus(window.id(), &mut self.space);
+                        for window in self.space.elements() {
+                            window.toplevel().unwrap().send_pending_configure();
+                        }
                         keyboard.set_focus(
                             self,
                             Some(window.toplevel().unwrap().wl_surface().clone()),
                             serial,
                         );
-                        for window in self.space.elements() {
-                            window.toplevel().unwrap().send_pending_configure();
-                        }
                     } else {
                         for window in self.space.elements() {
                             window.set_activate(false);

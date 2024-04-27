@@ -96,5 +96,6 @@ impl ActionFnI for ActionMoveFocus {
             Self::Prev => -1,
         };
         state.view.focus_next_window(d);
+        state.view.reflect_focus(&mut state.space);
     }
 }
