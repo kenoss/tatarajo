@@ -2,6 +2,10 @@
 #[macro_use]
 extern crate maplit;
 
+#[allow(unused_imports)]
+#[macro_use]
+extern crate tracing;
+
 pub mod action;
 mod grabs;
 mod handlers;
