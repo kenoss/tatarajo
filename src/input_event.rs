@@ -6,6 +6,7 @@ use smithay::backend::input::{
     AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
     KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent,
 };
+use smithay::desktop::space::SpaceElement;
 use smithay::input::keyboard::FilterResult;
 use smithay::input::pointer::{AxisFrame, ButtonEvent, MotionEvent};
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
@@ -105,14 +106,14 @@ impl Sabiniwm {
                             Some(window.toplevel().unwrap().wl_surface().clone()),
                             serial,
                         );
-                        self.space.elements().for_each(|window| {
+                        for window in self.space.elements() {
                             window.toplevel().unwrap().send_pending_configure();
-                        });
+                        }
                     } else {
-                        self.space.elements().for_each(|window| {
-                            window.set_activated(false);
+                        for window in self.space.elements() {
+                            window.set_activate(false);
                             window.toplevel().unwrap().send_pending_configure();
-                        });
+                        }
                         keyboard.set_focus(self, Option::<WlSurface>::None, serial);
                     }
                 };
