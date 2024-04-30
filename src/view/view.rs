@@ -127,7 +127,6 @@ impl View {
         api.handle_message(root_node_id, message);
 
         self.layout(space);
-        self.reflect_focus(space);
     }
 
     pub fn resize_output(
@@ -153,15 +152,7 @@ impl View {
         window_id
     }
 
-    pub fn reflect_focus(&self, space: &mut smithay::desktop::Space<Window>) {
-        let Some(window_id) = self.state.stackset.workspaces.focus().stack.focus() else {
-            return;
-        };
-        let window = self.state.windows.get(window_id).unwrap();
-        space.raise_element(window, true);
-    }
-
-    pub fn set_focus(&mut self, id: Id<Window>, space: &mut smithay::desktop::Space<Window>) {
+    pub fn set_focus(&mut self, id: Id<Window>) {
         let mut indice = None;
         for (i, ws) in self.state.stackset.workspaces.as_vec().iter().enumerate() {
             for (j, &window_id) in ws.stack.as_vec().iter().enumerate() {
@@ -183,8 +174,6 @@ impl View {
             .focus_mut()
             .stack
             .focused_index_mut() = j;
-
-        self.reflect_focus(space);
     }
 
     pub fn focused_window(&self) -> Option<&Window> {

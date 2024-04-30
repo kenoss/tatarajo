@@ -1,5 +1,6 @@
 use crate::action::Action;
 use crate::input::{KeySeq, Keymap};
+use crate::input_event::FocusUpdateDecider;
 use crate::view::view::View;
 use crate::view::window::Window;
 use smithay::desktop::{PopupManager, Space, WindowSurfaceType};
@@ -48,6 +49,7 @@ pub struct Sabiniwm {
     pub keyseq: KeySeq,
 
     pub view: View,
+    pub(crate) focus_update_decider: FocusUpdateDecider,
 }
 
 impl Sabiniwm {
@@ -140,6 +142,7 @@ impl Sabiniwm {
             keyseq: KeySeq::new(),
 
             view,
+            focus_update_decider: FocusUpdateDecider::new(),
         }
     }
 

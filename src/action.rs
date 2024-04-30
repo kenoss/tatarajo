@@ -74,6 +74,7 @@ impl Sabiniwm {
             }
             Action::LayoutMessage(message) => {
                 self.view.handle_layout_message(message, &mut self.space);
+                self.reflect_focus_from_stackset(None);
             }
             Action::ActionFn(f) => {
                 f.exec(self);
@@ -96,6 +97,6 @@ impl ActionFnI for ActionMoveFocus {
             Self::Prev => -1,
         };
         state.view.focus_next_window(d);
-        state.view.reflect_focus(&mut state.space);
+        state.reflect_focus_from_stackset(None);
     }
 }

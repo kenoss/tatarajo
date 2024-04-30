@@ -27,7 +27,8 @@ impl XdgShellHandler for Sabiniwm {
         let window = smithay::desktop::Window::new_wayland_window(surface);
         let window_id = self.view.register_window(window);
         self.view.layout(&mut self.space);
-        self.view.set_focus(window_id, &mut self.space);
+        self.view.set_focus(window_id);
+        self.reflect_focus_from_stackset(None);
     }
 
     fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {
