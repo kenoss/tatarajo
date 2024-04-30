@@ -1,10 +1,11 @@
 use crate::input::keymap::KeymapEntry;
 use crate::input::KeySeq;
 use crate::state::Sabiniwm;
-use smithay::backend::input::KeyState;
+use crate::util::Id;
+use crate::view::window::Window;
 use smithay::backend::input::{
     AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
-    KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent,
+    KeyState, KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent,
 };
 use smithay::desktop::space::SpaceElement;
 use smithay::input::keyboard::FilterResult;
@@ -17,6 +18,7 @@ impl Sabiniwm {
         match event {
             InputEvent::Keyboard { event, .. } => {
                 let serial = SERIAL_COUNTER.next_serial();
+
                 let time = Event::time_msec(&event);
 
                 self.seat.get_keyboard().unwrap().input::<(), _>(
@@ -61,44 +63,41 @@ impl Sabiniwm {
             }
             InputEvent::PointerMotion { .. } => {}
             InputEvent::PointerMotionAbsolute { event, .. } => {
-                let output = self.space.outputs().next().unwrap();
-
-                let output_geo = self.space.output_geometry(output).unwrap();
-
-                let pos = event.position_transformed(output_geo.size) + output_geo.loc.to_f64();
-
                 let serial = SERIAL_COUNTER.next_serial();
 
                 let pointer = self.seat.get_pointer().unwrap();
 
+                let output = self.space.outputs().next().unwrap();
+                let output_geo = self.space.output_geometry(output).unwrap();
+                let pos = event.position_transformed(output_geo.size) + output_geo.loc.to_f64();
                 let under = self.surface_under(pos);
 
                 pointer.motion(
                     self,
                     under,
                     &MotionEvent {
-                        location: pos,
                         serial,
                         time: event.time_msec(),
+                        location: pos,
                     },
                 );
                 pointer.frame(self);
             }
             InputEvent::PointerButton { event, .. } => {
+                let serial = SERIAL_COUNTER.next_serial();
+
                 let pointer = self.seat.get_pointer().unwrap();
                 let keyboard = self.seat.get_keyboard().unwrap();
 
-                let serial = SERIAL_COUNTER.next_serial();
-
                 let button = event.button_code();
-
                 let button_state = event.state();
 
                 if ButtonState::Pressed == button_state && !pointer.is_grabbed() {
-                    if let Some((window, _loc)) = self
+                    if let Some(window) = self
                         .space
                         .element_under(pointer.current_location())
-                        .map(|(w, l)| (w.clone(), l))
+                        .map(|(w, _)| w)
+                        .cloned()
                     {
                         self.view.set_focus(window.id(), &mut self.space);
                         for window in self.space.elements() {
@@ -121,10 +120,10 @@ impl Sabiniwm {
                 pointer.button(
                     self,
                     &ButtonEvent {
-                        button,
-                        state: button_state,
                         serial,
                         time: event.time_msec(),
+                        button,
+                        state: button_state,
                     },
                 );
                 pointer.frame(self);
