@@ -1,4 +1,4 @@
-use crate::view::window::Peel;
+use crate::view::window::Thickness;
 use smithay::utils::{Logical, Rectangle};
 use std::ops::Range;
 
@@ -15,8 +15,8 @@ pub trait RectangleExt: Sized {
     fn split_horizontally_2(&self, specs: [SplitSpec; 2]) -> [Self; 2];
     fn split_vertically(&self, specs: &[SplitSpec]) -> Vec<Self>;
     fn split_horizontally(&self, specs: &[SplitSpec]) -> Vec<Self>;
-    fn shrink(&self, dim: Peel) -> Self;
-    fn inflate(&self, dim: Peel) -> Self;
+    fn shrink(&self, dim: Thickness) -> Self;
+    fn inflate(&self, dim: Thickness) -> Self;
 }
 
 impl RectangleExt for Rectangle<i32, Logical> {
@@ -62,8 +62,8 @@ impl RectangleExt for Rectangle<i32, Logical> {
             .collect()
     }
 
-    fn shrink(&self, dim: Peel) -> Rectangle<i32, Logical> {
-        let Peel {
+    fn shrink(&self, dim: Thickness) -> Rectangle<i32, Logical> {
+        let Thickness {
             top,
             right,
             bottom,
@@ -77,8 +77,8 @@ impl RectangleExt for Rectangle<i32, Logical> {
         Rectangle::from_loc_and_size(loc, size)
     }
 
-    fn inflate(&self, dim: Peel) -> Rectangle<i32, Logical> {
-        let Peel {
+    fn inflate(&self, dim: Thickness) -> Rectangle<i32, Logical> {
+        let Thickness {
             top,
             right,
             bottom,

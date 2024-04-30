@@ -2,14 +2,14 @@ mod props {
     use smithay::utils::{Logical, Rectangle};
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct Peel {
+    pub struct Thickness {
         pub top: u32,
         pub right: u32,
         pub bottom: u32,
         pub left: u32,
     }
 
-    impl From<u32> for Peel {
+    impl From<u32> for Thickness {
         fn from(x: u32) -> Self {
             Self {
                 top: x,
@@ -20,7 +20,7 @@ mod props {
         }
     }
 
-    impl From<(u32, u32)> for Peel {
+    impl From<(u32, u32)> for Thickness {
         fn from((y, x): (u32, u32)) -> Self {
             Self {
                 top: y,
@@ -31,7 +31,7 @@ mod props {
         }
     }
 
-    impl From<(u32, u32, u32, u32)> for Peel {
+    impl From<(u32, u32, u32, u32)> for Thickness {
         fn from((top, right, bottom, left): (u32, u32, u32, u32)) -> Self {
             Self {
                 top,
@@ -84,7 +84,7 @@ mod props {
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct Border {
-        pub dim: Peel,
+        pub dim: Thickness,
         pub active_rgba: Rgba,
         pub inactive_rgba: Rgba,
     }
