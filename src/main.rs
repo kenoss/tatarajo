@@ -40,15 +40,17 @@ fn main() -> Result<()> {
     let keyseq_serde = KeySeqSerde::new(hashmap! {
         S("C") => ModMask::CONTROL,
         S("M") => ModMask::MOD1,
-        S("s") => ModMask::MOD4,
-        S("H") => ModMask::MOD5,
+        // S("s") => ModMask::MOD4,
+        // S("H") => ModMask::MOD5,
+        // Hyper uses Mod5 in my environment. Use Mod4 for development with winit.
+        S("H") => ModMask::MOD4,
     });
     let kbd = |s| keyseq_serde.kbd(s).unwrap();
     let keymap = Keymap::new(hashmap! {
-        kbd("H-c H-c t") => Action::spawn("alacritty"),
+        kbd("H-x H-t") => Action::spawn("alacritty"),
         kbd("H-space") => LayoutMessageSelect::Next.into(),
-        kbd("H-c t") => ActionMoveFocus::Next.into_action(),
-        kbd("H-c h") => ActionMoveFocus::Prev.into_action(),
+        kbd("H-t") => ActionMoveFocus::Next.into_action(),
+        kbd("H-h") => ActionMoveFocus::Prev.into_action(),
     });
 
     Sabiniwm::start(keymap)?;
