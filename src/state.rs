@@ -13,7 +13,6 @@ use smithay::reexports::wayland_server::{Display, DisplayHandle};
 use smithay::utils::Rectangle;
 use smithay::utils::{Logical, Point};
 use smithay::wayland::compositor::{CompositorClientState, CompositorState};
-use smithay::wayland::output::OutputManagerState;
 use smithay::wayland::selection::data_device::DataDeviceState;
 use smithay::wayland::shell::xdg::XdgShellState;
 use smithay::wayland::shm::ShmState;
@@ -27,28 +26,27 @@ pub(crate) struct CalloopData {
 }
 
 pub struct Sabiniwm {
-    pub start_time: std::time::Instant,
-    pub socket_name: OsString,
-    pub display_handle: DisplayHandle,
+    pub(crate) start_time: std::time::Instant,
+    pub(crate) socket_name: OsString,
+    pub(crate) display_handle: DisplayHandle,
 
-    pub space: Space<Window>,
-    pub loop_signal: LoopSignal,
+    pub(crate) space: Space<Window>,
+    pub(crate) loop_signal: LoopSignal,
 
     // Smithay State
-    pub compositor_state: CompositorState,
-    pub xdg_shell_state: XdgShellState,
-    pub shm_state: ShmState,
-    pub output_manager_state: OutputManagerState,
-    pub seat_state: SeatState<Sabiniwm>,
-    pub data_device_state: DataDeviceState,
-    pub popups: PopupManager,
+    pub(crate) compositor_state: CompositorState,
+    pub(crate) xdg_shell_state: XdgShellState,
+    pub(crate) shm_state: ShmState,
+    pub(crate) seat_state: SeatState<Sabiniwm>,
+    pub(crate) data_device_state: DataDeviceState,
+    pub(crate) popups: PopupManager,
 
-    pub seat: Seat<Self>,
+    pub(crate) seat: Seat<Self>,
 
-    pub keymap: Keymap<Action>,
-    pub keyseq: KeySeq,
+    pub(crate) keymap: Keymap<Action>,
+    pub(crate) keyseq: KeySeq,
 
-    pub view: View,
+    pub(crate) view: View,
     pub(crate) focus_update_decider: FocusUpdateDecider,
 }
 
@@ -86,7 +84,6 @@ impl Sabiniwm {
         let compositor_state = CompositorState::new::<Self>(&dh);
         let xdg_shell_state = XdgShellState::new::<Self>(&dh);
         let shm_state = ShmState::new::<Self>(&dh, vec![]);
-        let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&dh);
         let mut seat_state = SeatState::new();
         let data_device_state = DataDeviceState::new::<Self>(&dh);
         let popups = PopupManager::default();
@@ -132,7 +129,6 @@ impl Sabiniwm {
             compositor_state,
             xdg_shell_state,
             shm_state,
-            output_manager_state,
             seat_state,
             data_device_state,
             popups,
@@ -191,7 +187,7 @@ impl Sabiniwm {
         socket_name
     }
 
-    pub fn surface_under(
+    pub(crate) fn surface_under(
         &self,
         pos: Point<f64, Logical>,
     ) -> Option<(WlSurface, Point<i32, Logical>)> {
@@ -206,7 +202,7 @@ impl Sabiniwm {
 }
 
 #[derive(Default)]
-pub struct ClientState {
+pub(crate) struct ClientState {
     pub compositor_state: CompositorClientState,
 }
 

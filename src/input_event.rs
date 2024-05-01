@@ -12,7 +12,7 @@ use smithay::input::pointer::{AxisFrame, ButtonEvent, MotionEvent};
 use smithay::utils::{Logical, Point, Serial, SERIAL_COUNTER};
 
 impl Sabiniwm {
-    pub fn process_input_event<I: InputBackend>(&mut self, event: InputEvent<I>) {
+    pub(crate) fn process_input_event<I: InputBackend>(&mut self, event: InputEvent<I>) {
         let should_update_focus =
             self.focus_update_decider
                 .should_update_focus(&self.seat, &self.space, &event);
