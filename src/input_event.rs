@@ -23,10 +23,15 @@ impl Sabiniwm {
 
                 let time = Event::time_msec(&event);
 
-                self.seat.get_keyboard().unwrap().input::<(), _>(
+                // Note that `Seat::get_keyboard()` locks a field. If we call `Sabiniwm::process_action()` in the `filter` (the
+                // last argument), it will deadlock (if it hits a path calling e.g. `Seat::get_keyborad()` in it).
+                let action = self.seat.get_keyboard().unwrap().input(
                     self,
                     event.key_code(),
                     event.state(),
+                    // Note that this `serial` will not be used for `KeybordHandler::input_forward()` if
+                    // `KeyboardHandler::input_intercept()` returned `FilterResult::Intercept`. So, issuing a new `Serial` in
+                    // `Sabiniwm::process_action` is OK.
                     serial,
                     time,
                     |this, _, keysym_handle| match event.state() {
@@ -35,10 +40,9 @@ impl Sabiniwm {
                             for key in KeySeq::extract(&keysym_handle).into_vec() {
                                 this.keyseq.push(key);
                                 match this.keymap.get(&this.keyseq).clone() {
-                                    KeymapEntry::Complete(x) => {
+                                    KeymapEntry::Complete(action) => {
                                         this.keyseq.clear();
-                                        this.process_action(&x);
-                                        return FilterResult::Intercept(());
+                                        return FilterResult::Intercept(Some(action));
                                     }
                                     KeymapEntry::Incomplete => {}
                                     KeymapEntry::None => {
@@ -46,22 +50,25 @@ impl Sabiniwm {
                                         if was_empty {
                                             return FilterResult::Forward;
                                         } else {
-                                            return FilterResult::Intercept(());
+                                            return FilterResult::Intercept(None);
                                         }
                                     }
                                 }
                             }
-                            FilterResult::Intercept(())
+                            FilterResult::Intercept(None)
                         }
                         KeyState::Released => {
                             if this.keyseq.is_empty() {
                                 FilterResult::Forward
                             } else {
-                                FilterResult::Intercept(())
+                                FilterResult::Intercept(None)
                             }
                         }
                     },
                 );
+                if let Some(action) = action.flatten() {
+                    self.process_action(&action);
+                }
             }
             InputEvent::PointerMotion { .. } => {}
             InputEvent::PointerMotionAbsolute { event, .. } => {
