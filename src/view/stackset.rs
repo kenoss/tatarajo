@@ -32,12 +32,7 @@ impl Workspace {
     }
 
     pub fn focus_next_window(&mut self, count: isize) {
-        if !self.stack.is_empty() {
-            let n = self.stack.len() as isize;
-            let i = self.stack.focused_index() as isize;
-            let i = i + count;
-            let i = ((i % n) + n) % n; // modulo n
-            *self.stack.focused_index_mut() = i as usize;
-        }
+        let i = self.stack.mod_plus_focused_index(count);
+        *self.stack.focused_index_mut() = i;
     }
 }

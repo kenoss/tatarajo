@@ -88,14 +88,12 @@ impl LayoutNodeI for LayoutNodeSelect {
             return std::ops::ControlFlow::Continue(());
         };
 
-        let d = match message {
+        let count = match message {
             LayoutMessageSelect::Next => 1,
             LayoutMessageSelect::Prev => -1,
         };
-        // For simplicity. I believe no one use layouts more than 16.
-        let len: isize = self.node_ids.as_vec().len().try_into().unwrap();
-        let i = self.node_ids.focused_index_mut();
-        *i = ((*i as isize) + d).rem_euclid(len) as usize;
+        let i = self.node_ids.mod_plus_focused_index(count);
+        *self.node_ids.focused_index_mut() = i;
 
         std::ops::ControlFlow::Break(())
     }

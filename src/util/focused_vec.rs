@@ -66,6 +66,16 @@ impl<T> FocusedVec<T> {
     pub fn focused_index_mut(&mut self) -> &mut usize {
         &mut self.focus
     }
+
+    pub fn mod_plus_focused_index(&self, diff: isize) -> usize {
+        if self.is_empty() {
+            return 0;
+        }
+
+        let n: isize = self.vec.len().try_into().unwrap();
+        let i = self.focus as isize;
+        (i + diff).rem_euclid(n) as usize
+    }
 }
 
 impl<T> NonEmptyFocusedVec<T> {
@@ -105,5 +115,11 @@ impl<T> NonEmptyFocusedVec<T> {
     #[inline]
     pub fn focused_index_mut(&mut self) -> &mut usize {
         &mut self.focus
+    }
+
+    pub fn mod_plus_focused_index(&self, diff: isize) -> usize {
+        let n: isize = self.vec.len().try_into().unwrap();
+        let i = self.focus as isize;
+        (i + diff).rem_euclid(n) as usize
     }
 }
