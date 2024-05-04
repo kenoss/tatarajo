@@ -79,6 +79,7 @@ impl Sabiniwm {
             Action::ActionFn(f) => {
                 f.exec(self);
                 self.view.layout(&mut self.space);
+                self.reflect_focus_from_stackset(None);
             }
         }
     }
@@ -101,7 +102,6 @@ impl ActionFnI for ActionMoveFocus {
             let i = stack.mod_plus_focused_index(count);
             stack.set_focused_index(i);
         });
-        state.reflect_focus_from_stackset(None);
     }
 }
 
@@ -129,6 +129,5 @@ impl ActionFnI for ActionWindowSwap {
             stack.as_vec_mut().swap(i, j);
             stack.set_focused_index(j);
         });
-        state.reflect_focus_from_stackset(None);
     }
 }
