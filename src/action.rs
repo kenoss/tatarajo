@@ -92,11 +92,11 @@ pub enum ActionMoveFocus {
 
 impl ActionFnI for ActionMoveFocus {
     fn exec(&self, state: &mut Sabiniwm) {
-        let d = match self {
+        let count = match self {
             Self::Next => 1,
             Self::Prev => -1,
         };
-        state.view.focus_next_window(d);
+        state.view.focus_next_window(count);
         state.reflect_focus_from_stackset(None);
     }
 }
