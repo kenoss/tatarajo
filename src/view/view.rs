@@ -153,8 +153,10 @@ impl View {
     }
 
     pub fn set_focus(&mut self, id: Id<Window>) {
+        let workspaces = &mut self.state.stackset.workspaces;
+
         let mut indice = None;
-        for (i, ws) in self.state.stackset.workspaces.as_vec().iter().enumerate() {
+        for (i, ws) in workspaces.as_vec().iter().enumerate() {
             for (j, &window_id) in ws.stack.as_vec().iter().enumerate() {
                 if window_id == id {
                     indice = Some((i, j));
@@ -166,13 +168,8 @@ impl View {
             return;
         };
 
-        self.state.stackset.workspaces.set_focused_index(i);
-        self.state
-            .stackset
-            .workspaces
-            .focus_mut()
-            .stack
-            .set_focused_index(j);
+        workspaces.set_focused_index(i);
+        workspaces.focus_mut().stack.set_focused_index(j);
     }
 
     pub fn focused_window(&self) -> Option<&Window> {
