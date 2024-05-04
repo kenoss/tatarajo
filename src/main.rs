@@ -3,7 +3,7 @@ extern crate maplit;
 
 use anyhow::Result;
 use big_s::S;
-use sabiniwm::action::{Action, ActionFnI, ActionMoveFocus, ActionWindowSwap};
+use sabiniwm::action::{self, Action, ActionFnI};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
 use sabiniwm::view::predefined::LayoutMessageSelect;
 use sabiniwm::Sabiniwm;
@@ -49,10 +49,10 @@ fn main() -> Result<()> {
     let keymap = Keymap::new(hashmap! {
         kbd("H-x H-t") => Action::spawn("alacritty"),
         kbd("H-space") => LayoutMessageSelect::Next.into(),
-        kbd("H-t") => ActionMoveFocus::Next.into_action(),
-        kbd("H-h") => ActionMoveFocus::Prev.into_action(),
-        kbd("H-T") => ActionWindowSwap::Next.into_action(),
-        kbd("H-H") => ActionWindowSwap::Prev.into_action(),
+        kbd("H-t") => action::ActionMoveFocus::Next.into_action(),
+        kbd("H-h") => action::ActionMoveFocus::Prev.into_action(),
+        kbd("H-T") => action::ActionWindowSwap::Next.into_action(),
+        kbd("H-H") => action::ActionWindowSwap::Prev.into_action(),
     });
 
     Sabiniwm::start(keymap)?;
