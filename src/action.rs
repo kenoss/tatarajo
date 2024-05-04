@@ -133,6 +133,26 @@ impl ActionFnI for ActionWindowSwap {
 }
 
 #[derive(Debug, Clone)]
+pub enum ActionWorkspaceFocus {
+    Next,
+    Prev,
+}
+
+impl ActionFnI for ActionWorkspaceFocus {
+    fn exec(&self, state: &mut Sabiniwm) {
+        let count = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let workspaces = &mut stackset.workspaces;
+            let i = workspaces.mod_plus_focused_index(count);
+            workspaces.set_focused_index(i);
+        });
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ActionWindowKill {}
 
 impl ActionFnI for ActionWindowKill {
