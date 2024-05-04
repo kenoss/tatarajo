@@ -6,19 +6,25 @@ pub struct StackSet {
     pub workspaces: NonEmptyFocusedVec<Workspace>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkspaceTag(pub String);
+
 pub struct Workspace {
-    // tag: String,
+    pub tag: WorkspaceTag,
     pub stack: FocusedVec<Id<Window>>,
 }
 
 impl StackSet {
-    pub(super) fn new() -> Self {
-        let workspace = Workspace {
-            stack: FocusedVec::default(),
-        };
-        Self {
-            workspaces: NonEmptyFocusedVec::new(vec![workspace], 0),
-        }
+    pub(super) fn new(tags: Vec<WorkspaceTag>) -> Self {
+        let workspaces = tags
+            .into_iter()
+            .map(|tag| Workspace {
+                tag,
+                stack: FocusedVec::default(),
+            })
+            .collect();
+        let workspaces = NonEmptyFocusedVec::new(workspaces, 0);
+        Self { workspaces }
     }
 
     pub fn workspaces(&self) -> &NonEmptyFocusedVec<Workspace> {

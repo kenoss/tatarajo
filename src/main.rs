@@ -6,6 +6,7 @@ use big_s::S;
 use sabiniwm::action::{self, Action, ActionFnI};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
 use sabiniwm::view::predefined::LayoutMessageSelect;
+use sabiniwm::view::stackset::WorkspaceTag;
 use sabiniwm::Sabiniwm;
 
 fn tracing_init() -> Result<()> {
@@ -61,7 +62,8 @@ fn main() -> Result<()> {
         kbd("H-k") => (action::ActionWindowKill {}).into_action(),
     });
 
-    Sabiniwm::start(keymap)?;
+    let workspace_tags = (0..=9).map(|i| WorkspaceTag(format!("{}", i))).collect();
+    Sabiniwm::start(workspace_tags, keymap)?;
 
     Ok(())
 }

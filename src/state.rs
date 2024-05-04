@@ -1,6 +1,7 @@
 use crate::action::Action;
 use crate::input::{KeySeq, Keymap};
 use crate::input_event::FocusUpdateDecider;
+use crate::view::stackset::WorkspaceTag;
 use crate::view::view::View;
 use crate::view::window::Window;
 use smithay::desktop::{PopupManager, Space, WindowSurfaceType};
@@ -51,12 +52,12 @@ pub struct Sabiniwm {
 }
 
 impl Sabiniwm {
-    pub fn start(keymap: Keymap<Action>) -> anyhow::Result<()> {
+    pub fn start(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) -> anyhow::Result<()> {
         let mut event_loop: EventLoop<CalloopData> = EventLoop::try_new()?;
 
         let display: Display<Sabiniwm> = Display::new()?;
         let display_handle = display.handle();
-        let state = Sabiniwm::new(&mut event_loop, display, keymap);
+        let state = Sabiniwm::new(&mut event_loop, display, workspace_tags, keymap);
 
         let mut data = CalloopData {
             state,
@@ -75,6 +76,7 @@ impl Sabiniwm {
     fn new(
         event_loop: &mut EventLoop<CalloopData>,
         display: Display<Self>,
+        workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
     ) -> Self {
         let start_time = std::time::Instant::now();
@@ -116,7 +118,7 @@ impl Sabiniwm {
         let loop_signal = event_loop.get_signal();
 
         let rect = Rectangle::from_loc_and_size((0, 0), (1280, 720));
-        let view = View::new(rect);
+        let view = View::new(rect, workspace_tags);
 
         Self {
             start_time,

@@ -5,7 +5,7 @@ use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::LayoutMessage;
 use crate::view::layout_node::LayoutNode;
 use crate::view::predefined::{LayoutFull, LayoutNodeSelect, LayoutTall};
-use crate::view::stackset::StackSet;
+use crate::view::stackset::{StackSet, WorkspaceTag};
 use crate::view::window::{Border, Rgba, Window, WindowProps};
 use itertools::Itertools;
 use smithay::utils::{Logical, Rectangle, Size};
@@ -28,7 +28,7 @@ pub(super) struct ViewState {
 }
 
 impl View {
-    pub fn new(rect: Rectangle<i32, Logical>) -> Self {
+    pub fn new(rect: Rectangle<i32, Logical>, workspace_tags: Vec<WorkspaceTag>) -> Self {
         let mut nodes = HashMap::new();
 
         let node = LayoutNode::from(LayoutTall {});
@@ -44,7 +44,7 @@ impl View {
         let node_id = node.id();
         nodes.insert(node_id, RefCell::new(node));
 
-        let stackset = StackSet::new();
+        let stackset = StackSet::new(workspace_tags);
 
         let state = ViewState {
             stackset,
