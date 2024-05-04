@@ -63,8 +63,8 @@ impl<T> FocusedVec<T> {
     }
 
     #[inline]
-    pub fn focused_index_mut(&mut self) -> &mut usize {
-        &mut self.focus
+    pub fn set_focused_index(&mut self, i: usize) {
+        self.focus = i;
     }
 
     pub fn mod_plus_focused_index(&self, diff: isize) -> usize {
@@ -113,8 +113,8 @@ impl<T> NonEmptyFocusedVec<T> {
     }
 
     #[inline]
-    pub fn focused_index_mut(&mut self) -> &mut usize {
-        &mut self.focus
+    pub fn set_focused_index(&mut self, i: usize) {
+        self.focus = i;
     }
 
     pub fn mod_plus_focused_index(&self, diff: isize) -> usize {

@@ -166,14 +166,13 @@ impl View {
             return;
         };
 
-        *self.state.stackset.workspaces.focused_index_mut() = i;
-        *self
-            .state
+        self.state.stackset.workspaces.set_focused_index(i);
+        self.state
             .stackset
             .workspaces
             .focus_mut()
             .stack
-            .focused_index_mut() = j;
+            .set_focused_index(j);
     }
 
     pub fn focused_window(&self) -> Option<&Window> {

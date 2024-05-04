@@ -93,7 +93,7 @@ impl LayoutNodeI for LayoutNodeSelect {
             LayoutMessageSelect::Prev => -1,
         };
         let i = self.node_ids.mod_plus_focused_index(count);
-        *self.node_ids.focused_index_mut() = i;
+        self.node_ids.set_focused_index(i);
 
         std::ops::ControlFlow::Break(())
     }
