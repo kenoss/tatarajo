@@ -96,7 +96,11 @@ impl ActionFnI for ActionMoveFocus {
             Self::Next => 1,
             Self::Prev => -1,
         };
-        state.view.focus_next_window(count);
+        state.view.update_stackset_with(|stackset| {
+            let stack = &mut stackset.workspaces.focus_mut().stack;
+            let i = stack.mod_plus_focused_index(count);
+            stack.set_focused_index(i);
+        });
         state.reflect_focus_from_stackset(None);
     }
 }

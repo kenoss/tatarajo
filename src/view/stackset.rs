@@ -30,9 +30,4 @@ impl Workspace {
     pub fn stack(&self) -> &FocusedVec<Id<Window>> {
         &self.stack
     }
-
-    pub fn focus_next_window(&mut self, count: isize) {
-        let i = self.stack.mod_plus_focused_index(count);
-        self.stack.set_focused_index(i);
-    }
 }

@@ -182,14 +182,6 @@ impl View {
             .map(|id| self.state.windows.get(id).unwrap())
     }
 
-    pub fn focus_next_window(&mut self, count: isize) {
-        self.state
-            .stackset
-            .workspaces
-            .focus_mut()
-            .focus_next_window(count);
-    }
-
     pub fn update_stackset_with(&mut self, f: impl FnOnce(&mut StackSet)) {
         f(&mut self.state.stackset);
     }
