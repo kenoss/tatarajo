@@ -33,6 +33,11 @@ impl<T> FocusedVec<T> {
     }
 
     #[inline]
+    pub fn as_vec_mut(&mut self) -> &mut Vec<T> {
+        &mut self.vec
+    }
+
+    #[inline]
     pub fn len(&self) -> usize {
         self.vec.len()
     }

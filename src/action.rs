@@ -100,3 +100,31 @@ impl ActionFnI for ActionMoveFocus {
         state.reflect_focus_from_stackset(None);
     }
 }
+
+#[derive(Debug, Clone)]
+pub enum ActionWindowSwap {
+    Next,
+    Prev,
+}
+
+impl ActionFnI for ActionWindowSwap {
+    fn exec(&self, state: &mut Sabiniwm) {
+        let count = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let stack = &mut stackset.workspaces.focus_mut().stack;
+
+            if stack.is_empty() {
+                return;
+            }
+
+            let i = stack.focused_index();
+            let j = stack.mod_plus_focused_index(count);
+            stack.as_vec_mut().swap(i, j);
+            stack.set_focused_index(j);
+        });
+        state.reflect_focus_from_stackset(None);
+    }
+}

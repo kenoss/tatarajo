@@ -189,4 +189,8 @@ impl View {
             .focus_mut()
             .focus_next_window(count);
     }
+
+    pub fn update_stackset_with(&mut self, f: impl FnOnce(&mut StackSet)) {
+        f(&mut self.state.stackset);
+    }
 }

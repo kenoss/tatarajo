@@ -3,12 +3,12 @@ use crate::util::{FocusedVec, NonEmptyFocusedVec};
 use crate::view::window::Window;
 
 pub struct StackSet {
-    pub(super) workspaces: NonEmptyFocusedVec<Workspace>,
+    pub workspaces: NonEmptyFocusedVec<Workspace>,
 }
 
 pub struct Workspace {
     // tag: String,
-    pub(super) stack: FocusedVec<Id<Window>>,
+    pub stack: FocusedVec<Id<Window>>,
 }
 
 impl StackSet {
