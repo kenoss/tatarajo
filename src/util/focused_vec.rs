@@ -103,6 +103,11 @@ impl<T> NonEmptyFocusedVec<T> {
     }
 
     #[inline]
+    pub fn len(&self) -> usize {
+        self.vec.len()
+    }
+
+    #[inline]
     pub fn push(&mut self, x: T) {
         self.vec.push(x);
     }

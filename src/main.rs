@@ -56,6 +56,8 @@ fn main() -> Result<()> {
         kbd("H-h") => action::ActionMoveFocus::Prev.into_action(),
         kbd("H-T") => action::ActionWindowSwap::Next.into_action(),
         kbd("H-H") => action::ActionWindowSwap::Prev.into_action(),
+        kbd("H-n") => action::ActionWorkspaceFocusNonEmpty::Next.into_action(),
+        kbd("H-d") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
         kbd("H-v") => action::ActionWorkspaceFocus::Next.into_action(),
         kbd("H-b") => action::ActionWorkspaceFocus::Prev.into_action(),
 

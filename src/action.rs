@@ -153,6 +153,31 @@ impl ActionFnI for ActionWorkspaceFocus {
 }
 
 #[derive(Debug, Clone)]
+pub enum ActionWorkspaceFocusNonEmpty {
+    Next,
+    Prev,
+}
+
+impl ActionFnI for ActionWorkspaceFocusNonEmpty {
+    fn exec(&self, state: &mut Sabiniwm) {
+        let direction = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let workspaces = &mut stackset.workspaces;
+            for d in 1..workspaces.len() {
+                let i = workspaces.mod_plus_focused_index(direction * d as isize);
+                if !workspaces.as_vec()[i].stack.is_empty() {
+                    workspaces.set_focused_index(i);
+                    return;
+                }
+            }
+        });
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ActionWindowKill {}
 
 impl ActionFnI for ActionWindowKill {
