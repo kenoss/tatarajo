@@ -106,6 +106,10 @@ pub fn init_winit(
                         )
                     });
 
+                    let should_reflect = state.view.refresh(&mut state.space);
+                    if should_reflect {
+                        state.reflect_focus_from_stackset(None);
+                    }
                     state.space.refresh();
                     state.popups.cleanup();
                     let _ = display_handle.flush_clients();

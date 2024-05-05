@@ -1,12 +1,13 @@
 use crate::model::grid_geometry::RectangleExt;
 use crate::util::Id;
-use crate::util::NonEmptyFocusedVec;
+use crate::util::{FocusedVec, NonEmptyFocusedVec};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::LayoutMessage;
 use crate::view::layout_node::LayoutNode;
 use crate::view::predefined::{LayoutFull, LayoutNodeSelect, LayoutTall};
 use crate::view::stackset::StackSet;
 use crate::view::window::{Border, Rgba, Window, WindowProps};
+use itertools::Itertools;
 use smithay::utils::{Logical, Rectangle, Size};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
@@ -66,6 +67,78 @@ impl View {
 
     pub fn window(&self, window_id: Id<Window>) -> Option<&Window> {
         self.state.windows.get(&window_id)
+    }
+
+    // Returns true iff self is changed.
+    pub fn refresh(&mut self, space: &mut smithay::desktop::Space<Window>) -> bool {
+        use smithay::utils::IsAlive;
+
+        let mut removed_window_ids = None;
+        for window in self.state.windows.values() {
+            if !window.alive() {
+                if removed_window_ids.is_none() {
+                    removed_window_ids = Some(vec![]);
+                }
+
+                removed_window_ids.as_mut().unwrap().push(window.id());
+            }
+        }
+        let Some(removed_window_ids) = removed_window_ids else {
+            return false;
+        };
+
+        let removed_windows = removed_window_ids
+            .iter()
+            .map(|wid| self.state.windows.remove(wid).unwrap())
+            .collect_vec();
+
+        // Speed: In normal use cases, we expect `removed_window_ids.len()` is very small and avoid using `HashSet`.
+        //
+        // TODO: Support other focus policies, e.g. seeing backforward first.
+        let calc_focus = |stack: &FocusedVec<Id<Window>>, i: usize| -> Option<Id<Window>> {
+            debug_assert!(i < stack.len() || i == 0);
+
+            let tail = &stack.as_vec()[i..];
+            if let Some(j) = tail
+                .iter()
+                .position(|wid| !removed_window_ids.contains(wid))
+            {
+                return Some(tail[j]);
+            }
+            let head = &stack.as_vec()[..i];
+            if let Some(k) = head
+                .iter()
+                .rev()
+                .position(|wid| !removed_window_ids.contains(wid))
+            {
+                return Some(head[i - 1 - k]);
+            }
+            None
+        };
+        for workspace in self.state.stackset.workspaces.as_vec_mut() {
+            let focus = calc_focus(&workspace.stack, workspace.stack.focused_index());
+            workspace
+                .stack
+                .as_vec_mut()
+                .retain(|wid| !removed_window_ids.contains(wid));
+            let i = focus
+                .and_then(|focus| {
+                    workspace
+                        .stack
+                        .as_vec()
+                        .iter()
+                        .position(|&wid| wid == focus)
+                })
+                .unwrap_or(0);
+            workspace.stack.set_focused_index(i);
+        }
+        for window in removed_windows {
+            space.unmap_elem(&window);
+        }
+
+        self.layout(space);
+
+        true
     }
 
     pub fn layout(&mut self, space: &mut smithay::desktop::Space<Window>) {

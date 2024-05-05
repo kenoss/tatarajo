@@ -98,6 +98,11 @@ impl<T> NonEmptyFocusedVec<T> {
     }
 
     #[inline]
+    pub fn as_vec_mut(&mut self) -> &mut Vec<T> {
+        &mut self.vec
+    }
+
+    #[inline]
     pub fn push(&mut self, x: T) {
         self.vec.push(x);
     }
