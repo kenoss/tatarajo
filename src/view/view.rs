@@ -10,7 +10,7 @@ use crate::view::window::{Border, Rgba, Window, WindowProps};
 use itertools::Itertools;
 use smithay::utils::{Logical, Rectangle, Size};
 use std::cell::RefCell;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 pub struct View {
     // TODO: Avoid internal struct if possible.
@@ -154,6 +154,16 @@ impl View {
             rect,
         };
         api.layout_node(root_node_id, rect);
+
+        // Remove windows from the space that are not in layout result.
+        let mut removing_window_ids = space.elements().map(|w| w.id()).collect::<HashSet<_>>();
+        for (window_id, _) in &self.state.layout_queue {
+            removing_window_ids.remove(window_id);
+        }
+        for window_id in removing_window_ids {
+            let window = self.state.windows.get(&window_id).unwrap();
+            space.unmap_elem(window);
+        }
 
         // Reflect layout to the space and surfaces.
         while let Some((window_id, rect)) = self.state.layout_queue.pop_front() {
