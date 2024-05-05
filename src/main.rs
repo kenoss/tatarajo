@@ -48,11 +48,15 @@ fn main() -> Result<()> {
     let kbd = |s| keyseq_serde.kbd(s).unwrap();
     let keymap = Keymap::new(hashmap! {
         kbd("H-x H-t") => Action::spawn("alacritty"),
+
         kbd("H-space") => LayoutMessageSelect::Next.into(),
+
         kbd("H-t") => action::ActionMoveFocus::Next.into_action(),
         kbd("H-h") => action::ActionMoveFocus::Prev.into_action(),
         kbd("H-T") => action::ActionWindowSwap::Next.into_action(),
         kbd("H-H") => action::ActionWindowSwap::Prev.into_action(),
+
+        kbd("H-k") => (action::ActionWindowKill {}).into_action(),
     });
 
     Sabiniwm::start(keymap)?;

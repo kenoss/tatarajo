@@ -255,6 +255,16 @@ impl View {
             .map(|id| self.state.windows.get(id).unwrap())
     }
 
+    pub fn focused_window_mut(&mut self) -> Option<&mut Window> {
+        self.state
+            .stackset
+            .workspaces
+            .focus()
+            .stack
+            .focus()
+            .map(|id| self.state.windows.get_mut(id).unwrap())
+    }
+
     pub fn update_stackset_with(&mut self, f: impl FnOnce(&mut StackSet)) {
         f(&mut self.state.stackset);
     }

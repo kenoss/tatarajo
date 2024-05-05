@@ -131,3 +131,20 @@ impl ActionFnI for ActionWindowSwap {
         });
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ActionWindowKill {}
+
+impl ActionFnI for ActionWindowKill {
+    fn exec(&self, state: &mut Sabiniwm) {
+        use smithay::desktop::WindowSurface;
+
+        let Some(window) = state.view.focused_window_mut() else {
+            return;
+        };
+
+        match window.smithay_window().underlying_surface() {
+            WindowSurface::Wayland(w) => w.send_close(),
+        };
+    }
+}
