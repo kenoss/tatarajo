@@ -178,6 +178,38 @@ impl ActionFnI for ActionWorkspaceFocusNonEmpty {
 }
 
 #[derive(Debug, Clone)]
+pub enum ActionWindowMoveToWorkspace {
+    Next,
+    Prev,
+}
+
+impl ActionFnI for ActionWindowMoveToWorkspace {
+    fn exec(&self, state: &mut Sabiniwm) {
+        let count = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let workspaces = &mut stackset.workspaces;
+            let i = workspaces.focused_index();
+            let j = workspaces.mod_plus_focused_index(count);
+
+            workspaces.set_focused_index(j);
+            let workspaces = workspaces.as_vec_mut();
+
+            let src = &mut workspaces[i].stack;
+            let src_focus = src.focused_index();
+            let window = src.as_vec_mut().remove(src_focus);
+            let src_focus = src_focus.min(src.len().saturating_sub(1));
+            src.set_focused_index(src_focus);
+            let dst = &mut workspaces[j].stack;
+            let dst_focus = dst.focused_index();
+            dst.as_vec_mut().insert(dst_focus, window);
+        });
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ActionWindowKill {}
 
 impl ActionFnI for ActionWindowKill {

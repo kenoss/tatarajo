@@ -58,6 +58,8 @@ fn main() -> Result<()> {
         kbd("H-H") => action::ActionWindowSwap::Prev.into_action(),
         kbd("H-n") => action::ActionWorkspaceFocusNonEmpty::Next.into_action(),
         kbd("H-d") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
+        kbd("H-N") => action::ActionWindowMoveToWorkspace::Next.into_action(),
+        kbd("H-D") => action::ActionWindowMoveToWorkspace::Prev.into_action(),
         kbd("H-v") => action::ActionWorkspaceFocus::Next.into_action(),
         kbd("H-b") => action::ActionWorkspaceFocus::Prev.into_action(),
 
