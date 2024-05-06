@@ -4,7 +4,6 @@ use crate::util::Id;
 use crate::util::NonEmptyFocusedVec;
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::{LayoutMessage, LayoutMessageI, LayoutNode, LayoutNodeI};
-use crate::view::window::Window;
 pub use itertools::izip;
 
 pub struct LayoutFull {}
@@ -14,10 +13,6 @@ impl LayoutNodeI for LayoutFull {
         if let Some(&window_id) = api.stackset().workspaces().focus().stack().focus() {
             api.layout_window(window_id, *api.rect());
         }
-    }
-
-    fn get_focused_window_id(&self, api: &mut ViewLayoutApi) -> Option<Id<Window>> {
-        api.stackset().workspaces().focus().stack().focus().copied()
     }
 }
 
@@ -44,10 +39,6 @@ impl LayoutNodeI for LayoutTall {
             }
         }
     }
-
-    fn get_focused_window_id(&self, api: &mut ViewLayoutApi) -> Option<Id<Window>> {
-        api.stackset().workspaces().focus().stack().focus().copied()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -72,11 +63,6 @@ impl LayoutNodeI for LayoutNodeSelect {
     fn layout(&self, api: &mut ViewLayoutApi) {
         let node_id = *self.node_ids.focus();
         api.layout_node(node_id, *api.rect());
-    }
-
-    fn get_focused_window_id(&self, api: &mut ViewLayoutApi) -> Option<Id<Window>> {
-        let node_id = *self.node_ids.focus();
-        api.get_focused_window_id(node_id)
     }
 
     fn handle_message(

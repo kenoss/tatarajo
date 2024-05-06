@@ -1,6 +1,5 @@
 use crate::util::Id;
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
-use crate::view::window::Window;
 use downcast::Any;
 use dyn_clone::DynClone;
 
@@ -34,7 +33,6 @@ impl LayoutMessage {
 
 pub trait LayoutNodeI {
     fn layout(&self, api: &mut ViewLayoutApi);
-    fn get_focused_window_id(&self, api: &mut ViewLayoutApi) -> Option<Id<Window>>;
     // The defalut implementation is for leaf node.
     fn handle_message(
         &mut self,
@@ -69,10 +67,6 @@ impl LayoutNode {
 
     pub fn layout(&self, api: &mut ViewLayoutApi) {
         self.inner.layout(api);
-    }
-
-    pub fn get_focused_window_id(&self, api: &mut ViewLayoutApi) -> Option<Id<Window>> {
-        self.inner.get_focused_window_id(api)
     }
 
     pub fn handle_message(

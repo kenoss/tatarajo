@@ -37,18 +37,6 @@ impl ViewLayoutApi<'_> {
         // TODO: Check that id is not already registered.
         self.state.layout_queue.push_back((id, rect));
     }
-
-    pub fn get_focused_window_id(&mut self, id: Id<LayoutNode>) -> Option<Id<Window>> {
-        // Safety: LayoutNode is borrowed only by this method and this method doesn't allow recursive use of LayoutNode.
-        // TODO: Consider to use Rc and Weak.
-        let node = self.state.nodes.get(&id).unwrap().as_ptr();
-        let node = unsafe { &*node };
-        let mut api = ViewLayoutApi {
-            state: self.state,
-            rect: self.rect,
-        };
-        node.get_focused_window_id(&mut api)
-    }
 }
 
 pub struct ViewHandleMessageApi<'state> {
