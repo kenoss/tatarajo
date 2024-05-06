@@ -115,22 +115,14 @@ impl View {
             }
             None
         };
-        for workspace in self.state.stackset.workspaces.as_vec_mut() {
+        for workspace in self.state.stackset.workspaces.as_mut().vec.iter_mut() {
             let focus = calc_focus(&workspace.stack, workspace.stack.focused_index());
-            workspace
-                .stack
-                .as_vec_mut()
-                .retain(|wid| !removed_window_ids.contains(wid));
-            let i = focus
-                .and_then(|focus| {
-                    workspace
-                        .stack
-                        .as_vec()
-                        .iter()
-                        .position(|&wid| wid == focus)
-                })
+            let mut stack = workspace.stack.as_mut();
+            stack.vec.retain(|wid| !removed_window_ids.contains(wid));
+            stack.focus = focus
+                .and_then(|focus| stack.vec.iter().position(|&wid| wid == focus))
                 .unwrap_or(0);
-            workspace.stack.set_focused_index(i);
+            stack.commit();
         }
         for window in removed_windows {
             space.unmap_elem(&window);

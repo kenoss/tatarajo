@@ -124,10 +124,12 @@ impl ActionFnI for ActionWindowSwap {
                 return;
             }
 
-            let i = stack.focused_index();
+            let mut stack = stack.as_mut();
+            let i = stack.focus;
             let j = stack.mod_plus_focused_index(count);
-            stack.as_vec_mut().swap(i, j);
-            stack.set_focused_index(j);
+            stack.vec.swap(i, j);
+            stack.focus = j;
+            stack.commit();
         });
     }
 }
@@ -190,21 +192,20 @@ impl ActionFnI for ActionWindowMoveToWorkspace {
             Self::Prev => -1,
         };
         state.view.update_stackset_with(|stackset| {
-            let workspaces = &mut stackset.workspaces;
-            let i = workspaces.focused_index();
-            let j = workspaces.mod_plus_focused_index(count);
+            let mut workspaces = stackset.workspaces.as_mut();
 
-            workspaces.set_focused_index(j);
-            let workspaces = workspaces.as_vec_mut();
+            let mut src = workspaces.vec[workspaces.focus].stack.as_mut();
+            let window = src.vec.remove(src.focus);
+            src.focus = src.focus.min(src.vec.len().saturating_sub(1));
+            src.commit();
 
-            let src = &mut workspaces[i].stack;
-            let src_focus = src.focused_index();
-            let window = src.as_vec_mut().remove(src_focus);
-            let src_focus = src_focus.min(src.len().saturating_sub(1));
-            src.set_focused_index(src_focus);
-            let dst = &mut workspaces[j].stack;
-            let dst_focus = dst.focused_index();
-            dst.as_vec_mut().insert(dst_focus, window);
+            workspaces.focus = workspaces.mod_plus_focused_index(count);
+
+            let dst = workspaces.vec[workspaces.focus].stack.as_mut();
+            dst.vec.insert(dst.focus, window);
+            dst.commit();
+
+            workspaces.commit();
         });
     }
 }
