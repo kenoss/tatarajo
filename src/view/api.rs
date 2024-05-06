@@ -35,7 +35,14 @@ impl ViewLayoutApi<'_> {
 
     pub fn layout_window(&mut self, id: Id<Window>, rect: Rectangle<i32, Logical>) {
         // TODO: Check that id is not already registered.
-        self.state.layout_queue.push_back((id, rect));
+        self.state.layout_queue.push((id, rect));
+    }
+
+    pub fn modify_layout_queue_with<F>(&mut self, f: F)
+    where
+        F: Fn(&mut Vec<(Id<Window>, Rectangle<i32, Logical>)>),
+    {
+        f(&mut self.state.layout_queue);
     }
 }
 

@@ -4,6 +4,7 @@ use crate::util::Id;
 use crate::util::NonEmptyFocusedVec;
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::{LayoutMessage, LayoutMessageI, LayoutNode, LayoutNodeI};
+use crate::view::window::Thickness;
 pub use itertools::izip;
 
 pub struct LayoutFull {}
@@ -82,5 +83,36 @@ impl LayoutNodeI for LayoutNodeSelect {
         self.node_ids.set_focused_index(i);
 
         std::ops::ControlFlow::Break(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LayoutNodeMargin {
+    child: Id<LayoutNode>,
+    margin: Thickness,
+}
+
+impl LayoutNodeMargin {
+    pub fn new(child: Id<LayoutNode>, margin: Thickness) -> Self {
+        Self { child, margin }
+    }
+}
+
+impl LayoutNodeI for LayoutNodeMargin {
+    fn layout(&self, api: &mut ViewLayoutApi) {
+        api.layout_node(self.child, *api.rect());
+        api.modify_layout_queue_with(|queue| {
+            for (_, rect) in queue {
+                *rect = rect.shrink(self.margin.clone());
+            }
+        });
+    }
+
+    fn handle_message(
+        &mut self,
+        api: &mut ViewHandleMessageApi,
+        message: &LayoutMessage,
+    ) -> std::ops::ControlFlow<()> {
+        api.handle_message(self.child, message)
     }
 }

@@ -4,13 +4,13 @@ use crate::util::{FocusedVec, NonEmptyFocusedVec};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::LayoutMessage;
 use crate::view::layout_node::LayoutNode;
-use crate::view::predefined::{LayoutFull, LayoutNodeSelect, LayoutTall};
+use crate::view::predefined::{LayoutFull, LayoutNodeMargin, LayoutNodeSelect, LayoutTall};
 use crate::view::stackset::{StackSet, WorkspaceTag};
 use crate::view::window::{Border, Rgba, Window, WindowProps};
 use itertools::Itertools;
 use smithay::utils::{Logical, Rectangle, Size};
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 pub struct View {
     // TODO: Avoid internal struct if possible.
@@ -21,7 +21,7 @@ pub(super) struct ViewState {
     pub(super) stackset: StackSet,
     pub(super) nodes: HashMap<Id<LayoutNode>, RefCell<LayoutNode>>,
     // TODO: Rename.
-    pub(super) layout_queue: VecDeque<(Id<Window>, Rectangle<i32, Logical>)>,
+    pub(super) layout_queue: Vec<(Id<Window>, Rectangle<i32, Logical>)>,
     pub(super) windows: HashMap<Id<Window>, Window>,
     pub(super) root_node_id: Id<LayoutNode>,
     pub(super) rect: Rectangle<i32, Logical>,
@@ -44,12 +44,17 @@ impl View {
         let node_id = node.id();
         nodes.insert(node_id, RefCell::new(node));
 
+        let margin = 8.into();
+        let node = LayoutNode::from(LayoutNodeMargin::new(node_id, margin));
+        let node_id = node.id();
+        nodes.insert(node_id, RefCell::new(node));
+
         let stackset = StackSet::new(workspace_tags);
 
         let state = ViewState {
             stackset,
             nodes,
-            layout_queue: VecDeque::new(),
+            layout_queue: Vec::new(),
             windows: HashMap::new(),
             root_node_id: node_id,
             rect,
@@ -158,14 +163,13 @@ impl View {
         }
 
         // Reflect layout to the space and surfaces.
-        while let Some((window_id, rect)) = self.state.layout_queue.pop_front() {
-            let margin = 8.into();
+        for (window_id, rect) in self.state.layout_queue.drain(..) {
             let border = Border {
                 dim: 2.into(),
                 active_rgba: Rgba::from_rgba(0x556b2fff),
                 inactive_rgba: Rgba::from_rgba(0x00000000),
             };
-            let rect = rect.shrink(margin).shrink(border.dim.clone());
+            let rect = rect.shrink(border.dim.clone());
             let props = WindowProps {
                 geometry: rect,
                 border,
