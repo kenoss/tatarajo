@@ -4,7 +4,7 @@ use crate::util::Id;
 use crate::util::NonEmptyFocusedVec;
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::{LayoutMessage, LayoutMessageI, LayoutNode, LayoutNodeI};
-use crate::view::window::Thickness;
+use crate::view::window::{Border, Thickness};
 pub use itertools::izip;
 
 pub struct LayoutFull {}
@@ -102,8 +102,40 @@ impl LayoutNodeI for LayoutNodeMargin {
     fn layout(&self, api: &mut ViewLayoutApi) {
         api.layout_node(self.child, *api.rect());
         api.modify_layout_queue_with(|queue| {
-            for (_, rect) in queue {
-                *rect = rect.shrink(self.margin.clone());
+            for (_, props) in queue {
+                props.geometry = props.geometry.shrink(self.margin.clone());
+            }
+        });
+    }
+
+    fn handle_message(
+        &mut self,
+        api: &mut ViewHandleMessageApi,
+        message: &LayoutMessage,
+    ) -> std::ops::ControlFlow<()> {
+        api.handle_message(self.child, message)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LayoutNodeBorder {
+    child: Id<LayoutNode>,
+    border: Border,
+}
+
+impl LayoutNodeBorder {
+    pub fn new(child: Id<LayoutNode>, border: Border) -> Self {
+        Self { child, border }
+    }
+}
+
+impl LayoutNodeI for LayoutNodeBorder {
+    fn layout(&self, api: &mut ViewLayoutApi) {
+        api.layout_node(self.child, *api.rect());
+        api.modify_layout_queue_with(|queue| {
+            for (_, props) in queue {
+                props.geometry = props.geometry.shrink(self.border.dim.clone());
+                props.border = self.border.clone();
             }
         });
     }

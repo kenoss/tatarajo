@@ -1,10 +1,11 @@
-use crate::model::grid_geometry::RectangleExt;
 use crate::util::Id;
 use crate::util::{FocusedVec, NonEmptyFocusedVec};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::LayoutMessage;
 use crate::view::layout_node::LayoutNode;
-use crate::view::predefined::{LayoutFull, LayoutNodeMargin, LayoutNodeSelect, LayoutTall};
+use crate::view::predefined::{
+    LayoutFull, LayoutNodeBorder, LayoutNodeMargin, LayoutNodeSelect, LayoutTall,
+};
 use crate::view::stackset::{StackSet, WorkspaceTag};
 use crate::view::window::{Border, Rgba, Window, WindowProps};
 use itertools::Itertools;
@@ -21,7 +22,7 @@ pub(super) struct ViewState {
     pub(super) stackset: StackSet,
     pub(super) nodes: HashMap<Id<LayoutNode>, RefCell<LayoutNode>>,
     // TODO: Rename.
-    pub(super) layout_queue: Vec<(Id<Window>, Rectangle<i32, Logical>)>,
+    pub(super) layout_queue: Vec<(Id<Window>, WindowProps)>,
     pub(super) windows: HashMap<Id<Window>, Window>,
     pub(super) root_node_id: Id<LayoutNode>,
     pub(super) rect: Rectangle<i32, Logical>,
@@ -46,6 +47,15 @@ impl View {
 
         let margin = 8.into();
         let node = LayoutNode::from(LayoutNodeMargin::new(node_id, margin));
+        let node_id = node.id();
+        nodes.insert(node_id, RefCell::new(node));
+
+        let border = Border {
+            dim: 2.into(),
+            active_rgba: Rgba::from_rgba(0x556b2fff),
+            inactive_rgba: Rgba::from_rgba(0x00000000),
+        };
+        let node = LayoutNode::from(LayoutNodeBorder::new(node_id, border));
         let node_id = node.id();
         nodes.insert(node_id, RefCell::new(node));
 
@@ -162,21 +172,13 @@ impl View {
             space.unmap_elem(window);
         }
 
+        debug!("layout_queue = {:?}", self.state.layout_queue);
         // Reflect layout to the space and surfaces.
-        for (window_id, rect) in self.state.layout_queue.drain(..) {
-            let border = Border {
-                dim: 2.into(),
-                active_rgba: Rgba::from_rgba(0x556b2fff),
-                inactive_rgba: Rgba::from_rgba(0x00000000),
-            };
-            let rect = rect.shrink(border.dim.clone());
-            let props = WindowProps {
-                geometry: rect,
-                border,
-            };
+        for (window_id, props) in self.state.layout_queue.drain(..) {
             let window = self.state.windows.get_mut(&window_id).unwrap();
+            let geometry = props.geometry;
             window.set_props(props);
-            space.map_element(window.clone(), rect.loc, false);
+            space.map_element(window.clone(), geometry.loc, false);
             let Some(surface) = window.toplevel() else {
                 continue;
             };
@@ -186,7 +188,7 @@ impl View {
                 state.states.set(xdg_toplevel::State::TiledLeft);
                 state.states.set(xdg_toplevel::State::TiledBottom);
                 state.states.set(xdg_toplevel::State::TiledRight);
-                state.size = Some(rect.size);
+                state.size = Some(geometry.size);
             });
             surface.send_pending_configure();
         }

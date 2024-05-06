@@ -2,7 +2,7 @@ use crate::util::Id;
 use crate::view::layout_node::{LayoutMessage, LayoutNode};
 use crate::view::stackset::StackSet;
 use crate::view::view::ViewState;
-use crate::view::window::Window;
+use crate::view::window::{Border, Rgba, Window, WindowProps};
 use smithay::utils::{Logical, Rectangle};
 
 pub struct ViewLayoutApi<'state> {
@@ -33,14 +33,20 @@ impl ViewLayoutApi<'_> {
         node.layout(&mut api);
     }
 
-    pub fn layout_window(&mut self, id: Id<Window>, rect: Rectangle<i32, Logical>) {
+    pub fn layout_window(&mut self, id: Id<Window>, geometry: Rectangle<i32, Logical>) {
         // TODO: Check that id is not already registered.
-        self.state.layout_queue.push((id, rect));
+        let border = Border {
+            dim: 0.into(),
+            active_rgba: Rgba::from_rgba(0x000000ff),
+            inactive_rgba: Rgba::from_rgba(0x000000ff),
+        };
+        let props = WindowProps { geometry, border };
+        self.state.layout_queue.push((id, props));
     }
 
     pub fn modify_layout_queue_with<F>(&mut self, f: F)
     where
-        F: Fn(&mut Vec<(Id<Window>, Rectangle<i32, Logical>)>),
+        F: Fn(&mut Vec<(Id<Window>, WindowProps)>),
     {
         f(&mut self.state.layout_queue);
     }
