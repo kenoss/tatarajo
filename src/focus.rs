@@ -1,33 +1,26 @@
+pub use smithay::backend::input::KeyState;
+pub use smithay::desktop::{LayerSurface, PopupKind};
+use smithay::desktop::{Window, WindowSurface};
+pub use smithay::input::keyboard::{KeyboardTarget, KeysymHandle, ModifiersState};
+pub use smithay::input::pointer::{
+    AxisFrame, ButtonEvent, MotionEvent, PointerTarget, RelativeMotionEvent,
+};
+use smithay::input::pointer::{
+    GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent, GesturePinchEndEvent,
+    GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent, GestureSwipeUpdateEvent,
+};
+use smithay::input::touch::TouchTarget;
+pub use smithay::input::Seat;
+pub use smithay::reexports::wayland_server::backend::ObjectId;
+pub use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+pub use smithay::reexports::wayland_server::Resource;
+pub use smithay::utils::{IsAlive, Serial};
+pub use smithay::wayland::seat::WaylandFocus;
 #[cfg(feature = "xwayland")]
 use smithay::xwayland::X11Surface;
-pub use smithay::{
-    backend::input::KeyState,
-    desktop::{LayerSurface, PopupKind},
-    input::{
-        keyboard::{KeyboardTarget, KeysymHandle, ModifiersState},
-        pointer::{AxisFrame, ButtonEvent, MotionEvent, PointerTarget, RelativeMotionEvent},
-        Seat,
-    },
-    reexports::wayland_server::{backend::ObjectId, protocol::wl_surface::WlSurface, Resource},
-    utils::{IsAlive, Serial},
-    wayland::seat::WaylandFocus,
-};
-use smithay::{
-    desktop::{Window, WindowSurface},
-    input::{
-        pointer::{
-            GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
-            GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent,
-            GestureSwipeEndEvent, GestureSwipeUpdateEvent,
-        },
-        touch::TouchTarget,
-    },
-};
 
-use crate::{
-    shell::{WindowElement, SSD},
-    state::{AnvilState, Backend},
-};
+use crate::shell::{WindowElement, SSD};
+use crate::state::{AnvilState, Backend};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum KeyboardFocusTarget {

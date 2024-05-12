@@ -1,46 +1,36 @@
 use std::cell::RefCell;
 
+use smithay::backend::renderer::utils::on_commit_buffer_handler;
+use smithay::desktop::space::SpaceElement;
+use smithay::desktop::{
+    layer_map_for_output, LayerSurface, PopupKind, PopupManager, Space, WindowSurfaceType,
+};
+use smithay::output::Output;
+use smithay::reexports::calloop::Interest;
+use smithay::reexports::wayland_server::protocol::wl_buffer::WlBuffer;
+use smithay::reexports::wayland_server::protocol::wl_output;
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::reexports::wayland_server::{Client, Resource};
+use smithay::utils::{Logical, Point, Rectangle, Size};
+use smithay::wayland::buffer::BufferHandler;
+use smithay::wayland::compositor::{
+    add_blocker, add_pre_commit_hook, get_parent, is_sync_subsurface, with_states,
+    with_surface_tree_upward, BufferAssignment, CompositorClientState, CompositorHandler,
+    CompositorState, SurfaceAttributes, TraversalAction,
+};
+use smithay::wayland::dmabuf::get_dmabuf;
+use smithay::wayland::shell::wlr_layer::{
+    Layer, LayerSurface as WlrLayerSurface, LayerSurfaceData, WlrLayerShellHandler,
+    WlrLayerShellState,
+};
+use smithay::wayland::shell::xdg::{XdgPopupSurfaceData, XdgToplevelSurfaceData};
 #[cfg(feature = "xwayland")]
 use smithay::xwayland::{X11Wm, XWaylandClientData};
-use smithay::{
-    backend::renderer::utils::on_commit_buffer_handler,
-    desktop::{
-        layer_map_for_output, space::SpaceElement, LayerSurface, PopupKind, PopupManager, Space,
-        WindowSurfaceType,
-    },
-    output::Output,
-    reexports::{
-        calloop::Interest,
-        wayland_server::{
-            protocol::{wl_buffer::WlBuffer, wl_output, wl_surface::WlSurface},
-            Client, Resource,
-        },
-    },
-    utils::{Logical, Point, Rectangle, Size},
-    wayland::{
-        buffer::BufferHandler,
-        compositor::{
-            add_blocker, add_pre_commit_hook, get_parent, is_sync_subsurface, with_states,
-            with_surface_tree_upward, BufferAssignment, CompositorClientState, CompositorHandler,
-            CompositorState, SurfaceAttributes, TraversalAction,
-        },
-        dmabuf::get_dmabuf,
-        shell::{
-            wlr_layer::{
-                Layer, LayerSurface as WlrLayerSurface, LayerSurfaceData, WlrLayerShellHandler,
-                WlrLayerShellState,
-            },
-            xdg::{XdgPopupSurfaceData, XdgToplevelSurfaceData},
-        },
-    },
-};
 
+use crate::state::{AnvilState, Backend};
 #[cfg(feature = "xwayland")]
 use crate::CalloopData;
-use crate::{
-    state::{AnvilState, Backend},
-    ClientState,
-};
+use crate::ClientState;
 
 mod element;
 mod grabs;

@@ -1,9 +1,8 @@
 #[cfg(feature = "xwayland")]
 use std::ffi::OsString;
-use std::{
-    sync::{atomic::Ordering, Mutex},
-    time::Duration,
-};
+use std::sync::atomic::Ordering;
+use std::sync::Mutex;
+use std::time::Duration;
 
 #[cfg(feature = "egl")]
 use smithay::backend::renderer::ImportEgl;
@@ -13,44 +12,33 @@ use smithay::{
     reexports::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle},
 };
 
-use smithay::{
-    backend::{
-        allocator::dmabuf::Dmabuf,
-        egl::EGLDevice,
-        renderer::{
-            damage::{Error as OutputDamageTrackerError, OutputDamageTracker},
-            element::AsRenderElements,
-            gles::GlesRenderer,
-            ImportDma, ImportMemWl,
-        },
-        winit::{self, WinitEvent, WinitGraphicsBackend},
-        SwapBuffersError,
-    },
-    delegate_dmabuf,
-    input::{
-        keyboard::LedState,
-        pointer::{CursorImageAttributes, CursorImageStatus},
-    },
-    output::{Mode, Output, PhysicalProperties, Subpixel},
-    reexports::{
-        calloop::EventLoop,
-        wayland_protocols::wp::presentation_time::server::wp_presentation_feedback,
-        wayland_server::{protocol::wl_surface, Display},
-        winit::platform::pump_events::PumpStatus,
-    },
-    utils::{IsAlive, Scale, Transform},
-    wayland::{
-        compositor,
-        dmabuf::{
-            DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState,
-            ImportNotifier,
-        },
-    },
+use smithay::backend::allocator::dmabuf::Dmabuf;
+use smithay::backend::egl::EGLDevice;
+use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
+use smithay::backend::renderer::element::AsRenderElements;
+use smithay::backend::renderer::gles::GlesRenderer;
+use smithay::backend::renderer::{ImportDma, ImportMemWl};
+use smithay::backend::winit::{self, WinitEvent, WinitGraphicsBackend};
+use smithay::backend::SwapBuffersError;
+use smithay::delegate_dmabuf;
+use smithay::input::keyboard::LedState;
+use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
+use smithay::output::{Mode, Output, PhysicalProperties, Subpixel};
+use smithay::reexports::calloop::EventLoop;
+use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
+use smithay::reexports::wayland_server::protocol::wl_surface;
+use smithay::reexports::wayland_server::Display;
+use smithay::reexports::winit::platform::pump_events::PumpStatus;
+use smithay::utils::{IsAlive, Scale, Transform};
+use smithay::wayland::compositor;
+use smithay::wayland::dmabuf::{
+    DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
 };
 use tracing::{error, info, warn};
 
+use crate::drawing::*;
+use crate::render::*;
 use crate::state::{post_repaint, take_presentation_feedback, AnvilState, Backend, CalloopData};
-use crate::{drawing::*, render::*};
 
 pub const OUTPUT_NAME: &str = "winit";
 

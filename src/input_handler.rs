@@ -1,38 +1,35 @@
-use std::{convert::TryInto, process::Command, sync::atomic::Ordering};
+use std::convert::TryInto;
+use std::process::Command;
+use std::sync::atomic::Ordering;
 
-use crate::{focus::PointerFocusTarget, shell::FullscreenSurface, AnvilState};
+use crate::focus::PointerFocusTarget;
+use crate::shell::FullscreenSurface;
+use crate::AnvilState;
 
 #[cfg(feature = "udev")]
 use crate::udev::UdevData;
 #[cfg(feature = "udev")]
 use smithay::backend::renderer::DebugFlags;
 
-use smithay::{
-    backend::input::{
-        self, Axis, AxisSource, Event, InputBackend, InputEvent, KeyState, KeyboardKeyEvent,
-        PointerAxisEvent, PointerButtonEvent,
-    },
-    desktop::{layer_map_for_output, WindowSurfaceType},
-    input::{
-        keyboard::{keysyms as xkb, FilterResult, Keysym, ModifiersState},
-        pointer::{AxisFrame, ButtonEvent, MotionEvent},
-    },
-    output::Scale,
-    reexports::{
-        wayland_protocols::xdg::decoration::zv1::server::zxdg_toplevel_decoration_v1,
-        wayland_server::{protocol::wl_pointer, DisplayHandle},
-    },
-    utils::{Logical, Point, Serial, Transform, SERIAL_COUNTER as SCOUNTER},
-    wayland::{
-        compositor::with_states,
-        input_method::InputMethodSeat,
-        keyboard_shortcuts_inhibit::KeyboardShortcutsInhibitorSeat,
-        shell::{
-            wlr_layer::{KeyboardInteractivity, Layer as WlrLayer, LayerSurfaceCachedState},
-            xdg::XdgToplevelSurfaceData,
-        },
-    },
+use smithay::backend::input::{
+    self, Axis, AxisSource, Event, InputBackend, InputEvent, KeyState, KeyboardKeyEvent,
+    PointerAxisEvent, PointerButtonEvent,
 };
+use smithay::desktop::{layer_map_for_output, WindowSurfaceType};
+use smithay::input::keyboard::{keysyms as xkb, FilterResult, Keysym, ModifiersState};
+use smithay::input::pointer::{AxisFrame, ButtonEvent, MotionEvent};
+use smithay::output::Scale;
+use smithay::reexports::wayland_protocols::xdg::decoration::zv1::server::zxdg_toplevel_decoration_v1;
+use smithay::reexports::wayland_server::protocol::wl_pointer;
+use smithay::reexports::wayland_server::DisplayHandle;
+use smithay::utils::{Logical, Point, Serial, Transform, SERIAL_COUNTER as SCOUNTER};
+use smithay::wayland::compositor::with_states;
+use smithay::wayland::input_method::InputMethodSeat;
+use smithay::wayland::keyboard_shortcuts_inhibit::KeyboardShortcutsInhibitorSeat;
+use smithay::wayland::shell::wlr_layer::{
+    KeyboardInteractivity, Layer as WlrLayer, LayerSurfaceCachedState,
+};
+use smithay::wayland::shell::xdg::XdgToplevelSurfaceData;
 
 #[cfg(any(feature = "winit", feature = "x11", feature = "udev"))]
 use smithay::backend::input::AbsolutePositionEvent;

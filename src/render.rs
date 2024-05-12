@@ -1,29 +1,23 @@
-use smithay::{
-    backend::renderer::{
-        damage::{Error as OutputDamageTrackerError, OutputDamageTracker, RenderOutputResult},
-        element::{
-            surface::WaylandSurfaceRenderElement,
-            utils::{
-                ConstrainAlign, ConstrainScaleBehavior, CropRenderElement, RelocateRenderElement,
-                RescaleRenderElement,
-            },
-            AsRenderElements, RenderElement, Wrap,
-        },
-        ImportAll, ImportMem, Renderer,
-    },
-    desktop::space::{
-        constrain_space_element, ConstrainBehavior, ConstrainReference, Space, SpaceRenderElements,
-    },
-    output::Output,
-    utils::{Point, Rectangle, Size},
+use smithay::backend::renderer::damage::{
+    Error as OutputDamageTrackerError, OutputDamageTracker, RenderOutputResult,
 };
+use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
+use smithay::backend::renderer::element::utils::{
+    ConstrainAlign, ConstrainScaleBehavior, CropRenderElement, RelocateRenderElement,
+    RescaleRenderElement,
+};
+use smithay::backend::renderer::element::{AsRenderElements, RenderElement, Wrap};
+use smithay::backend::renderer::{ImportAll, ImportMem, Renderer};
+use smithay::desktop::space::{
+    constrain_space_element, ConstrainBehavior, ConstrainReference, Space, SpaceRenderElements,
+};
+use smithay::output::Output;
+use smithay::utils::{Point, Rectangle, Size};
 
 #[cfg(feature = "debug")]
 use crate::drawing::FpsElement;
-use crate::{
-    drawing::{PointerRenderElement, CLEAR_COLOR, CLEAR_COLOR_FULLSCREEN},
-    shell::{FullscreenSurface, WindowElement, WindowRenderElement},
-};
+use crate::drawing::{PointerRenderElement, CLEAR_COLOR, CLEAR_COLOR_FULLSCREEN};
+use crate::shell::{FullscreenSurface, WindowElement, WindowRenderElement};
 
 smithay::backend::renderer::element::render_elements! {
     pub CustomRenderElements<R> where

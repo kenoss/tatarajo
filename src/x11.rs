@@ -1,56 +1,42 @@
 #[cfg(feature = "xwayland")]
 use std::ffi::OsString;
-use std::{
-    sync::{atomic::Ordering, Mutex},
-    time::Duration,
-};
+use std::sync::atomic::Ordering;
+use std::sync::Mutex;
+use std::time::Duration;
 
-use crate::{
-    drawing::*,
-    render::*,
-    state::{post_repaint, take_presentation_feedback, AnvilState, Backend, CalloopData},
-};
+use crate::drawing::*;
+use crate::render::*;
+use crate::state::{post_repaint, take_presentation_feedback, AnvilState, Backend, CalloopData};
 #[cfg(feature = "egl")]
 use smithay::backend::renderer::ImportEgl;
 #[cfg(feature = "debug")]
 use smithay::backend::{allocator::Fourcc, renderer::ImportMem};
 
-use smithay::{
-    backend::{
-        allocator::{
-            dmabuf::{Dmabuf, DmabufAllocator},
-            gbm::{GbmAllocator, GbmBufferFlags},
-            vulkan::{ImageUsageFlags, VulkanAllocator},
-        },
-        egl::{EGLContext, EGLDisplay},
-        renderer::{
-            damage::OutputDamageTracker, element::AsRenderElements, gles::GlesRenderer, Bind,
-            ImportDma, ImportMemWl,
-        },
-        vulkan::{version::Version, Instance, PhysicalDevice},
-        x11::{WindowBuilder, X11Backend, X11Event, X11Surface},
-    },
-    delegate_dmabuf,
-    input::{
-        keyboard::LedState,
-        pointer::{CursorImageAttributes, CursorImageStatus},
-    },
-    output::{Mode, Output, PhysicalProperties, Subpixel},
-    reexports::{
-        ash::vk::ExtPhysicalDeviceDrmFn,
-        calloop::EventLoop,
-        gbm,
-        wayland_protocols::wp::presentation_time::server::wp_presentation_feedback,
-        wayland_server::{protocol::wl_surface, Display},
-    },
-    utils::{DeviceFd, IsAlive, Scale},
-    wayland::{
-        compositor,
-        dmabuf::{
-            DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState,
-            ImportNotifier,
-        },
-    },
+use smithay::backend::allocator::dmabuf::{Dmabuf, DmabufAllocator};
+use smithay::backend::allocator::gbm::{GbmAllocator, GbmBufferFlags};
+use smithay::backend::allocator::vulkan::{ImageUsageFlags, VulkanAllocator};
+use smithay::backend::egl::{EGLContext, EGLDisplay};
+use smithay::backend::renderer::damage::OutputDamageTracker;
+use smithay::backend::renderer::element::AsRenderElements;
+use smithay::backend::renderer::gles::GlesRenderer;
+use smithay::backend::renderer::{Bind, ImportDma, ImportMemWl};
+use smithay::backend::vulkan::version::Version;
+use smithay::backend::vulkan::{Instance, PhysicalDevice};
+use smithay::backend::x11::{WindowBuilder, X11Backend, X11Event, X11Surface};
+use smithay::delegate_dmabuf;
+use smithay::input::keyboard::LedState;
+use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
+use smithay::output::{Mode, Output, PhysicalProperties, Subpixel};
+use smithay::reexports::ash::vk::ExtPhysicalDeviceDrmFn;
+use smithay::reexports::calloop::EventLoop;
+use smithay::reexports::gbm;
+use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
+use smithay::reexports::wayland_server::protocol::wl_surface;
+use smithay::reexports::wayland_server::Display;
+use smithay::utils::{DeviceFd, IsAlive, Scale};
+use smithay::wayland::compositor;
+use smithay::wayland::dmabuf::{
+    DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
 };
 use tracing::{error, info, trace, warn};
 

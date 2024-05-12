@@ -1,18 +1,14 @@
 #![allow(clippy::too_many_arguments)]
 
-use smithay::{
-    backend::renderer::{
-        element::{
-            memory::{MemoryRenderBuffer, MemoryRenderBufferRenderElement},
-            surface::WaylandSurfaceRenderElement,
-            AsRenderElements, Kind,
-        },
-        ImportAll, ImportMem, Renderer, Texture,
-    },
-    input::pointer::CursorImageStatus,
-    render_elements,
-    utils::{Physical, Point, Scale},
+use smithay::backend::renderer::element::memory::{
+    MemoryRenderBuffer, MemoryRenderBufferRenderElement,
 };
+use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
+use smithay::backend::renderer::element::{AsRenderElements, Kind};
+use smithay::backend::renderer::{ImportAll, ImportMem, Renderer, Texture};
+use smithay::input::pointer::CursorImageStatus;
+use smithay::render_elements;
+use smithay::utils::{Physical, Point, Scale};
 #[cfg(feature = "debug")]
 use smithay::{
     backend::renderer::{

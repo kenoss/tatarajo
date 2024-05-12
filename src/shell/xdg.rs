@@ -1,37 +1,30 @@
 use std::cell::RefCell;
 
-use smithay::{
-    desktop::{
-        find_popup_root_surface, get_popup_toplevel_coords, layer_map_for_output,
-        space::SpaceElement, PopupKeyboardGrab, PopupKind, PopupPointerGrab, PopupUngrabStrategy,
-        Space, Window, WindowSurfaceType,
-    },
-    input::{pointer::Focus, Seat},
-    output::Output,
-    reexports::{
-        wayland_protocols::xdg::{decoration as xdg_decoration, shell::server::xdg_toplevel},
-        wayland_server::{
-            protocol::{wl_output, wl_seat, wl_surface::WlSurface},
-            Resource,
-        },
-    },
-    utils::{Logical, Point, Serial},
-    wayland::{
-        compositor::{self, with_states},
-        seat::WaylandFocus,
-        shell::xdg::{
-            Configure, PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler,
-            XdgShellState, XdgToplevelSurfaceData,
-        },
-    },
+use smithay::desktop::space::SpaceElement;
+use smithay::desktop::{
+    find_popup_root_surface, get_popup_toplevel_coords, layer_map_for_output, PopupKeyboardGrab,
+    PopupKind, PopupPointerGrab, PopupUngrabStrategy, Space, Window, WindowSurfaceType,
+};
+use smithay::input::pointer::Focus;
+use smithay::input::Seat;
+use smithay::output::Output;
+use smithay::reexports::wayland_protocols::xdg::decoration as xdg_decoration;
+use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::reexports::wayland_server::protocol::{wl_output, wl_seat};
+use smithay::reexports::wayland_server::Resource;
+use smithay::utils::{Logical, Point, Serial};
+use smithay::wayland::compositor::{self, with_states};
+use smithay::wayland::seat::WaylandFocus;
+use smithay::wayland::shell::xdg::{
+    Configure, PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
+    XdgToplevelSurfaceData,
 };
 use tracing::{trace, warn};
 
-use crate::{
-    focus::KeyboardFocusTarget,
-    shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab},
-    state::{AnvilState, Backend},
-};
+use crate::focus::KeyboardFocusTarget;
+use crate::shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab};
+use crate::state::{AnvilState, Backend};
 
 use super::{
     fullscreen_output_geometry, place_new_window, FullscreenSurface, PointerMoveSurfaceGrab,

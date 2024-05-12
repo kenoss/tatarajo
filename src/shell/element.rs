@@ -1,40 +1,32 @@
 use std::time::Duration;
 
-use smithay::{
-    backend::renderer::{
-        element::{
-            solid::SolidColorRenderElement, surface::WaylandSurfaceRenderElement, AsRenderElements,
-        },
-        ImportAll, ImportMem, Renderer, Texture,
-    },
-    desktop::{
-        space::SpaceElement, utils::OutputPresentationFeedback, Window, WindowSurface,
-        WindowSurfaceType,
-    },
-    input::{
-        pointer::{
-            AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent,
-            GesturePinchBeginEvent, GesturePinchEndEvent, GesturePinchUpdateEvent,
-            GestureSwipeBeginEvent, GestureSwipeEndEvent, GestureSwipeUpdateEvent, MotionEvent,
-            PointerTarget, RelativeMotionEvent,
-        },
-        touch::TouchTarget,
-        Seat,
-    },
-    output::Output,
-    reexports::{
-        wayland_protocols::wp::presentation_time::server::wp_presentation_feedback,
-        wayland_server::protocol::wl_surface::WlSurface,
-    },
-    render_elements,
-    utils::{user_data::UserDataMap, IsAlive, Logical, Physical, Point, Rectangle, Scale, Serial},
-    wayland::{
-        compositor::SurfaceData as WlSurfaceData, dmabuf::DmabufFeedback, seat::WaylandFocus,
-    },
+use smithay::backend::renderer::element::solid::SolidColorRenderElement;
+use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
+use smithay::backend::renderer::element::AsRenderElements;
+use smithay::backend::renderer::{ImportAll, ImportMem, Renderer, Texture};
+use smithay::desktop::space::SpaceElement;
+use smithay::desktop::utils::OutputPresentationFeedback;
+use smithay::desktop::{Window, WindowSurface, WindowSurfaceType};
+use smithay::input::pointer::{
+    AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
+    GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent,
+    GestureSwipeUpdateEvent, MotionEvent, PointerTarget, RelativeMotionEvent,
 };
+use smithay::input::touch::TouchTarget;
+use smithay::input::Seat;
+use smithay::output::Output;
+use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::render_elements;
+use smithay::utils::user_data::UserDataMap;
+use smithay::utils::{IsAlive, Logical, Physical, Point, Rectangle, Scale, Serial};
+use smithay::wayland::compositor::SurfaceData as WlSurfaceData;
+use smithay::wayland::dmabuf::DmabufFeedback;
+use smithay::wayland::seat::WaylandFocus;
 
 use super::ssd::HEADER_BAR_HEIGHT;
-use crate::{focus::PointerFocusTarget, AnvilState};
+use crate::focus::PointerFocusTarget;
+use crate::AnvilState;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WindowElement(pub Window);

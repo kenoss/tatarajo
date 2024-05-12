@@ -1,16 +1,10 @@
-use smithay::{
-    backend::renderer::{
-        element::{
-            solid::{SolidColorBuffer, SolidColorRenderElement},
-            AsRenderElements, Kind,
-        },
-        Renderer,
-    },
-    desktop::WindowSurface,
-    input::Seat,
-    utils::{Logical, Point, Serial},
-    wayland::shell::xdg::XdgShellHandler,
-};
+use smithay::backend::renderer::element::solid::{SolidColorBuffer, SolidColorRenderElement};
+use smithay::backend::renderer::element::{AsRenderElements, Kind};
+use smithay::backend::renderer::Renderer;
+use smithay::desktop::WindowSurface;
+use smithay::input::Seat;
+use smithay::utils::{Logical, Point, Serial};
+use smithay::wayland::shell::xdg::XdgShellHandler;
 
 use std::cell::{RefCell, RefMut};
 

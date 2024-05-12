@@ -1,29 +1,24 @@
 use std::cell::RefCell;
 
-use smithay::{
-    desktop::{space::SpaceElement, WindowSurface},
-    input::{
-        pointer::{
-            AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent,
-            GesturePinchBeginEvent, GesturePinchEndEvent, GesturePinchUpdateEvent,
-            GestureSwipeBeginEvent, GestureSwipeEndEvent, GestureSwipeUpdateEvent,
-            GrabStartData as PointerGrabStartData, MotionEvent, PointerGrab, PointerInnerHandle,
-            RelativeMotionEvent,
-        },
-        touch::{GrabStartData as TouchGrabStartData, TouchGrab},
-    },
-    reexports::wayland_protocols::xdg::shell::server::xdg_toplevel,
-    utils::{IsAlive, Logical, Point, Serial, Size},
-    wayland::{compositor::with_states, shell::xdg::SurfaceCachedState},
+use smithay::desktop::space::SpaceElement;
+use smithay::desktop::WindowSurface;
+use smithay::input::pointer::{
+    AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
+    GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent,
+    GestureSwipeUpdateEvent, GrabStartData as PointerGrabStartData, MotionEvent, PointerGrab,
+    PointerInnerHandle, RelativeMotionEvent,
 };
+use smithay::input::touch::{GrabStartData as TouchGrabStartData, TouchGrab};
+use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
+use smithay::utils::{IsAlive, Logical, Point, Serial, Size};
+use smithay::wayland::compositor::with_states;
+use smithay::wayland::shell::xdg::SurfaceCachedState;
 #[cfg(feature = "xwayland")]
 use smithay::{utils::Rectangle, xwayland::xwm::ResizeEdge as X11ResizeEdge};
 
 use super::{SurfaceData, WindowElement};
-use crate::{
-    focus::PointerFocusTarget,
-    state::{AnvilState, Backend},
-};
+use crate::focus::PointerFocusTarget;
+use crate::state::{AnvilState, Backend};
 
 pub struct PointerMoveSurfaceGrab<B: Backend + 'static> {
     pub start_data: PointerGrabStartData<AnvilState<B>>,

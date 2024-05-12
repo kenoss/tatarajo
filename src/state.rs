@@ -1,8 +1,7 @@
-use std::{
-    os::unix::io::OwnedFd,
-    sync::{atomic::AtomicBool, Arc, Mutex},
-    time::Duration,
-};
+use std::os::unix::io::OwnedFd;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use tracing::{info, warn};
 
@@ -100,10 +99,8 @@ use smithay::{
 
 #[cfg(feature = "xwayland")]
 use crate::cursor::Cursor;
-use crate::{
-    focus::{KeyboardFocusTarget, PointerFocusTarget},
-    shell::WindowElement,
-};
+use crate::focus::{KeyboardFocusTarget, PointerFocusTarget};
+use crate::shell::WindowElement;
 #[cfg(feature = "xwayland")]
 use smithay::{
     delegate_xwayland_keyboard_grab,

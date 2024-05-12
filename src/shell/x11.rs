@@ -1,31 +1,27 @@
-use std::{cell::RefCell, os::unix::io::OwnedFd};
+use std::cell::RefCell;
+use std::os::unix::io::OwnedFd;
 
-use smithay::{
-    desktop::{space::SpaceElement, Window},
-    input::pointer::Focus,
-    utils::{Logical, Rectangle, SERIAL_COUNTER},
-    wayland::{
-        compositor::with_states,
-        selection::{
-            data_device::{
-                clear_data_device_selection, current_data_device_selection_userdata,
-                request_data_device_client_selection, set_data_device_selection,
-            },
-            primary_selection::{
-                clear_primary_selection, current_primary_selection_userdata,
-                request_primary_client_selection, set_primary_selection,
-            },
-            SelectionTarget,
-        },
-    },
-    xwayland::{
-        xwm::{Reorder, ResizeEdge as X11ResizeEdge, XwmId},
-        X11Surface, X11Wm, XwmHandler,
-    },
+use smithay::desktop::space::SpaceElement;
+use smithay::desktop::Window;
+use smithay::input::pointer::Focus;
+use smithay::utils::{Logical, Rectangle, SERIAL_COUNTER};
+use smithay::wayland::compositor::with_states;
+use smithay::wayland::selection::data_device::{
+    clear_data_device_selection, current_data_device_selection_userdata,
+    request_data_device_client_selection, set_data_device_selection,
 };
+use smithay::wayland::selection::primary_selection::{
+    clear_primary_selection, current_primary_selection_userdata, request_primary_client_selection,
+    set_primary_selection,
+};
+use smithay::wayland::selection::SelectionTarget;
+use smithay::xwayland::xwm::{Reorder, ResizeEdge as X11ResizeEdge, XwmId};
+use smithay::xwayland::{X11Surface, X11Wm, XwmHandler};
 use tracing::{error, trace};
 
-use crate::{focus::KeyboardFocusTarget, state::Backend, AnvilState, CalloopData};
+use crate::focus::KeyboardFocusTarget;
+use crate::state::Backend;
+use crate::{AnvilState, CalloopData};
 
 use super::{
     place_new_window, FullscreenSurface, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab,
