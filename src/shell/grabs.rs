@@ -4,10 +4,11 @@ use smithay::{
     desktop::{space::SpaceElement, WindowSurface},
     input::{
         pointer::{
-            AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
-            GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent,
-            GestureSwipeUpdateEvent, GrabStartData as PointerGrabStartData, MotionEvent, PointerGrab,
-            PointerInnerHandle, RelativeMotionEvent,
+            AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent,
+            GesturePinchBeginEvent, GesturePinchEndEvent, GesturePinchUpdateEvent,
+            GestureSwipeBeginEvent, GestureSwipeEndEvent, GestureSwipeUpdateEvent,
+            GrabStartData as PointerGrabStartData, MotionEvent, PointerGrab, PointerInnerHandle,
+            RelativeMotionEvent,
         },
         touch::{GrabStartData as TouchGrabStartData, TouchGrab},
     },
@@ -30,7 +31,9 @@ pub struct PointerMoveSurfaceGrab<B: Backend + 'static> {
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>> for PointerMoveSurfaceGrab<BackendData> {
+impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
+    for PointerMoveSurfaceGrab<BackendData>
+{
     fn motion(
         &mut self,
         data: &mut AnvilState<BackendData>,
@@ -171,7 +174,9 @@ pub struct TouchMoveSurfaceGrab<B: Backend + 'static> {
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>> for TouchMoveSurfaceGrab<BackendData> {
+impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
+    for TouchMoveSurfaceGrab<BackendData>
+{
     fn down(
         &mut self,
         _data: &mut AnvilState<BackendData>,
@@ -323,7 +328,9 @@ pub struct PointerResizeSurfaceGrab<B: Backend + 'static> {
     pub last_window_size: Size<i32, Logical>,
 }
 
-impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>> for PointerResizeSurfaceGrab<BackendData> {
+impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
+    for PointerResizeSurfaceGrab<BackendData>
+{
     fn motion(
         &mut self,
         data: &mut AnvilState<BackendData>,
@@ -402,8 +409,11 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>> for PointerResiz
             #[cfg(feature = "xwayland")]
             WindowSurface::X11(x11) => {
                 let location = data.space.element_location(&self.window).unwrap();
-                x11.configure(Rectangle::from_loc_and_size(location, self.last_window_size))
-                    .unwrap();
+                x11.configure(Rectangle::from_loc_and_size(
+                    location,
+                    self.last_window_size,
+                ))
+                .unwrap();
             }
         }
     }
@@ -464,7 +474,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>> for PointerResiz
                             .unwrap()
                             .borrow_mut();
                         if let ResizeState::Resizing(resize_data) = data.resize_state {
-                            data.resize_state = ResizeState::WaitingForFinalAck(resize_data, event.serial);
+                            data.resize_state =
+                                ResizeState::WaitingForFinalAck(resize_data, event.serial);
                         } else {
                             panic!("invalid resize state: {:?}", data.resize_state);
                         }
@@ -487,8 +498,11 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>> for PointerResiz
 
                         data.space.map_element(self.window.clone(), location, true);
                     }
-                    x11.configure(Rectangle::from_loc_and_size(location, self.last_window_size))
-                        .unwrap();
+                    x11.configure(Rectangle::from_loc_and_size(
+                        location,
+                        self.last_window_size,
+                    ))
+                    .unwrap();
 
                     let Some(surface) = self.window.wl_surface() else {
                         // X11 Window got unmapped, abort
@@ -614,7 +628,9 @@ pub struct TouchResizeSurfaceGrab<B: Backend + 'static> {
     pub last_window_size: Size<i32, Logical>,
 }
 
-impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>> for TouchResizeSurfaceGrab<BackendData> {
+impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
+    for TouchResizeSurfaceGrab<BackendData>
+{
     fn down(
         &mut self,
         _data: &mut AnvilState<BackendData>,
@@ -657,12 +673,12 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>> for TouchResizeSur
                     let mut location = data.space.element_location(&self.window).unwrap();
 
                     if self.edges.intersects(ResizeEdge::LEFT) {
-                        location.x =
-                            self.initial_window_location.x + (self.initial_window_size.w - geometry.size.w);
+                        location.x = self.initial_window_location.x
+                            + (self.initial_window_size.w - geometry.size.w);
                     }
                     if self.edges.intersects(ResizeEdge::TOP) {
-                        location.y =
-                            self.initial_window_location.y + (self.initial_window_size.h - geometry.size.h);
+                        location.y = self.initial_window_location.y
+                            + (self.initial_window_size.h - geometry.size.h);
                     }
 
                     data.space.map_element(self.window.clone(), location, true);
@@ -675,7 +691,8 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>> for TouchResizeSur
                         .unwrap()
                         .borrow_mut();
                     if let ResizeState::Resizing(resize_data) = data.resize_state {
-                        data.resize_state = ResizeState::WaitingForFinalAck(resize_data, event.serial);
+                        data.resize_state =
+                            ResizeState::WaitingForFinalAck(resize_data, event.serial);
                     } else {
                         panic!("invalid resize state: {:?}", data.resize_state);
                     }
@@ -688,18 +705,21 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>> for TouchResizeSur
                     let geometry = self.window.geometry();
 
                     if self.edges.intersects(ResizeEdge::LEFT) {
-                        location.x =
-                            self.initial_window_location.x + (self.initial_window_size.w - geometry.size.w);
+                        location.x = self.initial_window_location.x
+                            + (self.initial_window_size.w - geometry.size.w);
                     }
                     if self.edges.intersects(ResizeEdge::TOP) {
-                        location.y =
-                            self.initial_window_location.y + (self.initial_window_size.h - geometry.size.h);
+                        location.y = self.initial_window_location.y
+                            + (self.initial_window_size.h - geometry.size.h);
                     }
 
                     data.space.map_element(self.window.clone(), location, true);
                 }
-                x11.configure(Rectangle::from_loc_and_size(location, self.last_window_size))
-                    .unwrap();
+                x11.configure(Rectangle::from_loc_and_size(
+                    location,
+                    self.last_window_size,
+                ))
+                .unwrap();
 
                 let Some(surface) = self.window.wl_surface() else {
                     // X11 Window got unmapped, abort
@@ -804,8 +824,11 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>> for TouchResizeSur
             #[cfg(feature = "xwayland")]
             WindowSurface::X11(x11) => {
                 let location = data.space.element_location(&self.window).unwrap();
-                x11.configure(Rectangle::from_loc_and_size(location, self.last_window_size))
-                    .unwrap();
+                x11.configure(Rectangle::from_loc_and_size(
+                    location,
+                    self.last_window_size,
+                ))
+                .unwrap();
             }
         }
     }

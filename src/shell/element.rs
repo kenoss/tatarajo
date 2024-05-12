@@ -2,17 +2,21 @@ use std::time::Duration;
 
 use smithay::{
     backend::renderer::{
-        element::{solid::SolidColorRenderElement, surface::WaylandSurfaceRenderElement, AsRenderElements},
+        element::{
+            solid::SolidColorRenderElement, surface::WaylandSurfaceRenderElement, AsRenderElements,
+        },
         ImportAll, ImportMem, Renderer, Texture,
     },
     desktop::{
-        space::SpaceElement, utils::OutputPresentationFeedback, Window, WindowSurface, WindowSurfaceType,
+        space::SpaceElement, utils::OutputPresentationFeedback, Window, WindowSurface,
+        WindowSurfaceType,
     },
     input::{
         pointer::{
-            AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
-            GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent,
-            GestureSwipeUpdateEvent, MotionEvent, PointerTarget, RelativeMotionEvent,
+            AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent,
+            GesturePinchBeginEvent, GesturePinchEndEvent, GesturePinchUpdateEvent,
+            GestureSwipeBeginEvent, GestureSwipeEndEvent, GestureSwipeUpdateEvent, MotionEvent,
+            PointerTarget, RelativeMotionEvent,
         },
         touch::TouchTarget,
         Seat,
@@ -24,7 +28,9 @@ use smithay::{
     },
     render_elements,
     utils::{user_data::UserDataMap, IsAlive, Logical, Physical, Point, Rectangle, Scale, Serial},
-    wayland::{compositor::SurfaceData as WlSurfaceData, dmabuf::DmabufFeedback, seat::WaylandFocus},
+    wayland::{
+        compositor::SurfaceData as WlSurfaceData, dmabuf::DmabufFeedback, seat::WaylandFocus,
+    },
 };
 
 use super::ssd::HEADER_BAR_HEIGHT;
@@ -49,7 +55,9 @@ impl WindowElement {
             Point::default()
         };
 
-        let surface_under = self.0.surface_under(location - offset.to_f64(), window_type);
+        let surface_under = self
+            .0
+            .surface_under(location - offset.to_f64(), window_type);
         let (under, loc) = match self.0.underlying_surface() {
             WindowSurface::Wayland(_) => {
                 surface_under.map(|(surface, loc)| (PointerFocusTarget::WlSurface(surface), loc))
@@ -79,7 +87,8 @@ impl WindowElement {
         T: Into<Duration>,
         F: FnMut(&WlSurface, &WlSurfaceData) -> Option<Output> + Copy,
     {
-        self.0.send_frame(output, time, throttle, primary_scan_out_output)
+        self.0
+            .send_frame(output, time, throttle, primary_scan_out_output)
     }
 
     pub fn send_dmabuf_feedback<'a, P, F>(
@@ -151,7 +160,12 @@ impl WaylandFocus for SSD {
 }
 
 impl<Backend: crate::state::Backend> PointerTarget<AnvilState<Backend>> for SSD {
-    fn enter(&self, _seat: &Seat<AnvilState<Backend>>, _data: &mut AnvilState<Backend>, event: &MotionEvent) {
+    fn enter(
+        &self,
+        _seat: &Seat<AnvilState<Backend>>,
+        _data: &mut AnvilState<Backend>,
+        event: &MotionEvent,
+    ) {
         let mut state = self.0.decoration_state();
         if state.is_ssd {
             state.header_bar.pointer_enter(event.location);
@@ -175,13 +189,24 @@ impl<Backend: crate::state::Backend> PointerTarget<AnvilState<Backend>> for SSD 
         _event: &RelativeMotionEvent,
     ) {
     }
-    fn button(&self, seat: &Seat<AnvilState<Backend>>, data: &mut AnvilState<Backend>, event: &ButtonEvent) {
+    fn button(
+        &self,
+        seat: &Seat<AnvilState<Backend>>,
+        data: &mut AnvilState<Backend>,
+        event: &ButtonEvent,
+    ) {
         let mut state = self.0.decoration_state();
         if state.is_ssd {
             state.header_bar.clicked(seat, data, &self.0, event.serial);
         }
     }
-    fn axis(&self, _seat: &Seat<AnvilState<Backend>>, _data: &mut AnvilState<Backend>, _frame: AxisFrame) {}
+    fn axis(
+        &self,
+        _seat: &Seat<AnvilState<Backend>>,
+        _data: &mut AnvilState<Backend>,
+        _frame: AxisFrame,
+    ) {
+    }
     fn frame(&self, _seat: &Seat<AnvilState<Backend>>, _data: &mut AnvilState<Backend>) {}
     fn leave(
         &self,
@@ -264,7 +289,9 @@ impl<Backend: crate::state::Backend> TouchTarget<AnvilState<Backend>> for SSD {
         let mut state = self.0.decoration_state();
         if state.is_ssd {
             state.header_bar.pointer_enter(event.location);
-            state.header_bar.touch_down(seat, data, &self.0, event.serial);
+            state
+                .header_bar
+                .touch_down(seat, data, &self.0, event.serial);
         }
     }
 
@@ -294,9 +321,21 @@ impl<Backend: crate::state::Backend> TouchTarget<AnvilState<Backend>> for SSD {
         }
     }
 
-    fn frame(&self, _seat: &Seat<AnvilState<Backend>>, _data: &mut AnvilState<Backend>, _seq: Serial) {}
+    fn frame(
+        &self,
+        _seat: &Seat<AnvilState<Backend>>,
+        _data: &mut AnvilState<Backend>,
+        _seq: Serial,
+    ) {
+    }
 
-    fn cancel(&self, _seat: &Seat<AnvilState<Backend>>, _data: &mut AnvilState<Backend>, _seq: Serial) {}
+    fn cancel(
+        &self,
+        _seat: &Seat<AnvilState<Backend>>,
+        _data: &mut AnvilState<Backend>,
+        _seq: Serial,
+    ) {
+    }
 
     fn shape(
         &self,

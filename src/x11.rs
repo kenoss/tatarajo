@@ -24,8 +24,8 @@ use smithay::{
         },
         egl::{EGLContext, EGLDisplay},
         renderer::{
-            damage::OutputDamageTracker, element::AsRenderElements, gles::GlesRenderer, Bind, ImportDma,
-            ImportMemWl,
+            damage::OutputDamageTracker, element::AsRenderElements, gles::GlesRenderer, Bind,
+            ImportDma, ImportMemWl,
         },
         vulkan::{version::Version, Instance, PhysicalDevice},
         x11::{WindowBuilder, X11Backend, X11Event, X11Surface},
@@ -47,7 +47,8 @@ use smithay::{
     wayland::{
         compositor,
         dmabuf::{
-            DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
+            DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState,
+            ImportNotifier,
         },
     },
 };
@@ -76,8 +77,18 @@ impl DmabufHandler for AnvilState<X11Data> {
         &mut self.backend_data.dmabuf_state
     }
 
-    fn dmabuf_imported(&mut self, _global: &DmabufGlobal, dmabuf: Dmabuf, notifier: ImportNotifier) {
-        if self.backend_data.renderer.import_dmabuf(&dmabuf, None).is_ok() {
+    fn dmabuf_imported(
+        &mut self,
+        _global: &DmabufGlobal,
+        dmabuf: Dmabuf,
+        notifier: ImportNotifier,
+    ) {
+        if self
+            .backend_data
+            .renderer
+            .import_dmabuf(&dmabuf, None)
+            .is_ok()
+        {
             let _ = notifier.successful::<AnvilState<X11Data>>();
         } else {
             notifier.failed();
@@ -124,7 +135,10 @@ pub fn run_x11() {
 
     let skip_vulkan = std::env::var("ANVIL_NO_VULKAN")
         .map(|x| {
-            x == "1" || x.to_lowercase() == "true" || x.to_lowercase() == "yes" || x.to_lowercase() == "y"
+            x == "1"
+                || x.to_lowercase() == "true"
+                || x.to_lowercase() == "yes"
+                || x.to_lowercase() == "y"
         })
         .unwrap_or(false);
 
@@ -132,14 +146,16 @@ pub fn run_x11() {
         Instance::new(Version::VERSION_1_2, None)
             .ok()
             .and_then(|instance| {
-                PhysicalDevice::enumerate(&instance).ok().and_then(|devices| {
-                    devices
-                        .filter(|phd| phd.has_device_extension(ExtPhysicalDeviceDrmFn::name()))
-                        .find(|phd| {
-                            phd.primary_node().unwrap() == Some(node)
-                                || phd.render_node().unwrap() == Some(node)
-                        })
-                })
+                PhysicalDevice::enumerate(&instance)
+                    .ok()
+                    .and_then(|devices| {
+                        devices
+                            .filter(|phd| phd.has_device_extension(ExtPhysicalDeviceDrmFn::name()))
+                            .find(|phd| {
+                                phd.primary_node().unwrap() == Some(node)
+                                    || phd.render_node().unwrap() == Some(node)
+                            })
+                    })
             })
             .and_then(|physical_device| {
                 VulkanAllocator::new(
@@ -177,7 +193,8 @@ pub fn run_x11() {
     };
 
     #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
-    let mut renderer = unsafe { GlesRenderer::new(context) }.expect("Failed to initialize renderer");
+    let mut renderer =
+        unsafe { GlesRenderer::new(context) }.expect("Failed to initialize renderer");
 
     #[cfg(feature = "egl")]
     if renderer.bind_wl_display(&display.handle()).is_ok() {
@@ -206,10 +223,12 @@ pub fn run_x11() {
     };
 
     #[cfg(feature = "debug")]
-    let fps_image =
-        image::io::Reader::with_format(std::io::Cursor::new(FPS_NUMBERS_PNG), image::ImageFormat::Png)
-            .decode()
-            .unwrap();
+    let fps_image = image::io::Reader::with_format(
+        std::io::Cursor::new(FPS_NUMBERS_PNG),
+        image::ImageFormat::Png,
+    )
+    .decode()
+    .unwrap();
     #[cfg(feature = "debug")]
     let fps_texture = renderer
         .import_memory(
@@ -273,7 +292,10 @@ pub fn run_x11() {
                 output.delete_mode(output.current_mode().unwrap());
                 output.change_current_state(Some(data.state.backend_data.mode), None, None, None);
                 output.set_preferred(data.state.backend_data.mode);
-                crate::shell::fixup_positions(&mut data.state.space, data.state.pointer.current_location());
+                crate::shell::fixup_positions(
+                    &mut data.state.space,
+                    data.state.pointer.current_location(),
+                );
 
                 data.state.backend_data.render = true;
             }
@@ -315,7 +337,10 @@ pub fn run_x11() {
             #[cfg(feature = "debug")]
             fps_element.update_fps(fps);
 
-            let (buffer, age) = backend_data.surface.buffer().expect("gbm device was destroyed");
+            let (buffer, age) = backend_data
+                .surface
+                .buffer()
+                .expect("gbm device was destroyed");
             if let Err(err) = backend_data.renderer.bind(buffer) {
                 error!("Error while binding buffer: {}", err);
                 continue;
@@ -408,24 +433,41 @@ pub fn run_x11() {
                     if render_output_result.damage.is_some() {
                         if let Some(renderdoc) = state.renderdoc.as_mut() {
                             renderdoc.end_frame_capture(
-                                state.backend_data.renderer.egl_context().get_context_handle(),
+                                state
+                                    .backend_data
+                                    .renderer
+                                    .egl_context()
+                                    .get_context_handle(),
                                 std::ptr::null(),
                             );
                         }
                     } else if let Some(renderdoc) = state.renderdoc.as_mut() {
                         renderdoc.discard_frame_capture(
-                            state.backend_data.renderer.egl_context().get_context_handle(),
+                            state
+                                .backend_data
+                                .renderer
+                                .egl_context()
+                                .get_context_handle(),
                             std::ptr::null(),
                         );
                     }
 
                     // Send frame events so that client start drawing their next frame
                     let time = state.clock.now();
-                    post_repaint(&output, &render_output_result.states, &state.space, None, time);
+                    post_repaint(
+                        &output,
+                        &render_output_result.states,
+                        &state.space,
+                        None,
+                        time,
+                    );
 
                     if render_output_result.damage.is_some() {
-                        let mut output_presentation_feedback =
-                            take_presentation_feedback(&output, &state.space, &render_output_result.states);
+                        let mut output_presentation_feedback = take_presentation_feedback(
+                            &output,
+                            &state.space,
+                            &render_output_result.states,
+                        );
                         output_presentation_feedback.presented(
                             time,
                             output

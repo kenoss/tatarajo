@@ -2,9 +2,9 @@ use std::cell::RefCell;
 
 use smithay::{
     desktop::{
-        find_popup_root_surface, get_popup_toplevel_coords, layer_map_for_output, space::SpaceElement,
-        PopupKeyboardGrab, PopupKind, PopupPointerGrab, PopupUngrabStrategy, Space, Window,
-        WindowSurfaceType,
+        find_popup_root_surface, get_popup_toplevel_coords, layer_map_for_output,
+        space::SpaceElement, PopupKeyboardGrab, PopupKind, PopupPointerGrab, PopupUngrabStrategy,
+        Space, Window, WindowSurfaceType,
     },
     input::{pointer::Focus, Seat},
     output::Output,
@@ -20,8 +20,8 @@ use smithay::{
         compositor::{self, with_states},
         seat::WaylandFocus,
         shell::xdg::{
-            Configure, PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
-            XdgToplevelSurfaceData,
+            Configure, PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler,
+            XdgShellState, XdgToplevelSurfaceData,
         },
     },
 };
@@ -48,7 +48,12 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
         // of a xdg_surface has to be sent during the commit if
         // the surface is not already configured
         let window = WindowElement(Window::new_wayland_window(surface.clone()));
-        place_new_window(&mut self.space, self.pointer.current_location(), &window, true);
+        place_new_window(
+            &mut self.space,
+            self.pointer.current_location(),
+            &window,
+            true,
+        );
 
         compositor::add_post_commit_hook(surface.wl_surface(), |state: &mut Self, _, surface| {
             handle_toplevel_commit(&mut state.space, surface);
@@ -67,7 +72,12 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
         }
     }
 
-    fn reposition_request(&mut self, surface: PopupSurface, positioner: PositionerState, token: u32) {
+    fn reposition_request(
+        &mut self,
+        surface: PopupSurface,
+        positioner: PositionerState,
+        token: u32,
+    ) {
         surface.with_pending_state(|state| {
             let geometry = positioner.get_geometry();
             state.geometry = geometry;
@@ -263,7 +273,11 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
         }
     }
 
-    fn fullscreen_request(&mut self, surface: ToplevelSurface, mut wl_output: Option<wl_output::WlOutput>) {
+    fn fullscreen_request(
+        &mut self,
+        surface: ToplevelSurface,
+        mut wl_output: Option<wl_output::WlOutput>,
+    ) {
         if surface
             .current_state()
             .capabilities
@@ -274,7 +288,8 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
             // independently from its buffer size
             let wl_surface = surface.wl_surface();
 
-            let output_geometry = fullscreen_output_geometry(wl_surface, wl_output.as_ref(), &mut self.space);
+            let output_geometry =
+                fullscreen_output_geometry(wl_surface, wl_output.as_ref(), &mut self.space);
 
             if let Some(geometry) = output_geometry {
                 let output = wl_output
@@ -288,7 +303,12 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
                 let window = self
                     .space
                     .elements()
-                    .find(|window| window.wl_surface().map(|s| s == *wl_surface).unwrap_or(false))
+                    .find(|window| {
+                        window
+                            .wl_surface()
+                            .map(|s| s == *wl_surface)
+                            .unwrap_or(false)
+                    })
                     .unwrap();
 
                 surface.with_pending_state(|state| {
@@ -296,7 +316,9 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
                     state.size = Some(geometry.size);
                     state.fullscreen_output = wl_output;
                 });
-                output.user_data().insert_if_missing(FullscreenSurface::default);
+                output
+                    .user_data()
+                    .insert_if_missing(FullscreenSurface::default);
                 output
                     .user_data()
                     .get::<FullscreenSurface>()
@@ -397,7 +419,8 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
                         .outputs()
                         .find_map(|o| {
                             let map = layer_map_for_output(o);
-                            map.layer_for_surface(&root, WindowSurfaceType::TOPLEVEL).cloned()
+                            map.layer_for_surface(&root, WindowSurfaceType::TOPLEVEL)
+                                .cloned()
                         })
                         .map(KeyboardFocusTarget::LayerSurface)
                 })
@@ -419,7 +442,8 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
                 if let Some(pointer) = seat.get_pointer() {
                     if pointer.is_grabbed()
                         && !(pointer.has_grab(serial)
-                            || pointer.has_grab(grab.previous_serial().unwrap_or_else(|| grab.serial())))
+                            || pointer
+                                .has_grab(grab.previous_serial().unwrap_or_else(|| grab.serial())))
                     {
                         grab.ungrab(PopupUngrabStrategy::All);
                         return;
@@ -432,7 +456,12 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
 }
 
 impl<BackendData: Backend> AnvilState<BackendData> {
-    pub fn move_request_xdg(&mut self, surface: &ToplevelSurface, seat: &Seat<Self>, serial: Serial) {
+    pub fn move_request_xdg(
+        &mut self,
+        surface: &ToplevelSurface,
+        seat: &Seat<Self>,
+        serial: Serial,
+    ) {
         if let Some(touch) = seat.get_touch() {
             if touch.has_grab(serial) {
                 let start_data = touch.grab_start_data().unwrap();
@@ -459,7 +488,10 @@ impl<BackendData: Backend> AnvilState<BackendData> {
 
                 // If surface is maximized then unmaximize it
                 let current_state = surface.current_state();
-                if current_state.states.contains(xdg_toplevel::State::Maximized) {
+                if current_state
+                    .states
+                    .contains(xdg_toplevel::State::Maximized)
+                {
                     surface.with_pending_state(|state| {
                         state.states.unset(xdg_toplevel::State::Maximized);
                         state.size = None;
@@ -523,7 +555,10 @@ impl<BackendData: Backend> AnvilState<BackendData> {
 
         // If surface is maximized then unmaximize it
         let current_state = surface.current_state();
-        if current_state.states.contains(xdg_toplevel::State::Maximized) {
+        if current_state
+            .states
+            .contains(xdg_toplevel::State::Maximized)
+        {
             surface.with_pending_state(|state| {
                 state.states.unset(xdg_toplevel::State::Maximized);
                 state.size = None;

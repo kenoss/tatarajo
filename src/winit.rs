@@ -42,7 +42,8 @@ use smithay::{
     wayland::{
         compositor,
         dmabuf::{
-            DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
+            DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState,
+            ImportNotifier,
         },
     },
 };
@@ -67,7 +68,12 @@ impl DmabufHandler for AnvilState<WinitData> {
         &mut self.backend_data.dmabuf_state.0
     }
 
-    fn dmabuf_imported(&mut self, _global: &DmabufGlobal, dmabuf: Dmabuf, notifier: ImportNotifier) {
+    fn dmabuf_imported(
+        &mut self,
+        _global: &DmabufGlobal,
+        dmabuf: Dmabuf,
+        notifier: ImportNotifier,
+    ) {
         if self
             .backend_data
             .backend
@@ -123,14 +129,21 @@ pub fn run_winit() {
         },
     );
     let _global = output.create_global::<AnvilState<WinitData>>(&display.handle());
-    output.change_current_state(Some(mode), Some(Transform::Flipped180), None, Some((0, 0).into()));
+    output.change_current_state(
+        Some(mode),
+        Some(Transform::Flipped180),
+        None,
+        Some((0, 0).into()),
+    );
     output.set_preferred(mode);
 
     #[cfg(feature = "debug")]
-    let fps_image =
-        image::io::Reader::with_format(std::io::Cursor::new(FPS_NUMBERS_PNG), image::ImageFormat::Png)
-            .decode()
-            .unwrap();
+    let fps_image = image::io::Reader::with_format(
+        std::io::Cursor::new(FPS_NUMBERS_PNG),
+        image::ImageFormat::Png,
+    )
+    .decode()
+    .unwrap();
     #[cfg(feature = "debug")]
     let fps_texture = backend
         .renderer()
@@ -169,10 +182,11 @@ pub fn run_winit() {
     // Note: egl on Mesa requires either v4 or wl_drm (initialized with bind_wl_display)
     let dmabuf_state = if let Some(default_feedback) = dmabuf_default_feedback {
         let mut dmabuf_state = DmabufState::new();
-        let dmabuf_global = dmabuf_state.create_global_with_default_feedback::<AnvilState<WinitData>>(
-            &display.handle(),
-            &default_feedback,
-        );
+        let dmabuf_global = dmabuf_state
+            .create_global_with_default_feedback::<AnvilState<WinitData>>(
+                &display.handle(),
+                &default_feedback,
+            );
         (dmabuf_state, dmabuf_global, Some(default_feedback))
     } else {
         let dmabuf_formats = backend.renderer().dmabuf_formats().collect::<Vec<_>>();
@@ -183,7 +197,11 @@ pub fn run_winit() {
     };
 
     #[cfg(feature = "egl")]
-    if backend.renderer().bind_wl_display(&display.handle()).is_ok() {
+    if backend
+        .renderer()
+        .bind_wl_display(&display.handle())
+        .is_ok()
+    {
         info!("EGL hardware-acceleration enabled");
     };
 
@@ -324,7 +342,12 @@ pub fn run_winit() {
 
                 let mut elements = Vec::<CustomRenderElements<GlesRenderer>>::new();
 
-                elements.extend(pointer_element.render_elements(renderer, cursor_pos_scaled, scale, 1.0));
+                elements.extend(pointer_element.render_elements(
+                    renderer,
+                    cursor_pos_scaled,
+                    scale,
+                    1.0,
+                ));
 
                 // draw the dnd icon if any
                 if let Some(surface) = dnd_icon {
@@ -388,11 +411,20 @@ pub fn run_winit() {
 
                     // Send frame events so that client start drawing their next frame
                     let time = state.clock.now();
-                    post_repaint(&output, &render_output_result.states, &state.space, None, time);
+                    post_repaint(
+                        &output,
+                        &render_output_result.states,
+                        &state.space,
+                        None,
+                        time,
+                    );
 
                     if has_rendered {
-                        let mut output_presentation_feedback =
-                            take_presentation_feedback(&output, &state.space, &render_output_result.states);
+                        let mut output_presentation_feedback = take_presentation_feedback(
+                            &output,
+                            &state.space,
+                            &render_output_result.states,
+                        );
                         output_presentation_feedback.presented(
                             time,
                             output

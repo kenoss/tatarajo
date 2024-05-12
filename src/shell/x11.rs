@@ -28,8 +28,8 @@ use tracing::{error, trace};
 use crate::{focus::KeyboardFocusTarget, state::Backend, AnvilState, CalloopData};
 
 use super::{
-    place_new_window, FullscreenSurface, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab, ResizeData,
-    ResizeState, SurfaceData, TouchMoveSurfaceGrab, WindowElement,
+    place_new_window, FullscreenSurface, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab,
+    ResizeData, ResizeState, SurfaceData, TouchMoveSurfaceGrab, WindowElement,
 };
 
 #[derive(Debug, Default)]
@@ -179,7 +179,9 @@ impl<BackendData: Backend> XwmHandler for CalloopData<BackendData> {
             window.set_fullscreen(true).unwrap();
             elem.set_ssd(false);
             window.configure(geometry).unwrap();
-            output.user_data().insert_if_missing(FullscreenSurface::default);
+            output
+                .user_data()
+                .insert_if_missing(FullscreenSurface::default);
             output
                 .user_data()
                 .get::<FullscreenSurface>()
@@ -206,14 +208,26 @@ impl<BackendData: Backend> XwmHandler for CalloopData<BackendData> {
                     .unwrap_or(false)
             }) {
                 trace!("Unfullscreening: {:?}", elem);
-                output.user_data().get::<FullscreenSurface>().unwrap().clear();
-                window.configure(self.state.space.element_bbox(elem)).unwrap();
+                output
+                    .user_data()
+                    .get::<FullscreenSurface>()
+                    .unwrap()
+                    .clear();
+                window
+                    .configure(self.state.space.element_bbox(elem))
+                    .unwrap();
                 self.state.backend_data.reset_buffers(output);
             }
         }
     }
 
-    fn resize_request(&mut self, _xwm: XwmId, window: X11Surface, _button: u32, edges: X11ResizeEdge) {
+    fn resize_request(
+        &mut self,
+        _xwm: XwmId,
+        window: X11Surface,
+        _button: u32,
+        edges: X11ResizeEdge,
+    ) {
         // luckily anvil only supports one seat anyway...
         let start_data = self.state.pointer.grab_start_data().unwrap();
 
@@ -253,7 +267,12 @@ impl<BackendData: Backend> XwmHandler for CalloopData<BackendData> {
         };
 
         let pointer = self.state.pointer.clone();
-        pointer.set_grab(&mut self.state, grab, SERIAL_COUNTER.next_serial(), Focus::Clear);
+        pointer.set_grab(
+            &mut self.state,
+            grab,
+            SERIAL_COUNTER.next_serial(),
+            Focus::Clear,
+        );
     }
 
     fn move_request(&mut self, _xwm: XwmId, window: X11Surface, _button: u32) {
@@ -274,15 +293,27 @@ impl<BackendData: Backend> XwmHandler for CalloopData<BackendData> {
         false
     }
 
-    fn send_selection(&mut self, _xwm: XwmId, selection: SelectionTarget, mime_type: String, fd: OwnedFd) {
+    fn send_selection(
+        &mut self,
+        _xwm: XwmId,
+        selection: SelectionTarget,
+        mime_type: String,
+        fd: OwnedFd,
+    ) {
         match selection {
             SelectionTarget::Clipboard => {
-                if let Err(err) = request_data_device_client_selection(&self.state.seat, mime_type, fd) {
-                    error!(?err, "Failed to request current wayland clipboard for Xwayland",);
+                if let Err(err) =
+                    request_data_device_client_selection(&self.state.seat, mime_type, fd)
+                {
+                    error!(
+                        ?err,
+                        "Failed to request current wayland clipboard for Xwayland",
+                    );
                 }
             }
             SelectionTarget::Primary => {
-                if let Err(err) = request_primary_client_selection(&self.state.seat, mime_type, fd) {
+                if let Err(err) = request_primary_client_selection(&self.state.seat, mime_type, fd)
+                {
                     error!(
                         ?err,
                         "Failed to request current wayland primary selection for Xwayland",
@@ -296,9 +327,12 @@ impl<BackendData: Backend> XwmHandler for CalloopData<BackendData> {
         trace!(?selection, ?mime_types, "Got Selection from X11",);
         // TODO check, that focused windows is X11 window before doing this
         match selection {
-            SelectionTarget::Clipboard => {
-                set_data_device_selection(&self.state.display_handle, &self.state.seat, mime_types, ())
-            }
+            SelectionTarget::Clipboard => set_data_device_selection(
+                &self.state.display_handle,
+                &self.state.seat,
+                mime_types,
+                (),
+            ),
             SelectionTarget::Primary => {
                 set_primary_selection(&self.state.display_handle, &self.state.seat, mime_types, ())
             }
@@ -345,7 +379,11 @@ impl<BackendData: Backend> AnvilState<BackendData> {
         window.set_maximized(true).unwrap();
         window.configure(geometry).unwrap();
         window.user_data().insert_if_missing(OldGeometry::default);
-        window.user_data().get::<OldGeometry>().unwrap().save(old_geo);
+        window
+            .user_data()
+            .get::<OldGeometry>()
+            .unwrap()
+            .save(old_geo);
         self.space.map_element(elem, geometry.loc, false);
     }
 

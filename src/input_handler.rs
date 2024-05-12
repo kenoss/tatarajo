@@ -46,17 +46,18 @@ use crate::state::Backend;
 use smithay::{
     backend::{
         input::{
-            Device, DeviceCapability, GestureBeginEvent, GestureEndEvent, GesturePinchUpdateEvent as _,
-            GestureSwipeUpdateEvent as _, PointerMotionEvent, ProximityState, TabletToolButtonEvent,
-            TabletToolEvent, TabletToolProximityEvent, TabletToolTipEvent, TabletToolTipState, TouchEvent,
+            Device, DeviceCapability, GestureBeginEvent, GestureEndEvent,
+            GesturePinchUpdateEvent as _, GestureSwipeUpdateEvent as _, PointerMotionEvent,
+            ProximityState, TabletToolButtonEvent, TabletToolEvent, TabletToolProximityEvent,
+            TabletToolTipEvent, TabletToolTipState, TouchEvent,
         },
         session::Session,
     },
     input::{
         pointer::{
-            GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent, GesturePinchEndEvent,
-            GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent, GestureSwipeUpdateEvent,
-            RelativeMotionEvent,
+            GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
+            GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent,
+            GestureSwipeEndEvent, GestureSwipeUpdateEvent, RelativeMotionEvent,
         },
         touch::{DownEvent, UpEvent},
     },
@@ -109,12 +110,13 @@ impl<BackendData: Backend> AnvilState<BackendData> {
                     if let Some(toplevel) = element.0.toplevel() {
                         let mode_changed = toplevel.with_pending_state(|state| {
                             if let Some(current_mode) = state.decoration_mode {
-                                let new_mode =
-                                    if current_mode == zxdg_toplevel_decoration_v1::Mode::ClientSide {
-                                        zxdg_toplevel_decoration_v1::Mode::ServerSide
-                                    } else {
-                                        zxdg_toplevel_decoration_v1::Mode::ClientSide
-                                    };
+                                let new_mode = if current_mode
+                                    == zxdg_toplevel_decoration_v1::Mode::ClientSide
+                                {
+                                    zxdg_toplevel_decoration_v1::Mode::ServerSide
+                                } else {
+                                    zxdg_toplevel_decoration_v1::Mode::ClientSide
+                                };
                                 state.decoration_mode = Some(new_mode);
                                 true
                             } else {
@@ -186,45 +188,52 @@ impl<BackendData: Backend> AnvilState<BackendData> {
             .unwrap_or(false);
 
         let action = keyboard
-            .input(self, keycode, state, serial, time, |_, modifiers, handle| {
-                let keysym = handle.modified_sym();
+            .input(
+                self,
+                keycode,
+                state,
+                serial,
+                time,
+                |_, modifiers, handle| {
+                    let keysym = handle.modified_sym();
 
-                debug!(
-                    ?state,
-                    mods = ?modifiers,
-                    keysym = ::xkbcommon::xkb::keysym_get_name(keysym),
-                    "keysym"
-                );
+                    debug!(
+                        ?state,
+                        mods = ?modifiers,
+                        keysym = ::xkbcommon::xkb::keysym_get_name(keysym),
+                        "keysym"
+                    );
 
-                // If the key is pressed and triggered a action
-                // we will not forward the key to the client.
-                // Additionally add the key to the suppressed keys
-                // so that we can decide on a release if the key
-                // should be forwarded to the client or not.
-                if let KeyState::Pressed = state {
-                    if !inhibited {
-                        let action = process_keyboard_shortcut(*modifiers, keysym);
+                    // If the key is pressed and triggered a action
+                    // we will not forward the key to the client.
+                    // Additionally add the key to the suppressed keys
+                    // so that we can decide on a release if the key
+                    // should be forwarded to the client or not.
+                    if let KeyState::Pressed = state {
+                        if !inhibited {
+                            let action = process_keyboard_shortcut(*modifiers, keysym);
 
-                        if action.is_some() {
-                            suppressed_keys.push(keysym);
+                            if action.is_some() {
+                                suppressed_keys.push(keysym);
+                            }
+
+                            action
+                                .map(FilterResult::Intercept)
+                                .unwrap_or(FilterResult::Forward)
+                        } else {
+                            FilterResult::Forward
                         }
-
-                        action
-                            .map(FilterResult::Intercept)
-                            .unwrap_or(FilterResult::Forward)
                     } else {
-                        FilterResult::Forward
+                        let suppressed = suppressed_keys.contains(&keysym);
+                        if suppressed {
+                            suppressed_keys.retain(|k| *k != keysym);
+                            FilterResult::Intercept(KeyAction::None)
+                        } else {
+                            FilterResult::Forward
+                        }
                     }
-                } else {
-                    let suppressed = suppressed_keys.contains(&keysym);
-                    if suppressed {
-                        suppressed_keys.retain(|k| *k != keysym);
-                        FilterResult::Intercept(KeyAction::None)
-                    } else {
-                        FilterResult::Forward
-                    }
-                }
-            })
+                },
+            )
             .unwrap_or(KeyAction::None);
 
         self.suppressed_keys = suppressed_keys;
@@ -278,8 +287,8 @@ impl<BackendData: Backend> AnvilState<BackendData> {
                     .get::<FullscreenSurface>()
                     .and_then(|f| f.get())
                 {
-                    if let Some((_, _)) =
-                        window.surface_under(location - output_geo.loc.to_f64(), WindowSurfaceType::ALL)
+                    if let Some((_, _)) = window
+                        .surface_under(location - output_geo.loc.to_f64(), WindowSurfaceType::ALL)
                     {
                         #[cfg(feature = "xwayland")]
                         if let Some(surface) = window.0.x11_surface() {
@@ -309,7 +318,11 @@ impl<BackendData: Backend> AnvilState<BackendData> {
                 }
             }
 
-            if let Some((window, _)) = self.space.element_under(location).map(|(w, p)| (w.clone(), p)) {
+            if let Some((window, _)) = self
+                .space
+                .element_under(location)
+                .map(|(w, p)| (w.clone(), p))
+            {
                 self.space.raise_element(&window, true);
                 #[cfg(feature = "xwayland")]
                 if let Some(surface) = window.0.x11_surface() {
@@ -409,9 +422,9 @@ impl<BackendData: Backend> AnvilState<BackendData> {
     }
 
     fn on_pointer_axis<B: InputBackend>(&mut self, _dh: &DisplayHandle, evt: B::PointerAxisEvent) {
-        let horizontal_amount = evt
-            .amount(input::Axis::Horizontal)
-            .unwrap_or_else(|| evt.amount_v120(input::Axis::Horizontal).unwrap_or(0.0) * 3.0 / 120.);
+        let horizontal_amount = evt.amount(input::Axis::Horizontal).unwrap_or_else(|| {
+            evt.amount_v120(input::Axis::Horizontal).unwrap_or(0.0) * 3.0 / 120.
+        });
         let vertical_amount = evt
             .amount(input::Axis::Vertical)
             .unwrap_or_else(|| evt.amount_v120(input::Axis::Vertical).unwrap_or(0.0) * 3.0 / 120.);
@@ -421,14 +434,16 @@ impl<BackendData: Backend> AnvilState<BackendData> {
         {
             let mut frame = AxisFrame::new(evt.time_msec()).source(evt.source());
             if horizontal_amount != 0.0 {
-                frame = frame.relative_direction(Axis::Horizontal, evt.relative_direction(Axis::Horizontal));
+                frame = frame
+                    .relative_direction(Axis::Horizontal, evt.relative_direction(Axis::Horizontal));
                 frame = frame.value(Axis::Horizontal, horizontal_amount);
                 if let Some(discrete) = horizontal_amount_discrete {
                     frame = frame.v120(Axis::Horizontal, discrete as i32);
                 }
             }
             if vertical_amount != 0.0 {
-                frame = frame.relative_direction(Axis::Vertical, evt.relative_direction(Axis::Vertical));
+                frame = frame
+                    .relative_direction(Axis::Vertical, evt.relative_direction(Axis::Vertical));
                 frame = frame.value(Axis::Vertical, vertical_amount);
                 if let Some(discrete) = vertical_amount_discrete {
                     frame = frame.v120(Axis::Vertical, discrete as i32);
@@ -469,7 +484,12 @@ impl<Backend: crate::state::Backend> AnvilState<Backend> {
 
                     let current_scale = output.current_scale().fractional_scale();
                     let new_scale = current_scale + 0.25;
-                    output.change_current_state(None, None, Some(Scale::Fractional(new_scale)), None);
+                    output.change_current_state(
+                        None,
+                        None,
+                        Some(Scale::Fractional(new_scale)),
+                        None,
+                    );
 
                     crate::shell::fixup_positions(&mut self.space, self.pointer.current_location());
                     self.backend_data.reset_buffers(&output);
@@ -485,7 +505,12 @@ impl<Backend: crate::state::Backend> AnvilState<Backend> {
 
                     let current_scale = output.current_scale().fractional_scale();
                     let new_scale = f64::max(1.0, current_scale - 0.25);
-                    output.change_current_state(None, None, Some(Scale::Fractional(new_scale)), None);
+                    output.change_current_state(
+                        None,
+                        None,
+                        Some(Scale::Fractional(new_scale)),
+                        None,
+                    );
 
                     crate::shell::fixup_positions(&mut self.space, self.pointer.current_location());
                     self.backend_data.reset_buffers(&output);
@@ -588,7 +613,11 @@ impl<Backend: crate::state::Backend> AnvilState<Backend> {
 
 #[cfg(feature = "udev")]
 impl AnvilState<UdevData> {
-    pub fn process_input_event<B: InputBackend>(&mut self, dh: &DisplayHandle, event: InputEvent<B>) {
+    pub fn process_input_event<B: InputBackend>(
+        &mut self,
+        dh: &DisplayHandle,
+        event: InputEvent<B>,
+    ) {
         match event {
             InputEvent::Keyboard { event, .. } => match self.keyboard_key_to_action::<B>(event) {
                 #[cfg(feature = "udev")]
@@ -637,11 +666,17 @@ impl AnvilState<UdevData> {
                             output.current_scale().fractional_scale(),
                         );
                         let new_scale = scale + 0.25;
-                        output.change_current_state(None, None, Some(Scale::Fractional(new_scale)), None);
+                        output.change_current_state(
+                            None,
+                            None,
+                            Some(Scale::Fractional(new_scale)),
+                            None,
+                        );
 
                         let rescale = scale / new_scale;
                         let output_location = output_location.to_f64();
-                        let mut pointer_output_location = self.pointer.current_location() - output_location;
+                        let mut pointer_output_location =
+                            self.pointer.current_location() - output_location;
                         pointer_output_location.x *= rescale;
                         pointer_output_location.y *= rescale;
                         let pointer_location = output_location + pointer_output_location;
@@ -676,11 +711,17 @@ impl AnvilState<UdevData> {
                             output.current_scale().fractional_scale(),
                         );
                         let new_scale = f64::max(1.0, scale - 0.25);
-                        output.change_current_state(None, None, Some(Scale::Fractional(new_scale)), None);
+                        output.change_current_state(
+                            None,
+                            None,
+                            Some(Scale::Fractional(new_scale)),
+                            None,
+                        );
 
                         let rescale = scale / new_scale;
                         let output_location = output_location.to_f64();
-                        let mut pointer_output_location = self.pointer.current_location() - output_location;
+                        let mut pointer_output_location =
+                            self.pointer.current_location() - output_location;
                         pointer_output_location.x *= rescale;
                         pointer_output_location.y *= rescale;
                         let pointer_location = output_location + pointer_output_location;
@@ -722,7 +763,10 @@ impl AnvilState<UdevData> {
                             Transform::Flipped270 => Transform::Normal,
                         };
                         output.change_current_state(None, Some(new_transform), None, None);
-                        crate::shell::fixup_positions(&mut self.space, self.pointer.current_location());
+                        crate::shell::fixup_positions(
+                            &mut self.space,
+                            self.pointer.current_location(),
+                        );
                         self.backend_data.reset_buffers(&output);
                     }
                 }
@@ -743,18 +787,26 @@ impl AnvilState<UdevData> {
                 },
             },
             InputEvent::PointerMotion { event, .. } => self.on_pointer_move::<B>(dh, event),
-            InputEvent::PointerMotionAbsolute { event, .. } => self.on_pointer_move_absolute::<B>(dh, event),
+            InputEvent::PointerMotionAbsolute { event, .. } => {
+                self.on_pointer_move_absolute::<B>(dh, event)
+            }
             InputEvent::PointerButton { event, .. } => self.on_pointer_button::<B>(event),
             InputEvent::PointerAxis { event, .. } => self.on_pointer_axis::<B>(dh, event),
             InputEvent::TabletToolAxis { event, .. } => self.on_tablet_tool_axis::<B>(event),
-            InputEvent::TabletToolProximity { event, .. } => self.on_tablet_tool_proximity::<B>(dh, event),
+            InputEvent::TabletToolProximity { event, .. } => {
+                self.on_tablet_tool_proximity::<B>(dh, event)
+            }
             InputEvent::TabletToolTip { event, .. } => self.on_tablet_tool_tip::<B>(event),
             InputEvent::TabletToolButton { event, .. } => self.on_tablet_button::<B>(event),
             InputEvent::GestureSwipeBegin { event, .. } => self.on_gesture_swipe_begin::<B>(event),
-            InputEvent::GestureSwipeUpdate { event, .. } => self.on_gesture_swipe_update::<B>(event),
+            InputEvent::GestureSwipeUpdate { event, .. } => {
+                self.on_gesture_swipe_update::<B>(event)
+            }
             InputEvent::GestureSwipeEnd { event, .. } => self.on_gesture_swipe_end::<B>(event),
             InputEvent::GesturePinchBegin { event, .. } => self.on_gesture_pinch_begin::<B>(event),
-            InputEvent::GesturePinchUpdate { event, .. } => self.on_gesture_pinch_update::<B>(event),
+            InputEvent::GesturePinchUpdate { event, .. } => {
+                self.on_gesture_pinch_update::<B>(event)
+            }
             InputEvent::GesturePinchEnd { event, .. } => self.on_gesture_pinch_end::<B>(event),
             InputEvent::GestureHoldBegin { event, .. } => self.on_gesture_hold_begin::<B>(event),
             InputEvent::GestureHoldEnd { event, .. } => self.on_gesture_hold_end::<B>(event),
@@ -771,7 +823,8 @@ impl AnvilState<UdevData> {
                         .tablet_seat()
                         .add_tablet::<Self>(dh, &TabletDescriptor::from(&device));
                 }
-                if device.has_capability(DeviceCapability::Touch) && self.seat.get_touch().is_none() {
+                if device.has_capability(DeviceCapability::Touch) && self.seat.get_touch().is_none()
+                {
                     self.seat.add_touch();
                 }
             }
@@ -793,7 +846,11 @@ impl AnvilState<UdevData> {
         }
     }
 
-    fn on_pointer_move<B: InputBackend>(&mut self, _dh: &DisplayHandle, evt: B::PointerMotionEvent) {
+    fn on_pointer_move<B: InputBackend>(
+        &mut self,
+        _dh: &DisplayHandle,
+        evt: B::PointerMotionEvent,
+    ) {
         let mut pointer_location = self.pointer.current_location();
         let serial = SCOUNTER.next_serial();
 
@@ -856,7 +913,9 @@ impl AnvilState<UdevData> {
         // If confined, don't move pointer if it would go outside surface or region
         if pointer_confined {
             if let Some((surface, surface_loc)) = &under {
-                if new_under.as_ref().and_then(|(under, _)| under.wl_surface()) != surface.wl_surface() {
+                if new_under.as_ref().and_then(|(under, _)| under.wl_surface())
+                    != surface.wl_surface()
+                {
                     pointer.frame(self);
                     return;
                 }
@@ -888,7 +947,10 @@ impl AnvilState<UdevData> {
             with_pointer_constraint(&under, &pointer, |constraint| match constraint {
                 Some(constraint) if !constraint.is_active() => {
                     let point = pointer_location.to_i32_round() - surface_location;
-                    if constraint.region().map_or(true, |region| region.contains(point)) {
+                    if constraint
+                        .region()
+                        .map_or(true, |region| region.contains(point))
+                    {
                         constraint.activate();
                     }
                 }
@@ -904,10 +966,9 @@ impl AnvilState<UdevData> {
     ) {
         let serial = SCOUNTER.next_serial();
 
-        let max_x = self
-            .space
-            .outputs()
-            .fold(0, |acc, o| acc + self.space.output_geometry(o).unwrap().size.w);
+        let max_x = self.space.outputs().fold(0, |acc, o| {
+            acc + self.space.output_geometry(o).unwrap().size.w
+        });
 
         let max_h_output = self
             .space
@@ -1287,10 +1348,9 @@ impl AnvilState<UdevData> {
         }
 
         let (pos_x, pos_y) = pos.into();
-        let max_x = self
-            .space
-            .outputs()
-            .fold(0, |acc, o| acc + self.space.output_geometry(o).unwrap().size.w);
+        let max_x = self.space.outputs().fold(0, |acc, o| {
+            acc + self.space.output_geometry(o).unwrap().size.w
+        });
         let clamped_x = pos_x.clamp(0.0, max_x as f64);
         let max_y = self
             .space
@@ -1332,7 +1392,8 @@ enum KeyAction {
 }
 
 fn process_keyboard_shortcut(modifiers: ModifiersState, keysym: Keysym) -> Option<KeyAction> {
-    if modifiers.ctrl && modifiers.alt && keysym == Keysym::BackSpace || modifiers.logo && keysym == Keysym::q
+    if modifiers.ctrl && modifiers.alt && keysym == Keysym::BackSpace
+        || modifiers.logo && keysym == Keysym::q
     {
         // ctrl+alt+backspace = quit
         // logo + q = quit

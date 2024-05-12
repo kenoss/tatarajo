@@ -29,15 +29,18 @@ use smithay::{
             Fourcc,
         },
         drm::{
-            compositor::DrmCompositor, CreateDrmNodeError, DrmAccessError, DrmDevice, DrmDeviceFd, DrmError,
-            DrmEvent, DrmEventMetadata, DrmNode, DrmSurface, GbmBufferedSurface, NodeType,
+            compositor::DrmCompositor, CreateDrmNodeError, DrmAccessError, DrmDevice, DrmDeviceFd,
+            DrmError, DrmEvent, DrmEventMetadata, DrmNode, DrmSurface, GbmBufferedSurface,
+            NodeType,
         },
         egl::{self, context::ContextPriority, EGLDevice, EGLDisplay},
         input::InputEvent,
         libinput::{LibinputInputBackend, LibinputSessionInterface},
         renderer::{
             damage::{Error as OutputDamageTrackerError, OutputDamageTracker},
-            element::{memory::MemoryRenderBuffer, AsRenderElements, RenderElement, RenderElementStates},
+            element::{
+                memory::MemoryRenderBuffer, AsRenderElements, RenderElement, RenderElementStates,
+            },
             gles::{GlesRenderer, GlesTexture},
             multigpu::{gbm::GbmGlesBackend, GpuManager, MultiRenderer},
             sync::SyncPoint,
@@ -77,14 +80,18 @@ use smithay::{
         },
         wayland_server::{backend::GlobalId, protocol::wl_surface, Display, DisplayHandle},
     },
-    utils::{Clock, DeviceFd, IsAlive, Logical, Monotonic, Physical, Point, Rectangle, Scale, Transform},
+    utils::{
+        Clock, DeviceFd, IsAlive, Logical, Monotonic, Physical, Point, Rectangle, Scale, Transform,
+    },
     wayland::{
         compositor,
         dmabuf::{
-            DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
+            DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState,
+            ImportNotifier,
         },
         drm_lease::{
-            DrmLease, DrmLeaseBuilder, DrmLeaseHandler, DrmLeaseRequest, DrmLeaseState, LeaseRejected,
+            DrmLease, DrmLeaseBuilder, DrmLeaseHandler, DrmLeaseRequest, DrmLeaseState,
+            LeaseRejected,
         },
     },
 };
@@ -160,7 +167,12 @@ impl DmabufHandler for AnvilState<UdevData> {
         &mut self.backend_data.dmabuf_state.as_mut().unwrap().0
     }
 
-    fn dmabuf_imported(&mut self, _global: &DmabufGlobal, dmabuf: Dmabuf, notifier: ImportNotifier) {
+    fn dmabuf_imported(
+        &mut self,
+        _global: &DmabufGlobal,
+        dmabuf: Dmabuf,
+        notifier: ImportNotifier,
+    ) {
         if self
             .backend_data
             .gpus
@@ -232,7 +244,12 @@ pub fn run_udev() {
     } else {
         primary_gpu(session.seat())
             .unwrap()
-            .and_then(|x| DrmNode::from_path(x).ok()?.node_with_type(NodeType::Render)?.ok())
+            .and_then(|x| {
+                DrmNode::from_path(x)
+                    .ok()?
+                    .node_with_type(NodeType::Render)?
+                    .ok()
+            })
             .unwrap_or_else(|| {
                 all_gpus(session.seat())
                     .unwrap()
@@ -243,7 +260,8 @@ pub fn run_udev() {
     };
     info!("Using {} as primary gpu.", primary_gpu);
 
-    let gpus = GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
+    let gpus =
+        GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
 
     let data = UdevData {
         dh: display_handle.clone(),
@@ -303,7 +321,10 @@ pub fn run_udev() {
                 }
             } else if let InputEvent::DeviceRemoved { ref device } = event {
                 if device.has_capability(DeviceCapability::Keyboard) {
-                    data.state.backend_data.keyboards.retain(|item| item != device);
+                    data.state
+                        .backend_data
+                        .keyboards
+                        .retain(|item| item != device);
                 }
             }
 
@@ -382,14 +403,20 @@ pub fn run_udev() {
     );
 
     #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
-    let mut renderer = state.backend_data.gpus.single_renderer(&primary_gpu).unwrap();
+    let mut renderer = state
+        .backend_data
+        .gpus
+        .single_renderer(&primary_gpu)
+        .unwrap();
 
     #[cfg(feature = "debug")]
     {
-        let fps_image =
-            image::io::Reader::with_format(std::io::Cursor::new(FPS_NUMBERS_PNG), image::ImageFormat::Png)
-                .decode()
-                .unwrap();
+        let fps_image = image::io::Reader::with_format(
+            std::io::Cursor::new(FPS_NUMBERS_PNG),
+            image::ImageFormat::Png,
+        )
+        .decode()
+        .unwrap();
         let fps_texture = renderer
             .import_memory(
                 &fps_image.to_rgba8(),
@@ -409,7 +436,10 @@ pub fn run_udev() {
 
     #[cfg(feature = "egl")]
     {
-        info!(?primary_gpu, "Trying to initialize EGL Hardware Acceleration",);
+        info!(
+            ?primary_gpu,
+            "Trying to initialize EGL Hardware Acceleration",
+        );
         match renderer.bind_wl_display(&display_handle) {
             Ok(_) => info!("EGL hardware-acceleration enabled"),
             Err(err) => info!(?err, "Failed to initialize EGL hardware-acceleration"),
@@ -422,24 +452,30 @@ pub fn run_udev() {
         .build()
         .unwrap();
     let mut dmabuf_state = DmabufState::new();
-    let global = dmabuf_state
-        .create_global_with_default_feedback::<AnvilState<UdevData>>(&display_handle, &default_feedback);
+    let global = dmabuf_state.create_global_with_default_feedback::<AnvilState<UdevData>>(
+        &display_handle,
+        &default_feedback,
+    );
     state.backend_data.dmabuf_state = Some((dmabuf_state, global));
 
     let gpus = &mut state.backend_data.gpus;
-    state.backend_data.backends.values_mut().for_each(|backend_data| {
-        // Update the per drm surface dmabuf feedback
-        backend_data.surfaces.values_mut().for_each(|surface_data| {
-            surface_data.dmabuf_feedback = surface_data.dmabuf_feedback.take().or_else(|| {
-                get_surface_dmabuf_feedback(
-                    primary_gpu,
-                    surface_data.render_node,
-                    gpus,
-                    &surface_data.compositor,
-                )
+    state
+        .backend_data
+        .backends
+        .values_mut()
+        .for_each(|backend_data| {
+            // Update the per drm surface dmabuf feedback
+            backend_data.surfaces.values_mut().for_each(|surface_data| {
+                surface_data.dmabuf_feedback = surface_data.dmabuf_feedback.take().or_else(|| {
+                    get_surface_dmabuf_feedback(
+                        primary_gpu,
+                        surface_data.render_node,
+                        gpus,
+                        &surface_data.compositor,
+                    )
+                });
             });
         });
-    });
 
     event_loop
         .handle()
@@ -535,13 +571,19 @@ impl DrmLeaseHandler for AnvilState<UdevData> {
             {
                 builder.add_connector(conn);
                 builder.add_crtc(*crtc);
-                let planes = backend.drm.planes(crtc).map_err(LeaseRejected::with_cause)?;
+                let planes = backend
+                    .drm
+                    .planes(crtc)
+                    .map_err(LeaseRejected::with_cause)?;
                 builder.add_plane(planes.primary.handle);
                 if let Some(cursor) = planes.cursor {
                     builder.add_plane(cursor.handle);
                 }
             } else {
-                tracing::warn!(?conn, "Lease requested for desktop connector, denying request");
+                tracing::warn!(
+                    ?conn,
+                    "Lease requested for desktop connector, denying request"
+                );
                 return Err(LeaseRejected::default());
             }
         }
@@ -562,7 +604,8 @@ impl DrmLeaseHandler for AnvilState<UdevData> {
 
 delegate_drm_lease!(AnvilState<UdevData>);
 
-pub type RenderSurface = GbmBufferedSurface<GbmAllocator<DrmDeviceFd>, Option<OutputPresentationFeedback>>;
+pub type RenderSurface =
+    GbmBufferedSurface<GbmAllocator<DrmDeviceFd>, Option<OutputPresentationFeedback>>;
 
 pub type GbmDrmCompositor = DrmCompositor<
     GbmAllocator<DrmDeviceFd>,
@@ -588,12 +631,16 @@ struct SurfaceCompositorRenderResult {
 }
 
 impl SurfaceComposition {
-    fn frame_submitted(&mut self) -> Result<Option<Option<OutputPresentationFeedback>>, SwapBuffersError> {
+    fn frame_submitted(
+        &mut self,
+    ) -> Result<Option<Option<OutputPresentationFeedback>>, SwapBuffersError> {
         match self {
-            SurfaceComposition::Compositor(c) => c.frame_submitted().map_err(Into::<SwapBuffersError>::into),
-            SurfaceComposition::Surface { surface, .. } => {
-                surface.frame_submitted().map_err(Into::<SwapBuffersError>::into)
+            SurfaceComposition::Compositor(c) => {
+                c.frame_submitted().map_err(Into::<SwapBuffersError>::into)
             }
+            SurfaceComposition::Surface { surface, .. } => surface
+                .frame_submitted()
+                .map_err(Into::<SwapBuffersError>::into),
         }
     }
 
@@ -620,7 +667,9 @@ impl SurfaceComposition {
 
     fn reset_state(&mut self) -> Result<(), SwapBuffersError> {
         match self {
-            SurfaceComposition::Compositor(c) => c.reset_state().map_err(Into::<SwapBuffersError>::into),
+            SurfaceComposition::Compositor(c) => {
+                c.reset_state().map_err(Into::<SwapBuffersError>::into)
+            }
             SurfaceComposition::Surface { surface, .. } => surface
                 .surface()
                 .reset_state()
@@ -638,9 +687,9 @@ impl SurfaceComposition {
             SurfaceComposition::Surface { surface, .. } => surface
                 .queue_buffer(sync, damage, user_data)
                 .map_err(Into::<SwapBuffersError>::into),
-            SurfaceComposition::Compositor(c) => {
-                c.queue_frame(user_data).map_err(Into::<SwapBuffersError>::into)
-            }
+            SurfaceComposition::Compositor(c) => c
+                .queue_frame(user_data)
+                .map_err(Into::<SwapBuffersError>::into),
         }
     }
 
@@ -662,8 +711,12 @@ impl SurfaceComposition {
                 damage_tracker,
                 debug_flags,
             } => {
-                let (dmabuf, age) = surface.next_buffer().map_err(Into::<SwapBuffersError>::into)?;
-                renderer.bind(dmabuf).map_err(Into::<SwapBuffersError>::into)?;
+                let (dmabuf, age) = surface
+                    .next_buffer()
+                    .map_err(Into::<SwapBuffersError>::into)?;
+                renderer
+                    .bind(dmabuf)
+                    .map_err(Into::<SwapBuffersError>::into)?;
                 let current_debug_flags = renderer.debug_flags();
                 renderer.set_debug_flags(*debug_flags);
                 let res = damage_tracker
@@ -690,7 +743,9 @@ impl SurfaceComposition {
                 .render_frame(renderer, elements, clear_color)
                 .map(|render_frame_result| {
                     #[cfg(feature = "renderer_sync")]
-                    if let PrimaryPlaneElement::Swapchain(element) = render_frame_result.primary_element {
+                    if let PrimaryPlaneElement::Swapchain(element) =
+                        render_frame_result.primary_element
+                    {
                         element.sync.wait();
                     }
                     SurfaceCompositorRenderResult {
@@ -701,7 +756,9 @@ impl SurfaceComposition {
                     }
                 })
                 .map_err(|err| match err {
-                    smithay::backend::drm::compositor::RenderFrameError::PrepareFrame(err) => err.into(),
+                    smithay::backend::drm::compositor::RenderFrameError::PrepareFrame(err) => {
+                        err.into()
+                    }
                     smithay::backend::drm::compositor::RenderFrameError::RenderFrame(
                         OutputDamageTrackerError::Rendering(err),
                     ) => err.into(),
@@ -713,7 +770,9 @@ impl SurfaceComposition {
     fn set_debug_flags(&mut self, flags: DebugFlags) {
         match self {
             SurfaceComposition::Surface {
-                surface, debug_flags, ..
+                surface,
+                debug_flags,
+                ..
             } => {
                 *debug_flags = flags;
                 surface.reset_buffers();
@@ -852,7 +911,8 @@ impl AnvilState<UdevData> {
 
         let fd = DrmDeviceFd::new(DeviceFd::from(fd));
 
-        let (drm, notifier) = DrmDevice::new(fd.clone(), true).map_err(DeviceAddError::DrmDevice)?;
+        let (drm, notifier) =
+            DrmDevice::new(fd.clone(), true).map_err(DeviceAddError::DrmDevice)?;
         let gbm = GbmDevice::new(fd).map_err(DeviceAddError::GbmDevice)?;
 
         let registration_token = self
@@ -870,10 +930,11 @@ impl AnvilState<UdevData> {
             )
             .unwrap();
 
-        let render_node = EGLDevice::device_for_display(&unsafe { EGLDisplay::new(gbm.clone()).unwrap() })
-            .ok()
-            .and_then(|x| x.try_get_render_node().ok().flatten())
-            .unwrap_or(node);
+        let render_node =
+            EGLDevice::device_for_display(&unsafe { EGLDisplay::new(gbm.clone()).unwrap() })
+                .ok()
+                .and_then(|x| x.try_get_render_node().ok().flatten())
+                .unwrap_or(node);
 
         self.backend_data
             .gpus
@@ -891,13 +952,16 @@ impl AnvilState<UdevData> {
                 non_desktop_connectors: Vec::new(),
                 render_node,
                 surfaces: HashMap::new(),
-                leasing_global: DrmLeaseState::new::<AnvilState<UdevData>>(&self.display_handle, &node)
-                    .map_err(|err| {
-                        // TODO replace with inspect_err, once stable
-                        warn!(?err, "Failed to initialize drm lease global for: {}", node);
-                        err
-                    })
-                    .ok(),
+                leasing_global: DrmLeaseState::new::<AnvilState<UdevData>>(
+                    &self.display_handle,
+                    &node,
+                )
+                .map_err(|err| {
+                    // TODO replace with inspect_err, once stable
+                    warn!(?err, "Failed to initialize drm lease global for: {}", node);
+                    err
+                })
+                .ok(),
                 active_leases: Vec::new(),
             },
         );
@@ -907,7 +971,12 @@ impl AnvilState<UdevData> {
         Ok(())
     }
 
-    fn connector_connected(&mut self, node: DrmNode, connector: connector::Info, crtc: crtc::Handle) {
+    fn connector_connected(
+        &mut self,
+        node: DrmNode,
+        connector: connector::Info,
+        crtc: crtc::Handle,
+    ) {
         let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
             device
         } else {
@@ -919,9 +988,17 @@ impl AnvilState<UdevData> {
             .gpus
             .single_renderer(&device.render_node)
             .unwrap();
-        let render_formats = renderer.as_mut().egl_context().dmabuf_render_formats().clone();
+        let render_formats = renderer
+            .as_mut()
+            .egl_context()
+            .dmabuf_render_formats()
+            .clone();
 
-        let output_name = format!("{}-{}", connector.interface().as_str(), connector.interface_id());
+        let output_name = format!(
+            "{}-{}",
+            connector.interface().as_str(),
+            connector.interface_id()
+        );
         info!(?crtc, "Trying to setup connector {}", output_name,);
 
         let non_desktop = device
@@ -947,8 +1024,13 @@ impl AnvilState<UdevData> {
             .unwrap_or_else(|| ("Unknown".into(), "Unknown".into()));
 
         if non_desktop {
-            info!("Connector {} is non-desktop, setting up for leasing", output_name);
-            device.non_desktop_connectors.push((connector.handle(), crtc));
+            info!(
+                "Connector {} is non-desktop, setting up for leasing",
+                output_name
+            );
+            device
+                .non_desktop_connectors
+                .push((connector.handle(), crtc));
             if let Some(lease_state) = device.leasing_global.as_mut() {
                 lease_state.add_connector::<AnvilState<UdevData>>(
                     connector.handle(),
@@ -966,7 +1048,10 @@ impl AnvilState<UdevData> {
             let drm_mode = connector.modes()[mode_id];
             let wl_mode = WlMode::from(drm_mode);
 
-            let surface = match device.drm.create_surface(crtc, drm_mode, &[connector.handle()]) {
+            let surface = match device
+                .drm
+                .create_surface(crtc, drm_mode, &[connector.handle()])
+            {
                 Ok(surface) => surface,
                 Err(err) => {
                     warn!("Failed to create drm surface: {}", err);
@@ -986,10 +1071,9 @@ impl AnvilState<UdevData> {
             );
             let global = output.create_global::<AnvilState<UdevData>>(&self.display_handle);
 
-            let x = self
-                .space
-                .outputs()
-                .fold(0, |acc, o| acc + self.space.output_geometry(o).unwrap().size.w);
+            let x = self.space.outputs().fold(0, |acc, o| {
+                acc + self.space.output_geometry(o).unwrap().size.w
+            });
             let position = (x, 0).into();
 
             output.set_preferred(wl_mode);
@@ -1016,14 +1100,18 @@ impl AnvilState<UdevData> {
             };
 
             let compositor = if std::env::var("ANVIL_DISABLE_DRM_COMPOSITOR").is_ok() {
-                let gbm_surface =
-                    match GbmBufferedSurface::new(surface, allocator, color_formats, render_formats) {
-                        Ok(renderer) => renderer,
-                        Err(err) => {
-                            warn!("Failed to create rendering surface: {}", err);
-                            return;
-                        }
-                    };
+                let gbm_surface = match GbmBufferedSurface::new(
+                    surface,
+                    allocator,
+                    color_formats,
+                    render_formats,
+                ) {
+                    Ok(renderer) => renderer,
+                    Err(err) => {
+                        warn!("Failed to create rendering surface: {}", err);
+                        return;
+                    }
+                };
                 SurfaceComposition::Surface {
                     surface: gbm_surface,
                     damage_tracker: OutputDamageTracker::from_output(&output),
@@ -1041,7 +1129,11 @@ impl AnvilState<UdevData> {
                 let mut planes = surface.planes().clone();
 
                 // Using an overlay plane on a nvidia card breaks
-                if driver.name().to_string_lossy().to_lowercase().contains("nvidia")
+                if driver
+                    .name()
+                    .to_string_lossy()
+                    .to_lowercase()
+                    .contains("nvidia")
                     || driver
                         .description()
                         .to_string_lossy()
@@ -1098,7 +1190,12 @@ impl AnvilState<UdevData> {
         }
     }
 
-    fn connector_disconnected(&mut self, node: DrmNode, connector: connector::Info, crtc: crtc::Handle) {
+    fn connector_disconnected(
+        &mut self,
+        node: DrmNode,
+        connector: connector::Info,
+        crtc: crtc::Handle,
+    ) {
         let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
             device
         } else {
@@ -1201,7 +1298,12 @@ impl AnvilState<UdevData> {
         crate::shell::fixup_positions(&mut self.space, self.pointer.current_location());
     }
 
-    fn frame_finish(&mut self, dev_id: DrmNode, crtc: crtc::Handle, metadata: &mut Option<DrmEventMetadata>) {
+    fn frame_finish(
+        &mut self,
+        dev_id: DrmNode,
+        crtc: crtc::Handle,
+        metadata: &mut Option<DrmEventMetadata>,
+    ) {
         let device_backend = match self.backend_data.backends.get_mut(&dev_id) {
             Some(backend) => backend,
             None => {
@@ -1242,7 +1344,10 @@ impl AnvilState<UdevData> {
                         smithay::backend::drm::DrmEventTime::Monotonic(tp) => Some(tp),
                         smithay::backend::drm::DrmEventTime::Realtime(_) => None,
                     });
-                    let seq = metadata.as_ref().map(|metadata| metadata.sequence).unwrap_or(0);
+                    let seq = metadata
+                        .as_ref()
+                        .map(|metadata| metadata.sequence)
+                        .unwrap_or(0);
 
                     let (clock, flags) = if let Some(tp) = tp {
                         (
@@ -1275,7 +1380,10 @@ impl AnvilState<UdevData> {
                     // If the device has been deactivated do not reschedule, this will be done
                     // by session resume
                     SwapBuffersError::TemporaryFailure(err)
-                        if matches!(err.downcast_ref::<DrmError>(), Some(&DrmError::DeviceInactive)) =>
+                        if matches!(
+                            err.downcast_ref::<DrmError>(),
+                            Some(&DrmError::DeviceInactive)
+                        ) =>
                     {
                         false
                     }
@@ -1459,7 +1567,8 @@ impl AnvilState<UdevData> {
                 warn!("Error during rendering: {:?}", err);
                 match err {
                     SwapBuffersError::AlreadySwapped => false,
-                    SwapBuffersError::TemporaryFailure(err) => match err.downcast_ref::<DrmError>() {
+                    SwapBuffersError::TemporaryFailure(err) => match err.downcast_ref::<DrmError>()
+                    {
                         Some(DrmError::DeviceInactive) => true,
                         Some(DrmError::Access(DrmAccessError { source, .. })) => {
                             source.kind() == io::ErrorKind::PermissionDenied
@@ -1471,7 +1580,10 @@ impl AnvilState<UdevData> {
                             // reset the complete state, disabling all connectors and planes in case we hit a test failed
                             // most likely we hit this after a tty switch when a foreign master changed CRTC <-> connector bindings
                             // and we run in a mismatch
-                            device.drm.reset_state().expect("failed to reset drm device");
+                            device
+                                .drm
+                                .reset_state()
+                                .expect("failed to reset drm device");
                             true
                         }
                         _ => panic!("Rendering loop lost: {}", err),
@@ -1488,7 +1600,8 @@ impl AnvilState<UdevData> {
             // If reschedule is true we either hit a temporary failure or more likely rendering
             // did not cause any damage on the output. In this case we just re-schedule a repaint
             // after approx. one frame to re-test for damage.
-            let reschedule_duration = Duration::from_millis((1_000_000f32 / output_refresh as f32) as u64);
+            let reschedule_duration =
+                Duration::from_millis((1_000_000f32 / output_refresh as f32) as u64);
             trace!(
                 "reschedule repaint timer with delay {:?} on {:?}",
                 reschedule_duration,
@@ -1538,8 +1651,9 @@ impl AnvilState<UdevData> {
                     // TODO dont reschedule after 3(?) retries
                     warn!("Failed to submit page_flip: {}", err);
                     let handle = evt_handle.clone();
-                    evt_handle
-                        .insert_idle(move |data| data.state.schedule_initial_render(node, crtc, handle));
+                    evt_handle.insert_idle(move |data| {
+                        data.state.schedule_initial_render(node, crtc, handle)
+                    });
                 }
                 SwapBuffersError::ContextLost(err) => panic!("Rendering loop lost: {}", err),
             }
@@ -1600,7 +1714,12 @@ fn render_surface<'a>(
             pointer_element.set_status(cursor_status.clone());
         }
 
-        custom_elements.extend(pointer_element.render_elements(renderer, cursor_pos_scaled, scale, 1.0));
+        custom_elements.extend(pointer_element.render_elements(
+            renderer,
+            cursor_pos_scaled,
+            scale,
+            1.0,
+        ));
 
         // draw the dnd icon if applicable
         {
@@ -1625,11 +1744,17 @@ fn render_surface<'a>(
         custom_elements.push(CustomRenderElements::Fps(element.clone()));
     }
 
-    let (elements, clear_color) =
-        output_elements(output, space, custom_elements, renderer, show_window_preview);
-    let res = surface
-        .compositor
-        .render_frame::<_, _, GlesTexture>(renderer, &elements, clear_color)?;
+    let (elements, clear_color) = output_elements(
+        output,
+        space,
+        custom_elements,
+        renderer,
+        show_window_preview,
+    );
+    let res =
+        surface
+            .compositor
+            .render_frame::<_, _, GlesTexture>(renderer, &elements, clear_color)?;
 
     post_repaint(
         output,
