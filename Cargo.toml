@@ -35,7 +35,7 @@ features = [
 rstest = "0.18.2"
 
 [features]
-default = ["egl", "winit", "x11", "udev", "xwayland"]
+default = ["egl", "winit", "udev", "xwayland"]
 egl = ["smithay/use_system_lib", "smithay/backend_egl"]
 udev = [
   "smithay-drm-extras",
@@ -52,5 +52,4 @@ udev = [
   "xcursor",
 ]
 winit = ["smithay/backend_winit", "smithay/backend_drm"]
-x11 = ["smithay/backend_x11", "x11rb", "smithay/renderer_gl", "smithay/backend_vulkan"]
 xwayland = ["smithay/xwayland", "x11rb", "smithay/x11rb_event_source", "xcursor"]

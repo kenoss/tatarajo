@@ -3,8 +3,6 @@ static POSSIBLE_BACKENDS: &[&str] = &[
     "--winit : Run anvil as a X11 or Wayland client using winit.",
     #[cfg(feature = "udev")]
     "--tty-udev : Run anvil as a tty udev client (requires root if without logind).",
-    #[cfg(feature = "x11")]
-    "--x11 : Run anvil as an X11 client.",
 ];
 
 fn main() {
@@ -28,11 +26,6 @@ fn main() {
         Some("--tty-udev") => {
             tracing::info!("Starting anvil on a tty using udev");
             sabiniwm::udev::run_udev();
-        }
-        #[cfg(feature = "x11")]
-        Some("--x11") => {
-            tracing::info!("Starting anvil with x11 backend");
-            sabiniwm::x11::run_x11();
         }
         Some(other) => {
             tracing::error!("Unknown backend: {}", other);
