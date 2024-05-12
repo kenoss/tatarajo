@@ -556,7 +556,6 @@ impl<BackendData: Backend + 'static> AnvilState<BackendData> {
             .insert_source(
                 Generic::new(display, Interest::READ, Mode::Level),
                 |_, display, data| {
-                    profiling::scope!("dispatch_clients");
                     // Safety: we don't drop the display
                     unsafe {
                         display.get_mut().dispatch_clients(&mut data.state).unwrap();
@@ -704,7 +703,6 @@ pub struct SurfaceDmabufFeedback<'a> {
     pub scanout_feedback: &'a DmabufFeedback,
 }
 
-#[profiling::function]
 pub fn post_repaint(
     output: &Output,
     render_element_states: &RenderElementStates,
@@ -778,7 +776,6 @@ pub fn post_repaint(
     }
 }
 
-#[profiling::function]
 pub fn take_presentation_feedback(
     output: &Output,
     space: &Space<WindowElement>,

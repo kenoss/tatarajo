@@ -307,8 +307,6 @@ pub fn run_x11() {
 
     while state.running.load(Ordering::SeqCst) {
         if state.backend_data.render {
-            profiling::scope!("render_frame");
-
             let backend_data = &mut state.backend_data;
             // We need to borrow everything we want to refer to inside the renderer callback otherwise rustc is unhappy.
             let cursor_status = &state.cursor_status;
@@ -320,7 +318,6 @@ pub fn run_x11() {
             let (buffer, age) = backend_data.surface.buffer().expect("gbm device was destroyed");
             if let Err(err) = backend_data.renderer.bind(buffer) {
                 error!("Error while binding buffer: {}", err);
-                profiling::finish_frame!();
                 continue;
             }
 
@@ -458,7 +455,6 @@ pub fn run_x11() {
             #[cfg(feature = "debug")]
             state.backend_data.fps.tick();
             window.set_cursor_visible(cursor_visible);
-            profiling::finish_frame!();
         }
 
         let mut calloop_data = CalloopData {

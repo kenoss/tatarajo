@@ -323,10 +323,6 @@ fn place_new_window(
     window: &WindowElement,
     activate: bool,
 ) {
-    // place the window at a random location on same output as pointer
-    // or if there is not output in a [0;800]x[0;800] square
-    use rand::distributions::{Distribution, Uniform};
-
     let output = space
         .output_under(pointer_location)
         .next()
@@ -349,13 +345,8 @@ fn place_new_window(
         });
     }
 
-    let max_x = output_geometry.loc.x + (((output_geometry.size.w as f32) / 3.0) * 2.0) as i32;
-    let max_y = output_geometry.loc.y + (((output_geometry.size.h as f32) / 3.0) * 2.0) as i32;
-    let x_range = Uniform::new(output_geometry.loc.x, max_x);
-    let y_range = Uniform::new(output_geometry.loc.y, max_y);
-    let mut rng = rand::thread_rng();
-    let x = x_range.sample(&mut rng);
-    let y = y_range.sample(&mut rng);
+    let x = output_geometry.loc.x;
+    let y = output_geometry.loc.y;
 
     space.map_element(window.clone(), (x, y), activate);
 }

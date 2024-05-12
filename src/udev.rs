@@ -588,7 +588,6 @@ struct SurfaceCompositorRenderResult {
 }
 
 impl SurfaceComposition {
-    #[profiling::function]
     fn frame_submitted(&mut self) -> Result<Option<Option<OutputPresentationFeedback>>, SwapBuffersError> {
         match self {
             SurfaceComposition::Compositor(c) => c.frame_submitted().map_err(Into::<SwapBuffersError>::into),
@@ -629,7 +628,6 @@ impl SurfaceComposition {
         }
     }
 
-    #[profiling::function]
     fn queue_frame(
         &mut self,
         sync: Option<SyncPoint>,
@@ -646,7 +644,6 @@ impl SurfaceComposition {
         }
     }
 
-    #[profiling::function]
     fn render_frame<R, E, Target>(
         &mut self,
         renderer: &mut R,
@@ -864,7 +861,6 @@ impl AnvilState<UdevData> {
                 notifier,
                 move |event, metadata, data: &mut CalloopData<_>| match event {
                     DrmEvent::VBlank(crtc) => {
-                        profiling::scope!("vblank", &format!("{crtc:?}"));
                         data.state.frame_finish(node, crtc, metadata);
                     }
                     DrmEvent::Error(error) => {
@@ -1206,8 +1202,6 @@ impl AnvilState<UdevData> {
     }
 
     fn frame_finish(&mut self, dev_id: DrmNode, crtc: crtc::Handle, metadata: &mut Option<DrmEventMetadata>) {
-        profiling::scope!("frame_finish", &format!("{crtc:?}"));
-
         let device_backend = match self.backend_data.backends.get_mut(&dev_id) {
             Some(backend) => backend,
             None => {
@@ -1378,7 +1372,6 @@ impl AnvilState<UdevData> {
     }
 
     fn render_surface(&mut self, node: DrmNode, crtc: crtc::Handle) {
-        profiling::scope!("render_surface", &format!("{crtc:?}"));
         let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
             device
         } else {
@@ -1512,8 +1505,6 @@ impl AnvilState<UdevData> {
             let elapsed = start.elapsed();
             tracing::trace!(?elapsed, "rendered surface");
         }
-
-        profiling::finish_frame!();
     }
 
     fn schedule_initial_render(
@@ -1557,7 +1548,6 @@ impl AnvilState<UdevData> {
 }
 
 #[allow(clippy::too_many_arguments)]
-#[profiling::function]
 fn render_surface<'a>(
     surface: &'a mut SurfaceData,
     renderer: &mut UdevRenderer<'a>,

@@ -356,7 +356,6 @@ impl SpaceElement for WindowElement {
     fn output_leave(&self, output: &Output) {
         SpaceElement::output_leave(&self.0, output);
     }
-    #[profiling::function]
     fn refresh(&self) {
         SpaceElement::refresh(&self.0);
     }
