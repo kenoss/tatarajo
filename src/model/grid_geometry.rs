@@ -9,6 +9,7 @@ pub enum SplitSpec {
     Elastic,
 }
 
+#[allow(dead_code)]
 pub trait RectangleExt: Sized {
     fn from_ranges(xr: Range<i32>, yr: Range<i32>) -> Self;
     fn split_vertically_2(&self, specs: [SplitSpec; 2]) -> [Self; 2];
