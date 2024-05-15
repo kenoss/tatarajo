@@ -1,6 +1,5 @@
 use std::collections::hash_map::HashMap;
 use std::collections::HashSet;
-#[cfg(feature = "xwayland")]
 use std::ffi::OsString;
 use std::io;
 use std::path::Path;
@@ -481,7 +480,6 @@ pub fn run_udev() {
     /*
      * Start XWayland if supported
      */
-    #[cfg(feature = "xwayland")]
     if let Err(e) = state.xwayland.start(
         state.handle.clone(),
         None,

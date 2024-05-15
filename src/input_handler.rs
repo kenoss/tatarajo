@@ -84,12 +84,7 @@ impl<BackendData: Backend> AnvilState<BackendData> {
                             .clone()
                             .map(|v| ("WAYLAND_DISPLAY", v))
                             .into_iter()
-                            .chain(
-                                #[cfg(feature = "xwayland")]
-                                self.xdisplay.map(|v| ("DISPLAY", format!(":{}", v))),
-                                #[cfg(not(feature = "xwayland"))]
-                                None,
-                            ),
+                            .chain(self.xdisplay.map(|v| ("DISPLAY", format!(":{}", v)))),
                     )
                     .spawn()
                 {
@@ -287,7 +282,6 @@ impl<BackendData: Backend> AnvilState<BackendData> {
                     if let Some((_, _)) = window
                         .surface_under(location - output_geo.loc.to_f64(), WindowSurfaceType::ALL)
                     {
-                        #[cfg(feature = "xwayland")]
                         if let Some(surface) = window.0.x11_surface() {
                             self.xwm.as_mut().unwrap().raise_window(surface).unwrap();
                         }
@@ -321,7 +315,6 @@ impl<BackendData: Backend> AnvilState<BackendData> {
                 .map(|(w, p)| (w.clone(), p))
             {
                 self.space.raise_element(&window, true);
-                #[cfg(feature = "xwayland")]
                 if let Some(surface) = window.0.x11_surface() {
                     self.xwm.as_mut().unwrap().raise_window(surface).unwrap();
                 }

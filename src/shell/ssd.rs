@@ -58,7 +58,6 @@ impl HeaderBar {
             Some(loc) if loc.x >= (self.width - BUTTON_WIDTH) as f64 => {
                 match window.0.underlying_surface() {
                     WindowSurface::Wayland(w) => w.send_close(),
-                    #[cfg(feature = "xwayland")]
                     WindowSurface::X11(w) => {
                         let _ = w.close();
                     }
@@ -67,7 +66,6 @@ impl HeaderBar {
             Some(loc) if loc.x >= (self.width - (BUTTON_WIDTH * 2)) as f64 => {
                 match window.0.underlying_surface() {
                     WindowSurface::Wayland(w) => state.maximize_request(w.clone()),
-                    #[cfg(feature = "xwayland")]
                     WindowSurface::X11(w) => {
                         let surface = w.clone();
                         state
@@ -85,7 +83,6 @@ impl HeaderBar {
                             data.state.move_request_xdg(&toplevel, &seat, serial)
                         });
                     }
-                    #[cfg(feature = "xwayland")]
                     WindowSurface::X11(w) => {
                         let window = w.clone();
                         state
@@ -117,7 +114,6 @@ impl HeaderBar {
                             data.state.move_request_xdg(&toplevel, &seat, serial)
                         });
                     }
-                    #[cfg(feature = "xwayland")]
                     WindowSurface::X11(w) => {
                         let window = w.clone();
                         state
@@ -141,7 +137,6 @@ impl HeaderBar {
             Some(loc) if loc.x >= (self.width - BUTTON_WIDTH) as f64 => {
                 match window.0.underlying_surface() {
                     WindowSurface::Wayland(w) => w.send_close(),
-                    #[cfg(feature = "xwayland")]
                     WindowSurface::X11(w) => {
                         let _ = w.close();
                     }
@@ -150,7 +145,6 @@ impl HeaderBar {
             Some(loc) if loc.x >= (self.width - (BUTTON_WIDTH * 2)) as f64 => {
                 match window.0.underlying_surface() {
                     WindowSurface::Wayland(w) => state.maximize_request(w.clone()),
-                    #[cfg(feature = "xwayland")]
                     WindowSurface::X11(w) => {
                         let surface = w.clone();
                         state

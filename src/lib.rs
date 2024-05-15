@@ -6,7 +6,6 @@
     allow(dead_code, unused_imports)
 )]
 
-#[cfg(any(feature = "udev", feature = "xwayland"))]
 pub mod cursor;
 pub mod drawing;
 pub mod focus;

@@ -10,11 +10,10 @@ use smithay::input::pointer::{
 };
 use smithay::input::touch::{GrabStartData as TouchGrabStartData, TouchGrab};
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
-use smithay::utils::{IsAlive, Logical, Point, Serial, Size};
+use smithay::utils::{IsAlive, Logical, Point, Rectangle, Serial, Size};
 use smithay::wayland::compositor::with_states;
 use smithay::wayland::shell::xdg::SurfaceCachedState;
-#[cfg(feature = "xwayland")]
-use smithay::{utils::Rectangle, xwayland::xwm::ResizeEdge as X11ResizeEdge};
+use smithay::xwayland::xwm::ResizeEdge as X11ResizeEdge;
 
 use super::{SurfaceData, WindowElement};
 use crate::focus::PointerFocusTarget;
@@ -273,7 +272,6 @@ impl From<ResizeEdge> for xdg_toplevel::ResizeEdge {
     }
 }
 
-#[cfg(feature = "xwayland")]
 impl From<X11ResizeEdge> for ResizeEdge {
     fn from(edge: X11ResizeEdge) -> Self {
         match edge {
@@ -401,7 +399,6 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
                 });
                 xdg.send_pending_configure();
             }
-            #[cfg(feature = "xwayland")]
             WindowSurface::X11(x11) => {
                 let location = data.space.element_location(&self.window).unwrap();
                 x11.configure(Rectangle::from_loc_and_size(
@@ -476,7 +473,6 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
                         }
                     });
                 }
-                #[cfg(feature = "xwayland")]
                 WindowSurface::X11(x11) => {
                     let mut location = data.space.element_location(&self.window).unwrap();
                     if self.edges.intersects(ResizeEdge::TOP_LEFT) {
@@ -693,7 +689,6 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
                     }
                 });
             }
-            #[cfg(feature = "xwayland")]
             WindowSurface::X11(x11) => {
                 let mut location = data.space.element_location(&self.window).unwrap();
                 if self.edges.intersects(ResizeEdge::TOP_LEFT) {
@@ -816,7 +811,6 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
                 });
                 xdg.send_pending_configure();
             }
-            #[cfg(feature = "xwayland")]
             WindowSurface::X11(x11) => {
                 let location = data.space.element_location(&self.window).unwrap();
                 x11.configure(Rectangle::from_loc_and_size(

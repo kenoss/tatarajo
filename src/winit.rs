@@ -1,4 +1,3 @@
-#[cfg(feature = "xwayland")]
 use std::ffi::OsString;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
@@ -211,7 +210,6 @@ pub fn run_winit() {
         .update_formats(state.backend_data.backend.renderer().shm_formats());
     state.space.map_output(&output, (0, 0));
 
-    #[cfg(feature = "xwayland")]
     if let Err(e) = state.xwayland.start(
         state.handle.clone(),
         None,

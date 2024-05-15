@@ -24,18 +24,14 @@ use smithay::wayland::shell::wlr_layer::{
     WlrLayerShellState,
 };
 use smithay::wayland::shell::xdg::{XdgPopupSurfaceData, XdgToplevelSurfaceData};
-#[cfg(feature = "xwayland")]
 use smithay::xwayland::{X11Wm, XWaylandClientData};
 
 use crate::state::{AnvilState, Backend};
-#[cfg(feature = "xwayland")]
-use crate::CalloopData;
-use crate::ClientState;
+use crate::{CalloopData, ClientState};
 
 mod element;
 mod grabs;
 pub(crate) mod ssd;
-#[cfg(feature = "xwayland")]
 mod x11;
 mod xdg;
 
@@ -90,7 +86,6 @@ impl<BackendData: Backend> CompositorHandler for AnvilState<BackendData> {
         &mut self.compositor_state
     }
     fn client_compositor_state<'a>(&self, client: &'a Client) -> &'a CompositorClientState {
-        #[cfg(feature = "xwayland")]
         if let Some(state) = client.get_data::<XWaylandClientData>() {
             return &state.compositor_state;
         }
@@ -131,7 +126,6 @@ impl<BackendData: Backend> CompositorHandler for AnvilState<BackendData> {
     }
 
     fn commit(&mut self, surface: &WlSurface) {
-        #[cfg(feature = "xwayland")]
         X11Wm::commit_hook::<CalloopData<BackendData>>(surface);
 
         on_commit_buffer_handler::<Self>(surface);
@@ -225,7 +219,6 @@ fn ensure_initial_configure(
         .cloned()
     {
         // send the initial configure if relevant
-        #[cfg_attr(not(feature = "xwayland"), allow(irrefutable_let_patterns))]
         if let Some(toplevel) = window.0.toplevel() {
             let initial_configure_sent = with_states(surface, |states| {
                 states

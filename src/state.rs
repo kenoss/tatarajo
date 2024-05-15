@@ -97,18 +97,16 @@ use smithay::{
     },
 };
 
-#[cfg(feature = "xwayland")]
 use crate::cursor::Cursor;
 use crate::focus::{KeyboardFocusTarget, PointerFocusTarget};
 use crate::shell::WindowElement;
-#[cfg(feature = "xwayland")]
-use smithay::{
-    delegate_xwayland_keyboard_grab,
-    utils::{Point, Size},
-    wayland::selection::{SelectionSource, SelectionTarget},
-    wayland::xwayland_keyboard_grab::{XWaylandKeyboardGrabHandler, XWaylandKeyboardGrabState},
-    xwayland::{X11Wm, XWayland, XWaylandEvent},
+use smithay::delegate_xwayland_keyboard_grab;
+use smithay::utils::{Point, Size};
+use smithay::wayland::selection::{SelectionSource, SelectionTarget};
+use smithay::wayland::xwayland_keyboard_grab::{
+    XWaylandKeyboardGrabHandler, XWaylandKeyboardGrabState,
 };
+use smithay::xwayland::{X11Wm, XWayland, XWaylandEvent};
 
 pub struct CalloopData<BackendData: Backend + 'static> {
     pub state: AnvilState<BackendData>,
@@ -167,11 +165,8 @@ pub struct AnvilState<BackendData: Backend + 'static> {
     pub clock: Clock<Monotonic>,
     pub pointer: PointerHandle<AnvilState<BackendData>>,
 
-    #[cfg(feature = "xwayland")]
     pub xwayland: XWayland,
-    #[cfg(feature = "xwayland")]
     pub xwm: Option<X11Wm>,
-    #[cfg(feature = "xwayland")]
     pub xdisplay: Option<u32>,
 
     #[cfg(feature = "debug")]
@@ -214,7 +209,6 @@ delegate_output!(@<BackendData: Backend + 'static> AnvilState<BackendData>);
 impl<BackendData: Backend> SelectionHandler for AnvilState<BackendData> {
     type SelectionUserData = ();
 
-    #[cfg(feature = "xwayland")]
     fn new_selection(
         &mut self,
         ty: SelectionTarget,
@@ -228,7 +222,6 @@ impl<BackendData: Backend> SelectionHandler for AnvilState<BackendData> {
         }
     }
 
-    #[cfg(feature = "xwayland")]
     fn send_selection(
         &mut self,
         ty: SelectionTarget,
@@ -531,7 +524,6 @@ impl<BackendData: Backend + 'static> SecurityContextHandler for AnvilState<Backe
 }
 delegate_security_context!(@<BackendData: Backend + 'static> AnvilState<BackendData>);
 
-#[cfg(feature = "xwayland")]
 impl<BackendData: Backend + 'static> XWaylandKeyboardGrabHandler for AnvilState<BackendData> {
     fn keyboard_focus_for_xsurface(&self, surface: &WlSurface) -> Option<KeyboardFocusTarget> {
         let elem = self
@@ -541,7 +533,6 @@ impl<BackendData: Backend + 'static> XWaylandKeyboardGrabHandler for AnvilState<
         Some(KeyboardFocusTarget::Window(elem.0.clone()))
     }
 }
-#[cfg(feature = "xwayland")]
 delegate_xwayland_keyboard_grab!(@<BackendData: Backend + 'static> AnvilState<BackendData>);
 
 impl<BackendData: Backend> XdgForeignHandler for AnvilState<BackendData> {
@@ -647,7 +638,6 @@ impl<BackendData: Backend + 'static> AnvilState<BackendData> {
 
         let keyboard_shortcuts_inhibit_state = KeyboardShortcutsInhibitState::new::<Self>(&dh);
 
-        #[cfg(feature = "xwayland")]
         let xwayland = {
             XWaylandKeyboardGrabState::new::<Self>(&dh);
 
@@ -718,11 +708,8 @@ impl<BackendData: Backend + 'static> AnvilState<BackendData> {
             seat,
             pointer,
             clock,
-            #[cfg(feature = "xwayland")]
             xwayland,
-            #[cfg(feature = "xwayland")]
             xwm: None,
-            #[cfg(feature = "xwayland")]
             xdisplay: None,
             #[cfg(feature = "debug")]
             renderdoc: renderdoc::RenderDoc::new().ok(),
