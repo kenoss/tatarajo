@@ -33,7 +33,6 @@ use smithay::wayland::compositor;
 use smithay::wayland::dmabuf::{
     DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
 };
-use tracing::{error, info, warn};
 
 use crate::drawing::*;
 use crate::render::*;

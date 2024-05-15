@@ -6,6 +6,10 @@
     allow(dead_code, unused_imports)
 )]
 
+#[allow(unused_imports)]
+#[macro_use]
+extern crate tracing;
+
 pub mod cursor;
 pub mod drawing;
 pub mod focus;

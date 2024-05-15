@@ -36,7 +36,6 @@ use smithay::backend::input::AbsolutePositionEvent;
 
 #[cfg(feature = "winit")]
 use smithay::output::Output;
-use tracing::{debug, error, info};
 
 use crate::state::Backend;
 #[cfg(feature = "udev")]

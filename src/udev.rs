@@ -75,7 +75,6 @@ use smithay::wayland::drm_lease::{
 use smithay::{delegate_dmabuf, delegate_drm_lease};
 use smithay_drm_extras::drm_scanner::{DrmScanEvent, DrmScanner};
 use smithay_drm_extras::edid::EdidInfo;
-use tracing::{debug, error, info, trace, warn};
 
 // we cannot simply pick the first supported format of the intersection of *all* formats, because:
 // - we do not want something like Abgr4444, which looses color information, if something better is available

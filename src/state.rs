@@ -3,8 +3,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use tracing::{info, warn};
-
 use smithay::{
     backend::renderer::element::{
         default_primary_scanout_output_compare, utils::select_dmabuf_feedback, RenderElementStates,

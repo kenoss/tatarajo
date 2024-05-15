@@ -17,7 +17,6 @@ use smithay::wayland::selection::primary_selection::{
 use smithay::wayland::selection::SelectionTarget;
 use smithay::xwayland::xwm::{Reorder, ResizeEdge as X11ResizeEdge, XwmId};
 use smithay::xwayland::{X11Surface, X11Wm, XwmHandler};
-use tracing::{error, trace};
 
 use crate::focus::KeyboardFocusTarget;
 use crate::state::Backend;

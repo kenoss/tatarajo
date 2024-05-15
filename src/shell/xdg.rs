@@ -20,7 +20,6 @@ use smithay::wayland::shell::xdg::{
     Configure, PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
     XdgToplevelSurfaceData,
 };
-use tracing::{trace, warn};
 
 use crate::focus::KeyboardFocusTarget;
 use crate::shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab};
