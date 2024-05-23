@@ -17,6 +17,7 @@ pub mod input_handler;
 pub mod render;
 pub mod shell;
 pub mod state;
+pub mod state_delegate;
 #[cfg(feature = "udev")]
 pub mod udev;
 #[cfg(feature = "winit")]
