@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 static POSSIBLE_BACKENDS: &[&str] = &[
     "--winit : Run anvil as a X11 or Wayland client using winit.",
@@ -37,15 +37,13 @@ fn main() -> Result<()> {
     let arg = ::std::env::args().nth(1);
     match arg.as_ref().map(|s| &s[..]) {
         Some("--winit") => {
-            tracing::info!("Starting anvil with winit backend");
             sabiniwm::winit::run_winit();
         }
         Some("--tty-udev") => {
-            tracing::info!("Starting anvil on a tty using udev");
             sabiniwm::udev::run_udev();
         }
         Some(other) => {
-            tracing::error!("Unknown backend: {}", other);
+            return Err(anyhow!("Unknown backend: {}", other));
         }
         None => {
             println!("USAGE: sabiniwm --<backend>");
