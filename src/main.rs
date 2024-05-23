@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 static POSSIBLE_BACKENDS: &[&str] = &[
     #[cfg(feature = "winit")]
     "--winit : Run anvil as a X11 or Wayland client using winit.",
@@ -5,15 +7,34 @@ static POSSIBLE_BACKENDS: &[&str] = &[
     "--tty-udev : Run anvil as a tty udev client (requires root if without logind).",
 ];
 
-fn main() {
-    if let Ok(env_filter) = tracing_subscriber::EnvFilter::try_from_default_env() {
-        tracing_subscriber::fmt()
-            .compact()
-            .with_env_filter(env_filter)
-            .init();
-    } else {
-        tracing_subscriber::fmt().compact().init();
+fn tracing_init() -> Result<()> {
+    use time::macros::format_description;
+    use time::UtcOffset;
+    use tracing_subscriber::fmt::time::OffsetTime;
+    use tracing_subscriber::EnvFilter;
+
+    match std::env::var("RUST_LOG") {
+        Err(std::env::VarError::NotPresent) => {}
+        _ => {
+            let offset = UtcOffset::current_local_offset().expect("should get local offset!");
+            let timer = OffsetTime::new(
+                offset,
+                format_description!("[hour]:[minute]:[second].[subsecond digits:3]"),
+            );
+            tracing_subscriber::fmt()
+                .with_env_filter(EnvFilter::from_default_env())
+                .with_timer(timer)
+                .with_line_number(true)
+                .with_ansi(true)
+                .init();
+        }
     }
+
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    tracing_init()?;
 
     let arg = ::std::env::args().nth(1);
     match arg.as_ref().map(|s| &s[..]) {
@@ -31,15 +52,14 @@ fn main() {
             tracing::error!("Unknown backend: {}", other);
         }
         None => {
-            #[allow(clippy::disallowed_macros)]
-            {
-                println!("USAGE: anvil --backend");
-                println!();
-                println!("Possible backends are:");
-                for b in POSSIBLE_BACKENDS {
-                    println!("\t{}", b);
-                }
+            println!("USAGE: sabiniwm --<backend>");
+            println!();
+            println!("Possible backends are:");
+            for b in POSSIBLE_BACKENDS {
+                println!("\t{}", b);
             }
         }
     }
+
+    Ok(())
 }
