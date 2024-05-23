@@ -1,12 +1,3 @@
-use std::collections::hash_map::HashMap;
-use std::collections::HashSet;
-use std::ffi::OsString;
-use std::io;
-use std::path::Path;
-use std::sync::atomic::Ordering;
-use std::sync::Mutex;
-use std::time::{Duration, Instant};
-
 use crate::drawing::*;
 use crate::render::*;
 use crate::shell::WindowElement;
@@ -76,6 +67,14 @@ use smithay::wayland::drm_lease::{
 use smithay::{delegate_dmabuf, delegate_drm_lease};
 use smithay_drm_extras::drm_scanner::{DrmScanEvent, DrmScanner};
 use smithay_drm_extras::edid::EdidInfo;
+use std::collections::hash_map::HashMap;
+use std::collections::HashSet;
+use std::ffi::OsString;
+use std::io;
+use std::path::Path;
+use std::sync::atomic::Ordering;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 // we cannot simply pick the first supported format of the intersection of *all* formats, because:
 // - we do not want something like Abgr4444, which looses color information, if something better is available

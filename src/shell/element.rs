@@ -1,5 +1,6 @@
-use std::time::Duration;
-
+use super::ssd::HEADER_BAR_HEIGHT;
+use crate::focus::PointerFocusTarget;
+use crate::AnvilState;
 use smithay::backend::renderer::element::solid::SolidColorRenderElement;
 use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
 use smithay::backend::renderer::element::AsRenderElements;
@@ -23,10 +24,7 @@ use smithay::utils::{IsAlive, Logical, Physical, Point, Rectangle, Scale, Serial
 use smithay::wayland::compositor::SurfaceData as WlSurfaceData;
 use smithay::wayland::dmabuf::DmabufFeedback;
 use smithay::wayland::seat::WaylandFocus;
-
-use super::ssd::HEADER_BAR_HEIGHT;
-use crate::focus::PointerFocusTarget;
-use crate::AnvilState;
+use std::time::Duration;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WindowElement(pub Window);

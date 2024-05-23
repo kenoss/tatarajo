@@ -1,23 +1,22 @@
-use std::convert::TryInto;
-use std::process::Command;
-use std::sync::atomic::Ordering;
-
 use crate::focus::PointerFocusTarget;
 use crate::shell::FullscreenSurface;
-use crate::AnvilState;
-
+use crate::state::Backend;
 #[cfg(feature = "udev")]
 use crate::udev::UdevData;
-#[cfg(feature = "udev")]
-use smithay::backend::renderer::DebugFlags;
-
+use crate::AnvilState;
+#[cfg(any(feature = "winit", feature = "udev"))]
+use smithay::backend::input::AbsolutePositionEvent;
 use smithay::backend::input::{
     self, Axis, AxisSource, Event, InputBackend, InputEvent, KeyState, KeyboardKeyEvent,
     PointerAxisEvent, PointerButtonEvent,
 };
+#[cfg(feature = "udev")]
+use smithay::backend::renderer::DebugFlags;
 use smithay::desktop::{layer_map_for_output, WindowSurfaceType};
 use smithay::input::keyboard::{keysyms as xkb, FilterResult, Keysym, ModifiersState};
 use smithay::input::pointer::{AxisFrame, ButtonEvent, MotionEvent};
+#[cfg(feature = "winit")]
+use smithay::output::Output;
 use smithay::output::Scale;
 use smithay::reexports::wayland_protocols::xdg::decoration::zv1::server::
     zxdg_toplevel_decoration_v1;
@@ -31,14 +30,6 @@ use smithay::wayland::shell::wlr_layer::{
     KeyboardInteractivity, Layer as WlrLayer, LayerSurfaceCachedState,
 };
 use smithay::wayland::shell::xdg::XdgToplevelSurfaceData;
-
-#[cfg(any(feature = "winit", feature = "udev"))]
-use smithay::backend::input::AbsolutePositionEvent;
-
-#[cfg(feature = "winit")]
-use smithay::output::Output;
-
-use crate::state::Backend;
 #[cfg(feature = "udev")]
 use smithay::{
     backend::{
@@ -64,6 +55,9 @@ use smithay::{
         tablet_manager::{TabletDescriptor, TabletSeatTrait},
     },
 };
+use std::convert::TryInto;
+use std::process::Command;
+use std::sync::atomic::Ordering;
 
 impl<BackendData: Backend> AnvilState<BackendData> {
     fn process_common_key_action(&mut self, action: KeyAction) {

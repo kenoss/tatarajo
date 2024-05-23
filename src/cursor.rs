@@ -1,6 +1,5 @@
 use std::io::Read;
 use std::time::Duration;
-
 use xcursor::parser::{parse_xcursor, Image};
 use xcursor::CursorTheme;
 

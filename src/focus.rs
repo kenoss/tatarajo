@@ -1,3 +1,5 @@
+use crate::shell::{WindowElement, SSD};
+use crate::state::{AnvilState, Backend};
 pub use smithay::backend::input::KeyState;
 pub use smithay::desktop::{LayerSurface, PopupKind};
 use smithay::desktop::{Window, WindowSurface};
@@ -17,9 +19,6 @@ pub use smithay::reexports::wayland_server::Resource;
 pub use smithay::utils::{IsAlive, Serial};
 pub use smithay::wayland::seat::WaylandFocus;
 use smithay::xwayland::X11Surface;
-
-use crate::shell::{WindowElement, SSD};
-use crate::state::{AnvilState, Backend};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum KeyboardFocusTarget {

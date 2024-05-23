@@ -1,5 +1,10 @@
-use std::cell::RefCell;
-
+use super::{
+    fullscreen_output_geometry, place_new_window, FullscreenSurface, PointerMoveSurfaceGrab,
+    PointerResizeSurfaceGrab, ResizeData, ResizeEdge, ResizeState, SurfaceData, WindowElement,
+};
+use crate::focus::KeyboardFocusTarget;
+use crate::shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab};
+use crate::state::{AnvilState, Backend};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::{
     find_popup_root_surface, get_popup_toplevel_coords, layer_map_for_output, PopupKeyboardGrab,
@@ -20,15 +25,7 @@ use smithay::wayland::shell::xdg::{
     Configure, PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
     XdgToplevelSurfaceData,
 };
-
-use crate::focus::KeyboardFocusTarget;
-use crate::shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab};
-use crate::state::{AnvilState, Backend};
-
-use super::{
-    fullscreen_output_geometry, place_new_window, FullscreenSurface, PointerMoveSurfaceGrab,
-    PointerResizeSurfaceGrab, ResizeData, ResizeEdge, ResizeState, SurfaceData, WindowElement,
-};
+use std::cell::RefCell;
 
 impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {

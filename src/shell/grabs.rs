@@ -1,5 +1,6 @@
-use std::cell::RefCell;
-
+use super::{SurfaceData, WindowElement};
+use crate::focus::PointerFocusTarget;
+use crate::state::{AnvilState, Backend};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::WindowSurface;
 use smithay::input::pointer::{
@@ -14,10 +15,7 @@ use smithay::utils::{IsAlive, Logical, Point, Rectangle, Serial, Size};
 use smithay::wayland::compositor::with_states;
 use smithay::wayland::shell::xdg::SurfaceCachedState;
 use smithay::xwayland::xwm::ResizeEdge as X11ResizeEdge;
-
-use super::{SurfaceData, WindowElement};
-use crate::focus::PointerFocusTarget;
-use crate::state::{AnvilState, Backend};
+use std::cell::RefCell;
 
 pub struct PointerMoveSurfaceGrab<B: Backend + 'static> {
     pub start_data: PointerGrabStartData<AnvilState<B>>,

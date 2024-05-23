@@ -1,5 +1,5 @@
-use std::cell::RefCell;
-
+use crate::state::{AnvilState, Backend};
+use crate::{CalloopData, ClientState};
 use smithay::backend::renderer::utils::on_commit_buffer_handler;
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::{
@@ -25,9 +25,7 @@ use smithay::wayland::shell::wlr_layer::{
 };
 use smithay::wayland::shell::xdg::{XdgPopupSurfaceData, XdgToplevelSurfaceData};
 use smithay::xwayland::{X11Wm, XWaylandClientData};
-
-use crate::state::{AnvilState, Backend};
-use crate::{CalloopData, ClientState};
+use std::cell::RefCell;
 
 mod element;
 mod grabs;

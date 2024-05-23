@@ -1,6 +1,10 @@
-use std::cell::RefCell;
-use std::os::unix::io::OwnedFd;
-
+use super::{
+    place_new_window, FullscreenSurface, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab,
+    ResizeData, ResizeState, SurfaceData, TouchMoveSurfaceGrab, WindowElement,
+};
+use crate::focus::KeyboardFocusTarget;
+use crate::state::Backend;
+use crate::{AnvilState, CalloopData};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::Window;
 use smithay::input::pointer::Focus;
@@ -17,15 +21,8 @@ use smithay::wayland::selection::primary_selection::{
 use smithay::wayland::selection::SelectionTarget;
 use smithay::xwayland::xwm::{Reorder, ResizeEdge as X11ResizeEdge, XwmId};
 use smithay::xwayland::{X11Surface, X11Wm, XwmHandler};
-
-use crate::focus::KeyboardFocusTarget;
-use crate::state::Backend;
-use crate::{AnvilState, CalloopData};
-
-use super::{
-    place_new_window, FullscreenSurface, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab,
-    ResizeData, ResizeState, SurfaceData, TouchMoveSurfaceGrab, WindowElement,
-};
+use std::cell::RefCell;
+use std::os::unix::io::OwnedFd;
 
 #[derive(Debug, Default)]
 struct OldGeometry(RefCell<Option<Rectangle<i32, Logical>>>);

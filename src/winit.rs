@@ -1,21 +1,13 @@
-use std::ffi::OsString;
-use std::sync::atomic::Ordering;
-use std::sync::Mutex;
-use std::time::Duration;
-
-#[cfg(feature = "egl")]
-use smithay::backend::renderer::ImportEgl;
-#[cfg(feature = "debug")]
-use smithay::{
-    backend::{allocator::Fourcc, renderer::ImportMem},
-    reexports::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle},
-};
-
+use crate::drawing::*;
+use crate::render::*;
+use crate::state::{post_repaint, take_presentation_feedback, AnvilState, Backend, CalloopData};
 use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
 use smithay::backend::renderer::element::AsRenderElements;
 use smithay::backend::renderer::gles::GlesRenderer;
+#[cfg(feature = "egl")]
+use smithay::backend::renderer::ImportEgl;
 use smithay::backend::renderer::{ImportDma, ImportMemWl};
 use smithay::backend::winit::{self, WinitEvent, WinitGraphicsBackend};
 use smithay::backend::SwapBuffersError;
@@ -33,10 +25,15 @@ use smithay::wayland::compositor;
 use smithay::wayland::dmabuf::{
     DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
 };
-
-use crate::drawing::*;
-use crate::render::*;
-use crate::state::{post_repaint, take_presentation_feedback, AnvilState, Backend, CalloopData};
+#[cfg(feature = "debug")]
+use smithay::{
+    backend::{allocator::Fourcc, renderer::ImportMem},
+    reexports::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle},
+};
+use std::ffi::OsString;
+use std::sync::atomic::Ordering;
+use std::sync::Mutex;
+use std::time::Duration;
 
 pub const OUTPUT_NAME: &str = "winit";
 

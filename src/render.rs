@@ -1,3 +1,7 @@
+#[cfg(feature = "debug")]
+use crate::drawing::FpsElement;
+use crate::drawing::{PointerRenderElement, CLEAR_COLOR, CLEAR_COLOR_FULLSCREEN};
+use crate::shell::{FullscreenSurface, WindowElement, WindowRenderElement};
 use smithay::backend::renderer::damage::{
     Error as OutputDamageTrackerError, OutputDamageTracker, RenderOutputResult,
 };
@@ -13,11 +17,6 @@ use smithay::desktop::space::{
 };
 use smithay::output::Output;
 use smithay::utils::{Point, Rectangle, Size};
-
-#[cfg(feature = "debug")]
-use crate::drawing::FpsElement;
-use crate::drawing::{PointerRenderElement, CLEAR_COLOR, CLEAR_COLOR_FULLSCREEN};
-use crate::shell::{FullscreenSurface, WindowElement, WindowRenderElement};
 
 smithay::backend::renderer::element::render_elements! {
     pub CustomRenderElements<R> where

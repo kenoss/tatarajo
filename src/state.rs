@@ -1,8 +1,6 @@
-use std::os::unix::io::OwnedFd;
-use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-
+use crate::cursor::Cursor;
+use crate::focus::{KeyboardFocusTarget, PointerFocusTarget};
+use crate::shell::WindowElement;
 use smithay::backend::renderer::element::utils::select_dmabuf_feedback;
 use smithay::backend::renderer::element::{
     default_primary_scanout_output_compare, RenderElementStates,
@@ -26,7 +24,7 @@ use smithay::reexports::wayland_server::backend::{ClientData, ClientId, Disconne
 use smithay::reexports::wayland_server::protocol::wl_data_source::WlDataSource;
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::reexports::wayland_server::{Display, DisplayHandle, Resource};
-use smithay::utils::{Clock, Monotonic, Rectangle};
+use smithay::utils::{Clock, Monotonic, Point, Rectangle, Size};
 use smithay::wayland::compositor::{
     get_parent, with_states, CompositorClientState, CompositorState,
 };
@@ -57,7 +55,7 @@ use smithay::wayland::selection::primary_selection::{
     set_primary_focus, PrimarySelectionHandler, PrimarySelectionState,
 };
 use smithay::wayland::selection::wlr_data_control::{DataControlHandler, DataControlState};
-use smithay::wayland::selection::SelectionHandler;
+use smithay::wayland::selection::{SelectionHandler, SelectionSource, SelectionTarget};
 use smithay::wayland::shell::wlr_layer::WlrLayerShellState;
 use smithay::wayland::shell::xdg::decoration::{XdgDecorationHandler, XdgDecorationState};
 use smithay::wayland::shell::xdg::{ToplevelSurface, XdgShellState, XdgToplevelSurfaceData};
@@ -71,6 +69,10 @@ use smithay::wayland::xdg_activation::{
     XdgActivationHandler, XdgActivationState, XdgActivationToken, XdgActivationTokenData,
 };
 use smithay::wayland::xdg_foreign::{XdgForeignHandler, XdgForeignState};
+use smithay::wayland::xwayland_keyboard_grab::{
+    XWaylandKeyboardGrabHandler, XWaylandKeyboardGrabState,
+};
+use smithay::xwayland::{X11Wm, XWayland, XWaylandEvent};
 use smithay::{
     delegate_compositor, delegate_data_control, delegate_data_device, delegate_fractional_scale,
     delegate_input_method_manager, delegate_keyboard_shortcuts_inhibit, delegate_layer_shell,
@@ -78,19 +80,12 @@ use smithay::{
     delegate_presentation, delegate_primary_selection, delegate_relative_pointer, delegate_seat,
     delegate_security_context, delegate_shm, delegate_tablet_manager, delegate_text_input_manager,
     delegate_viewporter, delegate_virtual_keyboard_manager, delegate_xdg_activation,
-    delegate_xdg_decoration, delegate_xdg_shell,
+    delegate_xdg_decoration, delegate_xdg_shell, delegate_xwayland_keyboard_grab,
 };
-
-use crate::cursor::Cursor;
-use crate::focus::{KeyboardFocusTarget, PointerFocusTarget};
-use crate::shell::WindowElement;
-use smithay::delegate_xwayland_keyboard_grab;
-use smithay::utils::{Point, Size};
-use smithay::wayland::selection::{SelectionSource, SelectionTarget};
-use smithay::wayland::xwayland_keyboard_grab::{
-    XWaylandKeyboardGrabHandler, XWaylandKeyboardGrabState,
-};
-use smithay::xwayland::{X11Wm, XWayland, XWaylandEvent};
+use std::os::unix::io::OwnedFd;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 pub struct CalloopData<BackendData: Backend + 'static> {
     pub state: AnvilState<BackendData>,
