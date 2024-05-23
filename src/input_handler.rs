@@ -19,7 +19,8 @@ use smithay::desktop::{layer_map_for_output, WindowSurfaceType};
 use smithay::input::keyboard::{keysyms as xkb, FilterResult, Keysym, ModifiersState};
 use smithay::input::pointer::{AxisFrame, ButtonEvent, MotionEvent};
 use smithay::output::Scale;
-use smithay::reexports::wayland_protocols::xdg::decoration::zv1::server::zxdg_toplevel_decoration_v1;
+use smithay::reexports::wayland_protocols::xdg::decoration::zv1::server::
+    zxdg_toplevel_decoration_v1;
 use smithay::reexports::wayland_server::protocol::wl_pointer;
 use smithay::reexports::wayland_server::DisplayHandle;
 use smithay::utils::{Logical, Point, Serial, Transform, SERIAL_COUNTER as SCOUNTER};

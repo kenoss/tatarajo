@@ -3,10 +3,75 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use smithay::backend::renderer::element::utils::select_dmabuf_feedback;
+use smithay::backend::renderer::element::{
+    default_primary_scanout_output_compare, RenderElementStates,
+};
+use smithay::desktop::space::SpaceElement;
+use smithay::desktop::utils::{
+    surface_presentation_feedback_flags_from_states, surface_primary_scanout_output,
+    update_surface_primary_scanout_output, OutputPresentationFeedback,
+};
+use smithay::desktop::{PopupKind, PopupManager, Space};
+use smithay::input::keyboard::{Keysym, LedState, XkbConfig};
+use smithay::input::pointer::{CursorImageStatus, PointerHandle};
+use smithay::input::{Seat, SeatHandler, SeatState};
+use smithay::output::Output;
+use smithay::reexports::calloop::generic::Generic;
+use smithay::reexports::calloop::{Interest, LoopHandle, Mode, PostAction};
+use smithay::reexports::wayland_protocols::xdg::decoration::zv1::server::
+    zxdg_toplevel_decoration_v1::Mode as DecorationMode;
+use smithay::reexports::wayland_protocols::xdg::decoration::{self as xdg_decoration};
+use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason};
+use smithay::reexports::wayland_server::protocol::wl_data_source::WlDataSource;
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::reexports::wayland_server::{Display, DisplayHandle, Resource};
+use smithay::utils::{Clock, Monotonic, Rectangle};
+use smithay::wayland::compositor::{
+    get_parent, with_states, CompositorClientState, CompositorState,
+};
+use smithay::wayland::dmabuf::DmabufFeedback;
+use smithay::wayland::fractional_scale::{
+    with_fractional_scale, FractionalScaleHandler, FractionalScaleManagerState,
+};
+use smithay::wayland::input_method::{InputMethodHandler, InputMethodManagerState, PopupSurface};
+use smithay::wayland::keyboard_shortcuts_inhibit::{
+    KeyboardShortcutsInhibitHandler, KeyboardShortcutsInhibitState, KeyboardShortcutsInhibitor,
+};
+use smithay::wayland::output::{OutputHandler, OutputManagerState};
+use smithay::wayland::pointer_constraints::{
+    with_pointer_constraint, PointerConstraintsHandler, PointerConstraintsState,
+};
+use smithay::wayland::pointer_gestures::PointerGesturesState;
+use smithay::wayland::presentation::PresentationState;
+use smithay::wayland::relative_pointer::RelativePointerManagerState;
+use smithay::wayland::seat::WaylandFocus;
+use smithay::wayland::security_context::{
+    SecurityContext, SecurityContextHandler, SecurityContextListenerSource, SecurityContextState,
+};
+use smithay::wayland::selection::data_device::{
+    set_data_device_focus, ClientDndGrabHandler, DataDeviceHandler, DataDeviceState,
+    ServerDndGrabHandler,
+};
+use smithay::wayland::selection::primary_selection::{
+    set_primary_focus, PrimarySelectionHandler, PrimarySelectionState,
+};
+use smithay::wayland::selection::wlr_data_control::{DataControlHandler, DataControlState};
+use smithay::wayland::selection::SelectionHandler;
+use smithay::wayland::shell::wlr_layer::WlrLayerShellState;
+use smithay::wayland::shell::xdg::decoration::{XdgDecorationHandler, XdgDecorationState};
+use smithay::wayland::shell::xdg::{ToplevelSurface, XdgShellState, XdgToplevelSurfaceData};
+use smithay::wayland::shm::{ShmHandler, ShmState};
+use smithay::wayland::socket::ListeningSocketSource;
+use smithay::wayland::tablet_manager::{TabletManagerState, TabletSeatTrait};
+use smithay::wayland::text_input::TextInputManagerState;
+use smithay::wayland::viewporter::ViewporterState;
+use smithay::wayland::virtual_keyboard::VirtualKeyboardManagerState;
+use smithay::wayland::xdg_activation::{
+    XdgActivationHandler, XdgActivationState, XdgActivationToken, XdgActivationTokenData,
+};
+use smithay::wayland::xdg_foreign::{XdgForeignHandler, XdgForeignState};
 use smithay::{
-    backend::renderer::element::{
-        default_primary_scanout_output_compare, utils::select_dmabuf_feedback, RenderElementStates,
-    },
     delegate_compositor, delegate_data_control, delegate_data_device, delegate_fractional_scale,
     delegate_input_method_manager, delegate_keyboard_shortcuts_inhibit, delegate_layer_shell,
     delegate_output, delegate_pointer_constraints, delegate_pointer_gestures,
@@ -14,85 +79,6 @@ use smithay::{
     delegate_security_context, delegate_shm, delegate_tablet_manager, delegate_text_input_manager,
     delegate_viewporter, delegate_virtual_keyboard_manager, delegate_xdg_activation,
     delegate_xdg_decoration, delegate_xdg_shell,
-    desktop::{
-        space::SpaceElement,
-        utils::{
-            surface_presentation_feedback_flags_from_states, surface_primary_scanout_output,
-            update_surface_primary_scanout_output, OutputPresentationFeedback,
-        },
-        PopupKind, PopupManager, Space,
-    },
-    input::{
-        keyboard::{Keysym, LedState, XkbConfig},
-        pointer::{CursorImageStatus, PointerHandle},
-        Seat, SeatHandler, SeatState,
-    },
-    output::Output,
-    reexports::{
-        calloop::{generic::Generic, Interest, LoopHandle, Mode, PostAction},
-        wayland_protocols::xdg::decoration::{
-            self as xdg_decoration,
-            zv1::server::zxdg_toplevel_decoration_v1::Mode as DecorationMode,
-        },
-        wayland_server::{
-            backend::{ClientData, ClientId, DisconnectReason},
-            protocol::{wl_data_source::WlDataSource, wl_surface::WlSurface},
-            Display, DisplayHandle, Resource,
-        },
-    },
-    utils::{Clock, Monotonic, Rectangle},
-    wayland::{
-        compositor::{get_parent, with_states, CompositorClientState, CompositorState},
-        dmabuf::DmabufFeedback,
-        fractional_scale::{
-            with_fractional_scale, FractionalScaleHandler, FractionalScaleManagerState,
-        },
-        input_method::{InputMethodHandler, InputMethodManagerState, PopupSurface},
-        keyboard_shortcuts_inhibit::{
-            KeyboardShortcutsInhibitHandler, KeyboardShortcutsInhibitState,
-            KeyboardShortcutsInhibitor,
-        },
-        output::{OutputHandler, OutputManagerState},
-        pointer_constraints::{
-            with_pointer_constraint, PointerConstraintsHandler, PointerConstraintsState,
-        },
-        pointer_gestures::PointerGesturesState,
-        presentation::PresentationState,
-        relative_pointer::RelativePointerManagerState,
-        seat::WaylandFocus,
-        security_context::{
-            SecurityContext, SecurityContextHandler, SecurityContextListenerSource,
-            SecurityContextState,
-        },
-        selection::data_device::{
-            set_data_device_focus, ClientDndGrabHandler, DataDeviceHandler, DataDeviceState,
-            ServerDndGrabHandler,
-        },
-        selection::{
-            primary_selection::{
-                set_primary_focus, PrimarySelectionHandler, PrimarySelectionState,
-            },
-            wlr_data_control::{DataControlHandler, DataControlState},
-            SelectionHandler,
-        },
-        shell::{
-            wlr_layer::WlrLayerShellState,
-            xdg::{
-                decoration::{XdgDecorationHandler, XdgDecorationState},
-                ToplevelSurface, XdgShellState, XdgToplevelSurfaceData,
-            },
-        },
-        shm::{ShmHandler, ShmState},
-        socket::ListeningSocketSource,
-        tablet_manager::{TabletManagerState, TabletSeatTrait},
-        text_input::TextInputManagerState,
-        viewporter::ViewporterState,
-        virtual_keyboard::VirtualKeyboardManagerState,
-        xdg_activation::{
-            XdgActivationHandler, XdgActivationState, XdgActivationToken, XdgActivationTokenData,
-        },
-        xdg_foreign::{XdgForeignHandler, XdgForeignState},
-    },
 };
 
 use crate::cursor::Cursor;
