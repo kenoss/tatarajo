@@ -3,8 +3,6 @@ use crate::grabs::resize_grab;
 use crate::state::ClientState;
 use crate::Sabiniwm;
 use smithay::backend::renderer::utils::on_commit_buffer_handler;
-use smithay::delegate_compositor;
-use smithay::delegate_shm;
 use smithay::reexports::wayland_server::protocol::wl_buffer;
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::reexports::wayland_server::Client;
@@ -13,6 +11,7 @@ use smithay::wayland::compositor::{
     get_parent, is_sync_subsurface, CompositorClientState, CompositorHandler, CompositorState,
 };
 use smithay::wayland::shm::{ShmHandler, ShmState};
+use smithay::{delegate_compositor, delegate_shm};
 
 impl CompositorHandler for Sabiniwm {
     fn compositor_state(&mut self) -> &mut CompositorState {

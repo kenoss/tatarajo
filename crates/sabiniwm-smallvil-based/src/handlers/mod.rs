@@ -2,11 +2,9 @@ mod compositor;
 mod xdg_shell;
 
 use crate::Sabiniwm;
-
 //
 // Wl Seat
 //
-
 use smithay::input::{Seat, SeatHandler, SeatState};
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::reexports::wayland_server::Resource;

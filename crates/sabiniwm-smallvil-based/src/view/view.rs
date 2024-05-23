@@ -1,8 +1,6 @@
-use crate::util::Id;
-use crate::util::{FocusedVec, NonEmptyFocusedVec};
+use crate::util::{FocusedVec, Id, NonEmptyFocusedVec};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
-use crate::view::layout_node::LayoutMessage;
-use crate::view::layout_node::LayoutNode;
+use crate::view::layout_node::{LayoutMessage, LayoutNode};
 use crate::view::predefined::{
     LayoutFull, LayoutNodeBorder, LayoutNodeMargin, LayoutNodeSelect, LayoutTall,
 };

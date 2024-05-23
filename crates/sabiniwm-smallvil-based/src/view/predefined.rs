@@ -1,7 +1,5 @@
-use crate::model::grid_geometry::RectangleExt;
-use crate::model::grid_geometry::SplitSpec;
-use crate::util::Id;
-use crate::util::NonEmptyFocusedVec;
+use crate::model::grid_geometry::{RectangleExt, SplitSpec};
+use crate::util::{Id, NonEmptyFocusedVec};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::{LayoutMessage, LayoutMessageI, LayoutNode, LayoutNodeI};
 use crate::view::window::{Border, Thickness};

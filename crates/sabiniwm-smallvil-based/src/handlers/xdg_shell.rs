@@ -3,8 +3,9 @@ use crate::view::window::Window;
 use crate::Sabiniwm;
 use smithay::delegate_xdg_shell;
 use smithay::desktop::space::SpaceElement;
-use smithay::desktop::{find_popup_root_surface, get_popup_toplevel_coords};
-use smithay::desktop::{PopupKind, PopupManager, Space};
+use smithay::desktop::{
+    find_popup_root_surface, get_popup_toplevel_coords, PopupKind, PopupManager, Space,
+};
 use smithay::input::pointer::{Focus, GrabStartData as PointerGrabStartData};
 use smithay::input::Seat;
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;

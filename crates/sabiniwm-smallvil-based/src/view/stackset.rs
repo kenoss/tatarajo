@@ -1,5 +1,4 @@
-use crate::util::Id;
-use crate::util::{FocusedVec, NonEmptyFocusedVec};
+use crate::util::{FocusedVec, Id, NonEmptyFocusedVec};
 use crate::view::window::Window;
 
 pub struct StackSet {
