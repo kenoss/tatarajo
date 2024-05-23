@@ -3,11 +3,11 @@ extern crate maplit;
 
 use anyhow::Result;
 use big_s::S;
-use sabiniwm::action::{self, Action, ActionFnI};
-use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
-use sabiniwm::view::predefined::LayoutMessageSelect;
-use sabiniwm::view::stackset::WorkspaceTag;
-use sabiniwm::Sabiniwm;
+use sabiniwm_smallvil_based::action::{self, Action, ActionFnI};
+use sabiniwm_smallvil_based::input::{KeySeqSerde, Keymap, ModMask};
+use sabiniwm_smallvil_based::view::predefined::LayoutMessageSelect;
+use sabiniwm_smallvil_based::view::stackset::WorkspaceTag;
+use sabiniwm_smallvil_based::Sabiniwm;
 
 fn tracing_init() -> Result<()> {
     use time::macros::format_description;

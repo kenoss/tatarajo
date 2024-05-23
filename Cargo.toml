@@ -1,55 +1,7 @@
-[package]
-name = "sabiniwm"
-version = "0.0.0"
-edition = "2021"
-
-[dependencies]
-anyhow = "1.0.81"
-big_s = "1.0.2"
-bitflags = "2.2.1"
-downcast = "0.11.0"
-dyn-clone = "1.0.17"
-itertools = "0.12.1"
-maplit = "1.0.2"
-smithay-drm-extras = { git = "https://github.com/Smithay/smithay", rev = "8e49b9b", optional = true }
-thiserror = "1.0.60"
-time = { version = "0.3.34", features = ["macros", "local-offset"] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.16", features = ["env-filter", "fmt", "std", "time"] }
-wayland-server = { version = "0.31.0" }
-x11rb = { version = "0.12.0", optional = true, default-features = false, features = ["composite"] }
-xcursor = {version = "0.3.3", optional = true }
-xkbcommon = "0.7.0"
-
-[dependencies.smithay]
-git = "https://github.com/Smithay/smithay"
-rev = "8e49b9b"
-default-features = false
-features = [
-    "backend_winit",
-    "wayland_frontend",
-    "desktop",
+[workspace]
+resolver = "2"
+members = [
+    "crates/sabiniwm",
+    "crates/sabiniwm-pistachio",
+    "crates/sabiniwm-smallvil-based",
 ]
-
-[dev-dependencies]
-rstest = "0.18.2"
-
-[features]
-default = ["egl", "winit", "udev", "xwayland"]
-egl = ["smithay/use_system_lib", "smithay/backend_egl"]
-udev = [
-  "smithay-drm-extras",
-  "smithay/backend_libinput",
-  "smithay/backend_udev",
-  "smithay/backend_drm",
-  "smithay/backend_gbm",
-  "smithay/backend_vulkan",
-  "smithay/backend_egl",
-  "smithay/backend_session_libseat",
-  "smithay/renderer_gl",
-  "smithay/renderer_pixman",
-  "smithay/renderer_multi",
-  "xcursor",
-]
-winit = ["smithay/backend_winit", "smithay/backend_drm"]
-xwayland = ["smithay/xwayland", "x11rb", "smithay/x11rb_event_source", "xcursor"]

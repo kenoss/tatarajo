@@ -1353,6 +1353,39 @@ dependencies = [
  "smithay",
  "smithay-drm-extras",
  "thiserror",
+ "tracing",
+ "wayland-server",
+ "x11rb 0.12.0",
+ "xcursor",
+ "xkbcommon",
+]
+
+[[package]]
+name = "sabiniwm-pistachio"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "sabiniwm",
+ "time",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "sabiniwm-smallvil-based"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "big_s",
+ "bitflags 2.5.0",
+ "downcast",
+ "dyn-clone",
+ "itertools",
+ "maplit",
+ "rstest",
+ "smithay",
+ "smithay-drm-extras",
+ "thiserror",
  "time",
  "tracing",
  "tracing-subscriber",

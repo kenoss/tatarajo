@@ -223,6 +223,9 @@ impl ActionFnI for ActionWindowKill {
 
         match window.smithay_window().underlying_surface() {
             WindowSurface::Wayland(w) => w.send_close(),
+            WindowSurface::X11(w) => {
+                let _ = w.close();
+            }
         };
     }
 }
