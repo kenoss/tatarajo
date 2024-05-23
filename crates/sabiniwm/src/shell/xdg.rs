@@ -93,12 +93,12 @@ impl<BackendData: Backend> XdgShellHandler for SabiniwmState<BackendData> {
         if let Some(touch) = seat.get_touch() {
             if touch.has_grab(serial) {
                 let start_data = touch.grab_start_data().unwrap();
-                tracing::info!(?start_data);
+                info!(?start_data);
 
                 // If the client disconnects after requesting a move
                 // we can just ignore the request
                 let Some(window) = self.window_for_surface(surface.wl_surface()) else {
-                    tracing::info!("no window");
+                    info!("no window");
                     return;
                 };
 
@@ -111,7 +111,7 @@ impl<BackendData: Backend> XdgShellHandler for SabiniwmState<BackendData> {
                         .0
                         .same_client_as(&surface.wl_surface().id())
                 {
-                    tracing::info!("different surface");
+                    info!("different surface");
                     return;
                 }
                 let geometry = window.geometry();

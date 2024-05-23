@@ -242,7 +242,7 @@ impl<BackendData: Backend + 'static> SabiniwmState<BackendData> {
                 }
             });
             if let Err(e) = ret {
-                tracing::error!(
+                error!(
                     "Failed to insert the XWaylandSource into the event loop: {}",
                     e
                 );

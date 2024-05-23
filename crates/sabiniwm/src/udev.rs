@@ -551,7 +551,7 @@ impl DrmLeaseHandler for SabiniwmState<UdevData> {
                     builder.add_plane(cursor.handle);
                 }
             } else {
-                tracing::warn!(
+                warn!(
                     ?conn,
                     "Lease requested for desktop connector, denying request"
                 );
@@ -1587,7 +1587,7 @@ impl SabiniwmState<UdevData> {
                 .expect("failed to schedule frame timer");
         } else {
             let elapsed = start.elapsed();
-            tracing::trace!(?elapsed, "rendered surface");
+            trace!(?elapsed, "rendered surface");
         }
     }
 

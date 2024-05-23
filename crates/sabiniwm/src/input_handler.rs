@@ -519,7 +519,7 @@ impl<Backend: crate::state::Backend> SabiniwmState<Backend> {
                         Transform::Flipped180 => Transform::Flipped270,
                         Transform::Flipped270 => Transform::Normal,
                     };
-                    tracing::info!(?current_transform, ?new_transform, output = ?output.name(), "changing output transform");
+                    info!(?current_transform, ?new_transform, output = ?output.name(), "changing output transform");
                     output.change_current_state(None, Some(new_transform), None, None);
                     crate::shell::fixup_positions(&mut self.space, self.pointer.current_location());
                     self.backend_data.reset_buffers(&output);
@@ -532,10 +532,9 @@ impl<Backend: crate::state::Backend> SabiniwmState<Backend> {
                     | KeyAction::TogglePreview
                     | KeyAction::ToggleDecorations => self.process_common_key_action(action),
 
-                    _ => tracing::warn!(
+                    _ => warn!(
                         ?action,
-                        output_name,
-                        "Key action unsupported on on output backend.",
+                        output_name, "Key action unsupported on on output backend.",
                     ),
                 },
             },
