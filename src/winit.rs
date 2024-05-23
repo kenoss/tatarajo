@@ -1,6 +1,6 @@
 use crate::drawing::*;
 use crate::render::*;
-use crate::state::{post_repaint, take_presentation_feedback, AnvilState, Backend, CalloopData};
+use crate::state::{post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState};
 use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
@@ -45,7 +45,7 @@ pub struct WinitData {
     pub fps: fps_ticker::Fps,
 }
 
-impl DmabufHandler for AnvilState<WinitData> {
+impl DmabufHandler for SabiniwmState<WinitData> {
     fn dmabuf_state(&mut self) -> &mut DmabufState {
         &mut self.backend_data.dmabuf_state.0
     }
@@ -63,13 +63,13 @@ impl DmabufHandler for AnvilState<WinitData> {
             .import_dmabuf(&dmabuf, None)
             .is_ok()
         {
-            let _ = notifier.successful::<AnvilState<WinitData>>();
+            let _ = notifier.successful::<SabiniwmState<WinitData>>();
         } else {
             notifier.failed();
         }
     }
 }
-delegate_dmabuf!(AnvilState<WinitData>);
+delegate_dmabuf!(SabiniwmState<WinitData>);
 
 impl Backend for WinitData {
     fn seat_name(&self) -> String {
@@ -110,7 +110,7 @@ pub fn run_winit() {
             model: "Winit".into(),
         },
     );
-    let _global = output.create_global::<AnvilState<WinitData>>(&display.handle());
+    let _global = output.create_global::<SabiniwmState<WinitData>>(&display.handle());
     output.change_current_state(
         Some(mode),
         Some(Transform::Flipped180),
@@ -165,7 +165,7 @@ pub fn run_winit() {
     let dmabuf_state = if let Some(default_feedback) = dmabuf_default_feedback {
         let mut dmabuf_state = DmabufState::new();
         let dmabuf_global = dmabuf_state
-            .create_global_with_default_feedback::<AnvilState<WinitData>>(
+            .create_global_with_default_feedback::<SabiniwmState<WinitData>>(
                 &display.handle(),
                 &default_feedback,
             );
@@ -173,8 +173,8 @@ pub fn run_winit() {
     } else {
         let dmabuf_formats = backend.renderer().dmabuf_formats().collect::<Vec<_>>();
         let mut dmabuf_state = DmabufState::new();
-        let dmabuf_global =
-            dmabuf_state.create_global::<AnvilState<WinitData>>(&display.handle(), dmabuf_formats);
+        let dmabuf_global = dmabuf_state
+            .create_global::<SabiniwmState<WinitData>>(&display.handle(), dmabuf_formats);
         (dmabuf_state, dmabuf_global, None)
     };
 
@@ -199,7 +199,7 @@ pub fn run_winit() {
             fps: fps_ticker::Fps::default(),
         }
     };
-    let mut state = AnvilState::init(display, event_loop.handle(), data, true);
+    let mut state = SabiniwmState::init(display, event_loop.handle(), data, true);
     state
         .shm_state
         .update_formats(state.backend_data.backend.renderer().shm_formats());

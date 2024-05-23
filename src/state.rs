@@ -49,7 +49,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 pub struct CalloopData<BackendData: Backend + 'static> {
-    pub state: AnvilState<BackendData>,
+    pub state: SabiniwmState<BackendData>,
     pub display_handle: DisplayHandle,
 }
 
@@ -66,7 +66,7 @@ impl ClientData for ClientState {
 }
 
 #[derive(Debug)]
-pub struct AnvilState<BackendData: Backend + 'static> {
+pub struct SabiniwmState<BackendData: Backend + 'static> {
     pub backend_data: BackendData,
     pub socket_name: Option<String>,
     pub display_handle: DisplayHandle,
@@ -84,7 +84,7 @@ pub struct AnvilState<BackendData: Backend + 'static> {
     pub output_manager_state: OutputManagerState,
     pub primary_selection_state: PrimarySelectionState,
     pub data_control_state: DataControlState,
-    pub seat_state: SeatState<AnvilState<BackendData>>,
+    pub seat_state: SeatState<SabiniwmState<BackendData>>,
     pub keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
     pub shm_state: ShmState,
     pub viewporter_state: ViewporterState,
@@ -101,9 +101,9 @@ pub struct AnvilState<BackendData: Backend + 'static> {
     pub suppressed_keys: Vec<Keysym>,
     pub cursor_status: Arc<Mutex<CursorImageStatus>>,
     pub seat_name: String,
-    pub seat: Seat<AnvilState<BackendData>>,
+    pub seat: Seat<SabiniwmState<BackendData>>,
     pub clock: Clock<Monotonic>,
-    pub pointer: PointerHandle<AnvilState<BackendData>>,
+    pub pointer: PointerHandle<SabiniwmState<BackendData>>,
 
     pub xwayland: XWayland,
     pub xwm: Option<X11Wm>,
@@ -115,13 +115,13 @@ pub struct AnvilState<BackendData: Backend + 'static> {
     pub show_window_preview: bool,
 }
 
-impl<BackendData: Backend + 'static> AnvilState<BackendData> {
+impl<BackendData: Backend + 'static> SabiniwmState<BackendData> {
     pub fn init(
-        display: Display<AnvilState<BackendData>>,
+        display: Display<SabiniwmState<BackendData>>,
         handle: LoopHandle<'static, CalloopData<BackendData>>,
         backend_data: BackendData,
         listen_on_socket: bool,
-    ) -> AnvilState<BackendData> {
+    ) -> SabiniwmState<BackendData> {
         let dh = display.handle();
 
         let clock = Clock::new();
@@ -250,7 +250,7 @@ impl<BackendData: Backend + 'static> AnvilState<BackendData> {
             xwayland
         };
 
-        AnvilState {
+        SabiniwmState {
             backend_data,
             display_handle: dh,
             socket_name,

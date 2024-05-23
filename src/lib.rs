@@ -23,4 +23,4 @@ pub mod udev;
 #[cfg(feature = "winit")]
 pub mod winit;
 
-pub use state::{AnvilState, CalloopData, ClientState};
+pub use state::{CalloopData, ClientState, SabiniwmState};

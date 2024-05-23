@@ -1,6 +1,6 @@
 use super::{SurfaceData, WindowElement};
 use crate::focus::PointerFocusTarget;
-use crate::state::{AnvilState, Backend};
+use crate::state::{Backend, SabiniwmState};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::WindowSurface;
 use smithay::input::pointer::{
@@ -18,18 +18,18 @@ use smithay::xwayland::xwm::ResizeEdge as X11ResizeEdge;
 use std::cell::RefCell;
 
 pub struct PointerMoveSurfaceGrab<B: Backend + 'static> {
-    pub start_data: PointerGrabStartData<AnvilState<B>>,
+    pub start_data: PointerGrabStartData<SabiniwmState<B>>,
     pub window: WindowElement,
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
+impl<BackendData: Backend> PointerGrab<SabiniwmState<BackendData>>
     for PointerMoveSurfaceGrab<BackendData>
 {
     fn motion(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         _focus: Option<(PointerFocusTarget, Point<i32, Logical>)>,
         event: &MotionEvent,
     ) {
@@ -45,8 +45,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn relative_motion(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         focus: Option<(PointerFocusTarget, Point<i32, Logical>)>,
         event: &RelativeMotionEvent,
     ) {
@@ -55,8 +55,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn button(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &ButtonEvent,
     ) {
         handle.button(data, event);
@@ -68,8 +68,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn axis(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         details: AxisFrame,
     ) {
         handle.axis(data, details)
@@ -77,16 +77,16 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn frame(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
     ) {
         handle.frame(data);
     }
 
     fn gesture_swipe_begin(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureSwipeBeginEvent,
     ) {
         handle.gesture_swipe_begin(data, event);
@@ -94,8 +94,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_swipe_update(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureSwipeUpdateEvent,
     ) {
         handle.gesture_swipe_update(data, event);
@@ -103,8 +103,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_swipe_end(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureSwipeEndEvent,
     ) {
         handle.gesture_swipe_end(data, event);
@@ -112,8 +112,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_pinch_begin(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GesturePinchBeginEvent,
     ) {
         handle.gesture_pinch_begin(data, event);
@@ -121,8 +121,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_pinch_update(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GesturePinchUpdateEvent,
     ) {
         handle.gesture_pinch_update(data, event);
@@ -130,8 +130,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_pinch_end(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GesturePinchEndEvent,
     ) {
         handle.gesture_pinch_end(data, event);
@@ -139,8 +139,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_hold_begin(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureHoldBeginEvent,
     ) {
         handle.gesture_hold_begin(data, event);
@@ -148,33 +148,33 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_hold_end(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureHoldEndEvent,
     ) {
         handle.gesture_hold_end(data, event);
     }
 
-    fn start_data(&self) -> &PointerGrabStartData<AnvilState<BackendData>> {
+    fn start_data(&self) -> &PointerGrabStartData<SabiniwmState<BackendData>> {
         &self.start_data
     }
 }
 
 pub struct TouchMoveSurfaceGrab<B: Backend + 'static> {
-    pub start_data: TouchGrabStartData<AnvilState<B>>,
+    pub start_data: TouchGrabStartData<SabiniwmState<B>>,
     pub window: WindowElement,
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
+impl<BackendData: Backend> TouchGrab<SabiniwmState<BackendData>>
     for TouchMoveSurfaceGrab<BackendData>
 {
     fn down(
         &mut self,
-        _data: &mut AnvilState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         _focus: Option<(
-            <AnvilState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
+            <SabiniwmState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
             Point<i32, Logical>,
         )>,
         _event: &smithay::input::touch::DownEvent,
@@ -184,8 +184,8 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
 
     fn up(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &smithay::input::touch::UpEvent,
         seq: Serial,
     ) {
@@ -199,10 +199,10 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
 
     fn motion(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         _focus: Option<(
-            <AnvilState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
+            <SabiniwmState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
             Point<i32, Logical>,
         )>,
         event: &smithay::input::touch::MotionEvent,
@@ -220,23 +220,23 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
 
     fn frame(
         &mut self,
-        _data: &mut AnvilState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         _seq: Serial,
     ) {
     }
 
     fn cancel(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         seq: Serial,
     ) {
         handle.cancel(data, seq);
         handle.unset_grab(data);
     }
 
-    fn start_data(&self) -> &smithay::input::touch::GrabStartData<AnvilState<BackendData>> {
+    fn start_data(&self) -> &smithay::input::touch::GrabStartData<SabiniwmState<BackendData>> {
         &self.start_data
     }
 }
@@ -311,7 +311,7 @@ pub enum ResizeState {
 }
 
 pub struct PointerResizeSurfaceGrab<B: Backend + 'static> {
-    pub start_data: PointerGrabStartData<AnvilState<B>>,
+    pub start_data: PointerGrabStartData<SabiniwmState<B>>,
     pub window: WindowElement,
     pub edges: ResizeEdge,
     pub initial_window_location: Point<i32, Logical>,
@@ -319,13 +319,13 @@ pub struct PointerResizeSurfaceGrab<B: Backend + 'static> {
     pub last_window_size: Size<i32, Logical>,
 }
 
-impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
+impl<BackendData: Backend> PointerGrab<SabiniwmState<BackendData>>
     for PointerResizeSurfaceGrab<BackendData>
 {
     fn motion(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         _focus: Option<(PointerFocusTarget, Point<i32, Logical>)>,
         event: &MotionEvent,
     ) {
@@ -410,8 +410,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn relative_motion(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         focus: Option<(PointerFocusTarget, Point<i32, Logical>)>,
         event: &RelativeMotionEvent,
     ) {
@@ -420,8 +420,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn button(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &ButtonEvent,
     ) {
         handle.button(data, event);
@@ -516,8 +516,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn axis(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         details: AxisFrame,
     ) {
         handle.axis(data, details)
@@ -525,16 +525,16 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn frame(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
     ) {
         handle.frame(data);
     }
 
     fn gesture_swipe_begin(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureSwipeBeginEvent,
     ) {
         handle.gesture_swipe_begin(data, event);
@@ -542,8 +542,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_swipe_update(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureSwipeUpdateEvent,
     ) {
         handle.gesture_swipe_update(data, event);
@@ -551,8 +551,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_swipe_end(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureSwipeEndEvent,
     ) {
         handle.gesture_swipe_end(data, event);
@@ -560,8 +560,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_pinch_begin(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GesturePinchBeginEvent,
     ) {
         handle.gesture_pinch_begin(data, event);
@@ -569,8 +569,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_pinch_update(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GesturePinchUpdateEvent,
     ) {
         handle.gesture_pinch_update(data, event);
@@ -578,8 +578,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_pinch_end(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GesturePinchEndEvent,
     ) {
         handle.gesture_pinch_end(data, event);
@@ -587,8 +587,8 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_hold_begin(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureHoldBeginEvent,
     ) {
         handle.gesture_hold_begin(data, event);
@@ -596,20 +596,20 @@ impl<BackendData: Backend> PointerGrab<AnvilState<BackendData>>
 
     fn gesture_hold_end(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &GestureHoldEndEvent,
     ) {
         handle.gesture_hold_end(data, event);
     }
 
-    fn start_data(&self) -> &PointerGrabStartData<AnvilState<BackendData>> {
+    fn start_data(&self) -> &PointerGrabStartData<SabiniwmState<BackendData>> {
         &self.start_data
     }
 }
 
 pub struct TouchResizeSurfaceGrab<B: Backend + 'static> {
-    pub start_data: TouchGrabStartData<AnvilState<B>>,
+    pub start_data: TouchGrabStartData<SabiniwmState<B>>,
     pub window: WindowElement,
     pub edges: ResizeEdge,
     pub initial_window_location: Point<i32, Logical>,
@@ -617,15 +617,15 @@ pub struct TouchResizeSurfaceGrab<B: Backend + 'static> {
     pub last_window_size: Size<i32, Logical>,
 }
 
-impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
+impl<BackendData: Backend> TouchGrab<SabiniwmState<BackendData>>
     for TouchResizeSurfaceGrab<BackendData>
 {
     fn down(
         &mut self,
-        _data: &mut AnvilState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         _focus: Option<(
-            <AnvilState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
+            <SabiniwmState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
             Point<i32, Logical>,
         )>,
         _event: &smithay::input::touch::DownEvent,
@@ -635,8 +635,8 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
 
     fn up(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         event: &smithay::input::touch::UpEvent,
         _seq: Serial,
     ) {
@@ -731,10 +731,10 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
 
     fn motion(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         _focus: Option<(
-            <AnvilState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
+            <SabiniwmState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
             Point<i32, Logical>,
         )>,
         event: &smithay::input::touch::MotionEvent,
@@ -822,23 +822,23 @@ impl<BackendData: Backend> TouchGrab<AnvilState<BackendData>>
 
     fn frame(
         &mut self,
-        _data: &mut AnvilState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         _seq: Serial,
     ) {
     }
 
     fn cancel(
         &mut self,
-        data: &mut AnvilState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, AnvilState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
         seq: Serial,
     ) {
         handle.cancel(data, seq);
         handle.unset_grab(data);
     }
 
-    fn start_data(&self) -> &smithay::input::touch::GrabStartData<AnvilState<BackendData>> {
+    fn start_data(&self) -> &smithay::input::touch::GrabStartData<SabiniwmState<BackendData>> {
         &self.start_data
     }
 }

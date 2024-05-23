@@ -3,7 +3,7 @@ use crate::shell::FullscreenSurface;
 use crate::state::Backend;
 #[cfg(feature = "udev")]
 use crate::udev::UdevData;
-use crate::AnvilState;
+use crate::SabiniwmState;
 #[cfg(any(feature = "winit", feature = "udev"))]
 use smithay::backend::input::AbsolutePositionEvent;
 use smithay::backend::input::{
@@ -59,7 +59,7 @@ use std::convert::TryInto;
 use std::process::Command;
 use std::sync::atomic::Ordering;
 
-impl<BackendData: Backend> AnvilState<BackendData> {
+impl<BackendData: Backend> SabiniwmState<BackendData> {
     fn process_common_key_action(&mut self, action: KeyAction) {
         match action {
             KeyAction::None => (),
@@ -449,7 +449,7 @@ impl<BackendData: Backend> AnvilState<BackendData> {
 }
 
 #[cfg(feature = "winit")]
-impl<Backend: crate::state::Backend> AnvilState<Backend> {
+impl<Backend: crate::state::Backend> SabiniwmState<Backend> {
     pub fn process_input_event_windowed<B: InputBackend>(
         &mut self,
         dh: &DisplayHandle,
@@ -596,7 +596,7 @@ impl<Backend: crate::state::Backend> AnvilState<Backend> {
 }
 
 #[cfg(feature = "udev")]
-impl AnvilState<UdevData> {
+impl SabiniwmState<UdevData> {
     pub fn process_input_event<B: InputBackend>(
         &mut self,
         dh: &DisplayHandle,

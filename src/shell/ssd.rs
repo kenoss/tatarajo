@@ -1,5 +1,5 @@
 use super::WindowElement;
-use crate::AnvilState;
+use crate::SabiniwmState;
 use smithay::backend::renderer::element::solid::{SolidColorBuffer, SolidColorRenderElement};
 use smithay::backend::renderer::element::{AsRenderElements, Kind};
 use smithay::backend::renderer::Renderer;
@@ -46,8 +46,8 @@ impl HeaderBar {
 
     pub fn clicked<B: crate::state::Backend>(
         &mut self,
-        seat: &Seat<AnvilState<B>>,
-        state: &mut AnvilState<B>,
+        seat: &Seat<SabiniwmState<B>>,
+        state: &mut SabiniwmState<B>,
         window: &WindowElement,
         serial: Serial,
     ) {
@@ -94,8 +94,8 @@ impl HeaderBar {
 
     pub fn touch_down<B: crate::state::Backend>(
         &mut self,
-        seat: &Seat<AnvilState<B>>,
-        state: &mut AnvilState<B>,
+        seat: &Seat<SabiniwmState<B>>,
+        state: &mut SabiniwmState<B>,
         window: &WindowElement,
         serial: Serial,
     ) {
@@ -125,8 +125,8 @@ impl HeaderBar {
 
     pub fn touch_up<B: crate::state::Backend>(
         &mut self,
-        _seat: &Seat<AnvilState<B>>,
-        state: &mut AnvilState<B>,
+        _seat: &Seat<SabiniwmState<B>>,
+        state: &mut SabiniwmState<B>,
         window: &WindowElement,
         _serial: Serial,
     ) {

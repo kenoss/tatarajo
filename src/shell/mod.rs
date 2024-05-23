@@ -1,4 +1,4 @@
-use crate::state::{AnvilState, Backend};
+use crate::state::{Backend, SabiniwmState};
 use crate::{CalloopData, ClientState};
 use smithay::backend::renderer::utils::on_commit_buffer_handler;
 use smithay::desktop::space::SpaceElement;
@@ -75,11 +75,11 @@ impl FullscreenSurface {
     }
 }
 
-impl<BackendData: Backend> BufferHandler for AnvilState<BackendData> {
+impl<BackendData: Backend> BufferHandler for SabiniwmState<BackendData> {
     fn buffer_destroyed(&mut self, _buffer: &WlBuffer) {}
 }
 
-impl<BackendData: Backend> CompositorHandler for AnvilState<BackendData> {
+impl<BackendData: Backend> CompositorHandler for SabiniwmState<BackendData> {
     fn compositor_state(&mut self) -> &mut CompositorState {
         &mut self.compositor_state
     }
@@ -144,7 +144,7 @@ impl<BackendData: Backend> CompositorHandler for AnvilState<BackendData> {
     }
 }
 
-impl<BackendData: Backend> WlrLayerShellHandler for AnvilState<BackendData> {
+impl<BackendData: Backend> WlrLayerShellHandler for SabiniwmState<BackendData> {
     fn shell_state(&mut self) -> &mut WlrLayerShellState {
         &mut self.layer_shell_state
     }
@@ -179,7 +179,7 @@ impl<BackendData: Backend> WlrLayerShellHandler for AnvilState<BackendData> {
     }
 }
 
-impl<BackendData: Backend> AnvilState<BackendData> {
+impl<BackendData: Backend> SabiniwmState<BackendData> {
     pub fn window_for_surface(&self, surface: &WlSurface) -> Option<WindowElement> {
         self.space
             .elements()

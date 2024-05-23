@@ -2,7 +2,7 @@ use crate::drawing::*;
 use crate::render::*;
 use crate::shell::WindowElement;
 use crate::state::{
-    post_repaint, take_presentation_feedback, AnvilState, Backend, CalloopData,
+    post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState,
     SurfaceDmabufFeedback,
 };
 use smithay::backend::allocator::dmabuf::Dmabuf;
@@ -135,7 +135,7 @@ impl UdevData {
     }
 }
 
-impl DmabufHandler for AnvilState<UdevData> {
+impl DmabufHandler for SabiniwmState<UdevData> {
     fn dmabuf_state(&mut self) -> &mut DmabufState {
         &mut self.backend_data.dmabuf_state.as_mut().unwrap().0
     }
@@ -154,13 +154,13 @@ impl DmabufHandler for AnvilState<UdevData> {
             .is_ok()
         {
             dmabuf.set_node(self.backend_data.primary_gpu);
-            let _ = notifier.successful::<AnvilState<UdevData>>();
+            let _ = notifier.successful::<SabiniwmState<UdevData>>();
         } else {
             notifier.failed();
         }
     }
 }
-delegate_dmabuf!(AnvilState<UdevData>);
+delegate_dmabuf!(SabiniwmState<UdevData>);
 
 impl Backend for UdevData {
     const HAS_RELATIVE_MOTION: bool = true;
@@ -251,7 +251,7 @@ pub fn run_udev() {
         debug_flags: DebugFlags::empty(),
         keyboards: Vec::new(),
     };
-    let mut state = AnvilState::init(display, event_loop.handle(), data, true);
+    let mut state = SabiniwmState::init(display, event_loop.handle(), data, true);
 
     /*
      * Initialize the udev backend
@@ -345,7 +345,7 @@ pub fn run_udev() {
                         .activate(false)
                         .expect("failed to activate drm backend");
                     if let Some(lease_global) = backend.leasing_global.as_mut() {
-                        lease_global.resume::<AnvilState<UdevData>>();
+                        lease_global.resume::<SabiniwmState<UdevData>>();
                     }
                     for surface in backend.surfaces.values_mut() {
                         if let Err(err) = surface.compositor.reset_state() {
@@ -425,7 +425,7 @@ pub fn run_udev() {
         .build()
         .unwrap();
     let mut dmabuf_state = DmabufState::new();
-    let global = dmabuf_state.create_global_with_default_feedback::<AnvilState<UdevData>>(
+    let global = dmabuf_state.create_global_with_default_feedback::<SabiniwmState<UdevData>>(
         &display_handle,
         &default_feedback,
     );
@@ -512,7 +512,7 @@ pub fn run_udev() {
     }
 }
 
-impl DrmLeaseHandler for AnvilState<UdevData> {
+impl DrmLeaseHandler for SabiniwmState<UdevData> {
     fn drm_lease_state(&mut self, node: DrmNode) -> &mut DrmLeaseState {
         self.backend_data
             .backends
@@ -574,7 +574,7 @@ impl DrmLeaseHandler for AnvilState<UdevData> {
     }
 }
 
-delegate_drm_lease!(AnvilState<UdevData>);
+delegate_drm_lease!(SabiniwmState<UdevData>);
 
 pub type RenderSurface =
     GbmBufferedSurface<GbmAllocator<DrmDeviceFd>, Option<OutputPresentationFeedback>>;
@@ -775,7 +775,7 @@ struct SurfaceData {
 impl Drop for SurfaceData {
     fn drop(&mut self) {
         if let Some(global) = self.global.take() {
-            self.dh.remove_global::<AnvilState<UdevData>>(global);
+            self.dh.remove_global::<SabiniwmState<UdevData>>(global);
         }
     }
 }
@@ -869,7 +869,7 @@ fn get_surface_dmabuf_feedback(
     })
 }
 
-impl AnvilState<UdevData> {
+impl SabiniwmState<UdevData> {
     fn device_added(&mut self, node: DrmNode, path: &Path) -> Result<(), DeviceAddError> {
         // Try to open the device
         let fd = self
@@ -924,7 +924,7 @@ impl AnvilState<UdevData> {
                 non_desktop_connectors: Vec::new(),
                 render_node,
                 surfaces: HashMap::new(),
-                leasing_global: DrmLeaseState::new::<AnvilState<UdevData>>(
+                leasing_global: DrmLeaseState::new::<SabiniwmState<UdevData>>(
                     &self.display_handle,
                     &node,
                 )
@@ -1004,7 +1004,7 @@ impl AnvilState<UdevData> {
                 .non_desktop_connectors
                 .push((connector.handle(), crtc));
             if let Some(lease_state) = device.leasing_global.as_mut() {
-                lease_state.add_connector::<AnvilState<UdevData>>(
+                lease_state.add_connector::<SabiniwmState<UdevData>>(
                     connector.handle(),
                     output_name,
                     format!("{} {}", make, model),
@@ -1041,7 +1041,7 @@ impl AnvilState<UdevData> {
                     model,
                 },
             );
-            let global = output.create_global::<AnvilState<UdevData>>(&self.display_handle);
+            let global = output.create_global::<SabiniwmState<UdevData>>(&self.display_handle);
 
             let x = self.space.outputs().fold(0, |acc, o| {
                 acc + self.space.output_geometry(o).unwrap().size.w
@@ -1254,7 +1254,7 @@ impl AnvilState<UdevData> {
         // drop the backends on this side
         if let Some(mut backend_data) = self.backend_data.backends.remove(&node) {
             if let Some(mut leasing_global) = backend_data.leasing_global.take() {
-                leasing_global.disable_global::<AnvilState<UdevData>>();
+                leasing_global.disable_global::<SabiniwmState<UdevData>>();
             }
 
             self.backend_data

@@ -1,6 +1,6 @@
 use super::ssd::HEADER_BAR_HEIGHT;
 use crate::focus::PointerFocusTarget;
-use crate::AnvilState;
+use crate::SabiniwmState;
 use smithay::backend::renderer::element::solid::SolidColorRenderElement;
 use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
 use smithay::backend::renderer::element::AsRenderElements;
@@ -147,11 +147,11 @@ impl WaylandFocus for SSD {
     }
 }
 
-impl<Backend: crate::state::Backend> PointerTarget<AnvilState<Backend>> for SSD {
+impl<Backend: crate::state::Backend> PointerTarget<SabiniwmState<Backend>> for SSD {
     fn enter(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         event: &MotionEvent,
     ) {
         let mut state = self.0.decoration_state();
@@ -161,8 +161,8 @@ impl<Backend: crate::state::Backend> PointerTarget<AnvilState<Backend>> for SSD 
     }
     fn motion(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         event: &MotionEvent,
     ) {
         let mut state = self.0.decoration_state();
@@ -172,15 +172,15 @@ impl<Backend: crate::state::Backend> PointerTarget<AnvilState<Backend>> for SSD 
     }
     fn relative_motion(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &RelativeMotionEvent,
     ) {
     }
     fn button(
         &self,
-        seat: &Seat<AnvilState<Backend>>,
-        data: &mut AnvilState<Backend>,
+        seat: &Seat<SabiniwmState<Backend>>,
+        data: &mut SabiniwmState<Backend>,
         event: &ButtonEvent,
     ) {
         let mut state = self.0.decoration_state();
@@ -190,16 +190,16 @@ impl<Backend: crate::state::Backend> PointerTarget<AnvilState<Backend>> for SSD 
     }
     fn axis(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _frame: AxisFrame,
     ) {
     }
-    fn frame(&self, _seat: &Seat<AnvilState<Backend>>, _data: &mut AnvilState<Backend>) {}
+    fn frame(&self, _seat: &Seat<SabiniwmState<Backend>>, _data: &mut SabiniwmState<Backend>) {}
     fn leave(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _serial: Serial,
         _time: u32,
     ) {
@@ -210,67 +210,67 @@ impl<Backend: crate::state::Backend> PointerTarget<AnvilState<Backend>> for SSD 
     }
     fn gesture_swipe_begin(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &GestureSwipeBeginEvent,
     ) {
     }
     fn gesture_swipe_update(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &GestureSwipeUpdateEvent,
     ) {
     }
     fn gesture_swipe_end(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &GestureSwipeEndEvent,
     ) {
     }
     fn gesture_pinch_begin(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &GesturePinchBeginEvent,
     ) {
     }
     fn gesture_pinch_update(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &GesturePinchUpdateEvent,
     ) {
     }
     fn gesture_pinch_end(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &GesturePinchEndEvent,
     ) {
     }
     fn gesture_hold_begin(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &GestureHoldBeginEvent,
     ) {
     }
     fn gesture_hold_end(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &GestureHoldEndEvent,
     ) {
     }
 }
 
-impl<Backend: crate::state::Backend> TouchTarget<AnvilState<Backend>> for SSD {
+impl<Backend: crate::state::Backend> TouchTarget<SabiniwmState<Backend>> for SSD {
     fn down(
         &self,
-        seat: &Seat<AnvilState<Backend>>,
-        data: &mut AnvilState<Backend>,
+        seat: &Seat<SabiniwmState<Backend>>,
+        data: &mut SabiniwmState<Backend>,
         event: &smithay::input::touch::DownEvent,
         _seq: Serial,
     ) {
@@ -285,8 +285,8 @@ impl<Backend: crate::state::Backend> TouchTarget<AnvilState<Backend>> for SSD {
 
     fn up(
         &self,
-        seat: &Seat<AnvilState<Backend>>,
-        data: &mut AnvilState<Backend>,
+        seat: &Seat<SabiniwmState<Backend>>,
+        data: &mut SabiniwmState<Backend>,
         event: &smithay::input::touch::UpEvent,
         _seq: Serial,
     ) {
@@ -298,8 +298,8 @@ impl<Backend: crate::state::Backend> TouchTarget<AnvilState<Backend>> for SSD {
 
     fn motion(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         event: &smithay::input::touch::MotionEvent,
         _seq: Serial,
     ) {
@@ -311,24 +311,24 @@ impl<Backend: crate::state::Backend> TouchTarget<AnvilState<Backend>> for SSD {
 
     fn frame(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _seq: Serial,
     ) {
     }
 
     fn cancel(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _seq: Serial,
     ) {
     }
 
     fn shape(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &smithay::input::touch::ShapeEvent,
         _seq: Serial,
     ) {
@@ -336,8 +336,8 @@ impl<Backend: crate::state::Backend> TouchTarget<AnvilState<Backend>> for SSD {
 
     fn orientation(
         &self,
-        _seat: &Seat<AnvilState<Backend>>,
-        _data: &mut AnvilState<Backend>,
+        _seat: &Seat<SabiniwmState<Backend>>,
+        _data: &mut SabiniwmState<Backend>,
         _event: &smithay::input::touch::OrientationEvent,
         _seq: Serial,
     ) {

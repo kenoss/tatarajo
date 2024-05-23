@@ -4,7 +4,7 @@ use super::{
 };
 use crate::focus::KeyboardFocusTarget;
 use crate::state::Backend;
-use crate::{AnvilState, CalloopData};
+use crate::{CalloopData, SabiniwmState};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::Window;
 use smithay::input::pointer::Focus;
@@ -347,7 +347,7 @@ impl<BackendData: Backend> XwmHandler for CalloopData<BackendData> {
     }
 }
 
-impl<BackendData: Backend> AnvilState<BackendData> {
+impl<BackendData: Backend> SabiniwmState<BackendData> {
     pub fn maximize_request_x11(&mut self, window: &X11Surface) {
         let Some(elem) = self
             .space

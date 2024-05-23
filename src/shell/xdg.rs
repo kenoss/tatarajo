@@ -4,7 +4,7 @@ use super::{
 };
 use crate::focus::KeyboardFocusTarget;
 use crate::shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab};
-use crate::state::{AnvilState, Backend};
+use crate::state::{Backend, SabiniwmState};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::{
     find_popup_root_surface, get_popup_toplevel_coords, layer_map_for_output, PopupKeyboardGrab,
@@ -27,7 +27,7 @@ use smithay::wayland::shell::xdg::{
 };
 use std::cell::RefCell;
 
-impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
+impl<BackendData: Backend> XdgShellHandler for SabiniwmState<BackendData> {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
         &mut self.xdg_shell_state
     }
@@ -77,7 +77,7 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
     }
 
     fn move_request(&mut self, surface: ToplevelSurface, seat: wl_seat::WlSeat, serial: Serial) {
-        let seat: Seat<AnvilState<BackendData>> = Seat::from_resource(&seat).unwrap();
+        let seat: Seat<SabiniwmState<BackendData>> = Seat::from_resource(&seat).unwrap();
         self.move_request_xdg(&surface, &seat, serial)
     }
 
@@ -88,7 +88,7 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
         serial: Serial,
         edges: xdg_toplevel::ResizeEdge,
     ) {
-        let seat: Seat<AnvilState<BackendData>> = Seat::from_resource(&seat).unwrap();
+        let seat: Seat<SabiniwmState<BackendData>> = Seat::from_resource(&seat).unwrap();
 
         if let Some(touch) = seat.get_touch() {
             if touch.has_grab(serial) {
@@ -395,7 +395,7 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
     }
 
     fn grab(&mut self, surface: PopupSurface, seat: wl_seat::WlSeat, serial: Serial) {
-        let seat: Seat<AnvilState<BackendData>> = Seat::from_resource(&seat).unwrap();
+        let seat: Seat<SabiniwmState<BackendData>> = Seat::from_resource(&seat).unwrap();
         let kind = PopupKind::Xdg(surface);
         if let Some(root) = find_popup_root_surface(&kind).ok().and_then(|root| {
             self.space
@@ -444,7 +444,7 @@ impl<BackendData: Backend> XdgShellHandler for AnvilState<BackendData> {
     }
 }
 
-impl<BackendData: Backend> AnvilState<BackendData> {
+impl<BackendData: Backend> SabiniwmState<BackendData> {
     pub fn move_request_xdg(
         &mut self,
         surface: &ToplevelSurface,

@@ -1,5 +1,5 @@
 use crate::shell::{WindowElement, SSD};
-use crate::state::{AnvilState, Backend};
+use crate::state::{Backend, SabiniwmState};
 pub use smithay::backend::input::KeyState;
 pub use smithay::desktop::{LayerSurface, PopupKind};
 use smithay::desktop::{Window, WindowSurface};
@@ -60,11 +60,11 @@ impl From<PointerFocusTarget> for WlSurface {
     }
 }
 
-impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFocusTarget {
+impl<BackendData: Backend> PointerTarget<SabiniwmState<BackendData>> for PointerFocusTarget {
     fn enter(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &MotionEvent,
     ) {
         match self {
@@ -75,8 +75,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn motion(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &MotionEvent,
     ) {
         match self {
@@ -87,8 +87,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn relative_motion(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &RelativeMotionEvent,
     ) {
         match self {
@@ -103,8 +103,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn button(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &ButtonEvent,
     ) {
         match self {
@@ -115,8 +115,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn axis(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         frame: AxisFrame,
     ) {
         match self {
@@ -125,7 +125,11 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
             PointerFocusTarget::SSD(w) => PointerTarget::axis(w, seat, data, frame),
         }
     }
-    fn frame(&self, seat: &Seat<AnvilState<BackendData>>, data: &mut AnvilState<BackendData>) {
+    fn frame(
+        &self,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
+    ) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::frame(w, seat, data),
             PointerFocusTarget::X11Surface(w) => PointerTarget::frame(w, seat, data),
@@ -134,8 +138,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn leave(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         serial: Serial,
         time: u32,
     ) {
@@ -147,8 +151,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn gesture_swipe_begin(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &GestureSwipeBeginEvent,
     ) {
         match self {
@@ -163,8 +167,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn gesture_swipe_update(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &GestureSwipeUpdateEvent,
     ) {
         match self {
@@ -179,8 +183,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn gesture_swipe_end(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &GestureSwipeEndEvent,
     ) {
         match self {
@@ -195,8 +199,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn gesture_pinch_begin(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &GesturePinchBeginEvent,
     ) {
         match self {
@@ -211,8 +215,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn gesture_pinch_update(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &GesturePinchUpdateEvent,
     ) {
         match self {
@@ -227,8 +231,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn gesture_pinch_end(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &GesturePinchEndEvent,
     ) {
         match self {
@@ -243,8 +247,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn gesture_hold_begin(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &GestureHoldBeginEvent,
     ) {
         match self {
@@ -259,8 +263,8 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
     fn gesture_hold_end(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &GestureHoldEndEvent,
     ) {
         match self {
@@ -275,11 +279,11 @@ impl<BackendData: Backend> PointerTarget<AnvilState<BackendData>> for PointerFoc
     }
 }
 
-impl<BackendData: Backend> KeyboardTarget<AnvilState<BackendData>> for KeyboardFocusTarget {
+impl<BackendData: Backend> KeyboardTarget<SabiniwmState<BackendData>> for KeyboardFocusTarget {
     fn enter(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         keys: Vec<KeysymHandle<'_>>,
         serial: Serial,
     ) {
@@ -300,8 +304,8 @@ impl<BackendData: Backend> KeyboardTarget<AnvilState<BackendData>> for KeyboardF
     }
     fn leave(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         serial: Serial,
     ) {
         match self {
@@ -321,8 +325,8 @@ impl<BackendData: Backend> KeyboardTarget<AnvilState<BackendData>> for KeyboardF
     }
     fn key(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         key: KeysymHandle<'_>,
         state: KeyState,
         serial: Serial,
@@ -347,8 +351,8 @@ impl<BackendData: Backend> KeyboardTarget<AnvilState<BackendData>> for KeyboardF
     }
     fn modifiers(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         modifiers: ModifiersState,
         serial: Serial,
     ) {
@@ -371,11 +375,11 @@ impl<BackendData: Backend> KeyboardTarget<AnvilState<BackendData>> for KeyboardF
     }
 }
 
-impl<BackendData: Backend> TouchTarget<AnvilState<BackendData>> for PointerFocusTarget {
+impl<BackendData: Backend> TouchTarget<SabiniwmState<BackendData>> for PointerFocusTarget {
     fn down(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &smithay::input::touch::DownEvent,
         seq: Serial,
     ) {
@@ -388,8 +392,8 @@ impl<BackendData: Backend> TouchTarget<AnvilState<BackendData>> for PointerFocus
 
     fn up(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &smithay::input::touch::UpEvent,
         seq: Serial,
     ) {
@@ -402,8 +406,8 @@ impl<BackendData: Backend> TouchTarget<AnvilState<BackendData>> for PointerFocus
 
     fn motion(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &smithay::input::touch::MotionEvent,
         seq: Serial,
     ) {
@@ -416,8 +420,8 @@ impl<BackendData: Backend> TouchTarget<AnvilState<BackendData>> for PointerFocus
 
     fn frame(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         seq: Serial,
     ) {
         match self {
@@ -429,8 +433,8 @@ impl<BackendData: Backend> TouchTarget<AnvilState<BackendData>> for PointerFocus
 
     fn cancel(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         seq: Serial,
     ) {
         match self {
@@ -442,8 +446,8 @@ impl<BackendData: Backend> TouchTarget<AnvilState<BackendData>> for PointerFocus
 
     fn shape(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &smithay::input::touch::ShapeEvent,
         seq: Serial,
     ) {
@@ -456,8 +460,8 @@ impl<BackendData: Backend> TouchTarget<AnvilState<BackendData>> for PointerFocus
 
     fn orientation(
         &self,
-        seat: &Seat<AnvilState<BackendData>>,
-        data: &mut AnvilState<BackendData>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &smithay::input::touch::OrientationEvent,
         seq: Serial,
     ) {
