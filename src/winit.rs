@@ -12,9 +12,8 @@ use smithay::backend::renderer::{ImportDma, ImportMemWl};
 use smithay::backend::winit::{self, WinitEvent, WinitGraphicsBackend};
 use smithay::backend::SwapBuffersError;
 use smithay::delegate_dmabuf;
-use smithay::input::keyboard::LedState;
 use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
-use smithay::output::{Mode, Output, PhysicalProperties, Subpixel};
+use smithay::output::{Mode, PhysicalProperties, Subpixel};
 use smithay::reexports::calloop::EventLoop;
 use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
 use smithay::reexports::wayland_server::protocol::wl_surface;
@@ -76,11 +75,11 @@ impl Backend for WinitData {
     fn seat_name(&self) -> String {
         String::from("winit")
     }
-    fn reset_buffers(&mut self, _output: &Output) {
+    fn reset_buffers(&mut self, _output: &smithay::output::Output) {
         self.full_redraw = 4;
     }
     fn early_import(&mut self, _surface: &wl_surface::WlSurface) {}
-    fn update_led_state(&mut self, _led_state: LedState) {}
+    fn update_led_state(&mut self, _led_state: smithay::input::keyboard::LedState) {}
 }
 
 pub fn run_winit() {
@@ -102,7 +101,7 @@ pub fn run_winit() {
         size,
         refresh: 60_000,
     };
-    let output = Output::new(
+    let output = smithay::output::Output::new(
         OUTPUT_NAME.to_string(),
         PhysicalProperties {
             size: (0, 0).into(),

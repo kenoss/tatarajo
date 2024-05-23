@@ -39,9 +39,8 @@ use smithay::backend::udev::{all_gpus, primary_gpu, UdevBackend, UdevEvent};
 use smithay::backend::SwapBuffersError;
 use smithay::desktop::space::{Space, SurfaceTree};
 use smithay::desktop::utils::OutputPresentationFeedback;
-use smithay::input::keyboard::LedState;
 use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
-use smithay::output::{Mode as WlMode, Output, PhysicalProperties};
+use smithay::output::{Mode as WlMode, PhysicalProperties};
 use smithay::reexports::calloop::timer::{TimeoutAction, Timer};
 use smithay::reexports::calloop::{EventLoop, LoopHandle, RegistrationToken};
 use smithay::reexports::drm::control::{connector, crtc, Device, ModeTypeFlags};
@@ -52,7 +51,6 @@ use smithay::reexports::wayland_protocols::wp::linux_dmabuf::zv1::server::
     zwp_linux_dmabuf_feedback_v1;
 use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
 use smithay::reexports::wayland_server::backend::GlobalId;
-use smithay::reexports::wayland_server::protocol::wl_surface;
 use smithay::reexports::wayland_server::{Display, DisplayHandle};
 use smithay::utils::{
     Clock, DeviceFd, IsAlive, Logical, Monotonic, Physical, Point, Rectangle, Scale, Transform,
@@ -172,7 +170,7 @@ impl Backend for UdevData {
         self.session.seat()
     }
 
-    fn reset_buffers(&mut self, output: &Output) {
+    fn reset_buffers(&mut self, output: &smithay::output::Output) {
         if let Some(id) = output.user_data().get::<UdevOutputId>() {
             if let Some(gpu) = self.backends.get_mut(&id.device_id) {
                 if let Some(surface) = gpu.surfaces.get_mut(&id.crtc) {
@@ -182,13 +180,13 @@ impl Backend for UdevData {
         }
     }
 
-    fn early_import(&mut self, surface: &wl_surface::WlSurface) {
+    fn early_import(&mut self, surface: &wayland_server::protocol::wl_surface::WlSurface) {
         if let Err(err) = self.gpus.early_import(self.primary_gpu, surface) {
             warn!("Early buffer import failed: {}", err);
         }
     }
 
-    fn update_led_state(&mut self, led_state: LedState) {
+    fn update_led_state(&mut self, led_state: smithay::input::keyboard::LedState) {
         for keyboard in self.keyboards.iter_mut() {
             keyboard.led_update(led_state.into());
         }
@@ -1034,7 +1032,7 @@ impl AnvilState<UdevData> {
             };
 
             let (phys_w, phys_h) = connector.size().unwrap_or((0, 0));
-            let output = Output::new(
+            let output = smithay::output::Output::new(
                 output_name,
                 PhysicalProperties {
                     size: (phys_w as i32, phys_h as i32).into(),
@@ -1640,11 +1638,11 @@ fn render_surface<'a>(
     surface: &'a mut SurfaceData,
     renderer: &mut UdevRenderer<'a>,
     space: &Space<WindowElement>,
-    output: &Output,
+    output: &smithay::output::Output,
     pointer_location: Point<f64, Logical>,
     pointer_image: &MemoryRenderBuffer,
     pointer_element: &mut PointerElement,
-    dnd_icon: &Option<wl_surface::WlSurface>,
+    dnd_icon: &Option<wayland_server::protocol::wl_surface::WlSurface>,
     cursor_status: &mut CursorImageStatus,
     clock: &Clock<Monotonic>,
     show_window_preview: bool,

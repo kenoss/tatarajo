@@ -9,14 +9,12 @@ use smithay::desktop::utils::{
     update_surface_primary_scanout_output, OutputPresentationFeedback,
 };
 use smithay::desktop::{PopupManager, Space};
-use smithay::input::keyboard::{Keysym, LedState, XkbConfig};
+use smithay::input::keyboard::{Keysym, XkbConfig};
 use smithay::input::pointer::{CursorImageStatus, PointerHandle};
 use smithay::input::{Seat, SeatState};
-use smithay::output::Output;
 use smithay::reexports::calloop::generic::Generic;
 use smithay::reexports::calloop::{Interest, LoopHandle, Mode, PostAction};
 use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason};
-use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::reexports::wayland_server::{Display, DisplayHandle};
 use smithay::utils::{Clock, Monotonic, Point, Size};
 use smithay::wayland::compositor::{CompositorClientState, CompositorState};
@@ -97,7 +95,7 @@ pub struct AnvilState<BackendData: Backend + 'static> {
     pub fractional_scale_manager_state: FractionalScaleManagerState,
     pub xdg_foreign_state: XdgForeignState,
 
-    pub dnd_icon: Option<WlSurface>,
+    pub dnd_icon: Option<wayland_server::protocol::wl_surface::WlSurface>,
 
     // input-related fields
     pub suppressed_keys: Vec<Keysym>,
@@ -300,7 +298,7 @@ pub struct SurfaceDmabufFeedback<'a> {
 }
 
 pub fn post_repaint(
-    output: &Output,
+    output: &smithay::output::Output,
     render_element_states: &RenderElementStates,
     space: &Space<WindowElement>,
     dmabuf_feedback: Option<SurfaceDmabufFeedback<'_>>,
@@ -381,7 +379,7 @@ pub fn post_repaint(
 }
 
 pub fn take_presentation_feedback(
-    output: &Output,
+    output: &smithay::output::Output,
     space: &Space<WindowElement>,
     render_element_states: &RenderElementStates,
 ) -> OutputPresentationFeedback {
@@ -416,7 +414,7 @@ pub trait Backend {
     const HAS_RELATIVE_MOTION: bool = false;
     const HAS_GESTURES: bool = false;
     fn seat_name(&self) -> String;
-    fn reset_buffers(&mut self, output: &Output);
-    fn early_import(&mut self, surface: &WlSurface);
-    fn update_led_state(&mut self, led_state: LedState);
+    fn reset_buffers(&mut self, output: &smithay::output::Output);
+    fn early_import(&mut self, surface: &wayland_server::protocol::wl_surface::WlSurface);
+    fn update_led_state(&mut self, led_state: smithay::input::keyboard::LedState);
 }
