@@ -68,7 +68,6 @@ use smithay_drm_extras::edid::EdidInfo;
 use std::collections::hash_map::HashMap;
 use std::collections::HashSet;
 use std::ffi::OsString;
-use std::io;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
@@ -1364,7 +1363,7 @@ impl SabiniwmState<UdevData> {
                         Some(DrmError::Access(DrmAccessError {
                             source,
                             ..
-                        })) if source.kind() == io::ErrorKind::PermissionDenied
+                        })) if source.kind() == std::io::ErrorKind::PermissionDenied
                     ),
                     SwapBuffersError::ContextLost(err) => panic!("Rendering loop lost: {}", err),
                 }
@@ -1543,7 +1542,7 @@ impl SabiniwmState<UdevData> {
                     {
                         Some(DrmError::DeviceInactive) => true,
                         Some(DrmError::Access(DrmAccessError { source, .. })) => {
-                            source.kind() == io::ErrorKind::PermissionDenied
+                            source.kind() == std::io::ErrorKind::PermissionDenied
                         }
                         _ => false,
                     },
