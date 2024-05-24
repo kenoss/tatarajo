@@ -23,8 +23,9 @@ pub struct PointerMoveSurfaceGrab<B: Backend + 'static> {
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl<BackendData: Backend> PointerGrab<SabiniwmState<BackendData>>
-    for PointerMoveSurfaceGrab<BackendData>
+impl<BackendData> PointerGrab<SabiniwmState<BackendData>> for PointerMoveSurfaceGrab<BackendData>
+where
+    BackendData: Backend,
 {
     fn motion(
         &mut self,
@@ -166,8 +167,9 @@ pub struct TouchMoveSurfaceGrab<B: Backend + 'static> {
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl<BackendData: Backend> TouchGrab<SabiniwmState<BackendData>>
-    for TouchMoveSurfaceGrab<BackendData>
+impl<BackendData> TouchGrab<SabiniwmState<BackendData>> for TouchMoveSurfaceGrab<BackendData>
+where
+    BackendData: Backend,
 {
     fn down(
         &mut self,
@@ -319,8 +321,9 @@ pub struct PointerResizeSurfaceGrab<B: Backend + 'static> {
     pub last_window_size: Size<i32, Logical>,
 }
 
-impl<BackendData: Backend> PointerGrab<SabiniwmState<BackendData>>
-    for PointerResizeSurfaceGrab<BackendData>
+impl<BackendData> PointerGrab<SabiniwmState<BackendData>> for PointerResizeSurfaceGrab<BackendData>
+where
+    BackendData: Backend,
 {
     fn motion(
         &mut self,
@@ -617,8 +620,9 @@ pub struct TouchResizeSurfaceGrab<B: Backend + 'static> {
     pub last_window_size: Size<i32, Logical>,
 }
 
-impl<BackendData: Backend> TouchGrab<SabiniwmState<BackendData>>
-    for TouchResizeSurfaceGrab<BackendData>
+impl<BackendData> TouchGrab<SabiniwmState<BackendData>> for TouchResizeSurfaceGrab<BackendData>
+where
+    BackendData: Backend,
 {
     fn down(
         &mut self,

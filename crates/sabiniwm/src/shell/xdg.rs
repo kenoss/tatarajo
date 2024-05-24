@@ -27,7 +27,10 @@ use smithay::wayland::shell::xdg::{
 };
 use std::cell::RefCell;
 
-impl<BackendData: Backend> XdgShellHandler for SabiniwmState<BackendData> {
+impl<BackendData> XdgShellHandler for SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
         &mut self.xdg_shell_state
     }
@@ -444,7 +447,10 @@ impl<BackendData: Backend> XdgShellHandler for SabiniwmState<BackendData> {
     }
 }
 
-impl<BackendData: Backend> SabiniwmState<BackendData> {
+impl<BackendData> SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
     pub fn move_request_xdg(
         &mut self,
         surface: &ToplevelSurface,

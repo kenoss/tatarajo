@@ -36,7 +36,10 @@ impl OldGeometry {
     }
 }
 
-impl<BackendData: Backend> XwmHandler for CalloopData<BackendData> {
+impl<BackendData> XwmHandler for CalloopData<BackendData>
+where
+    BackendData: Backend,
+{
     fn xwm_state(&mut self, _xwm: XwmId) -> &mut X11Wm {
         self.state.xwm.as_mut().unwrap()
     }
@@ -347,7 +350,10 @@ impl<BackendData: Backend> XwmHandler for CalloopData<BackendData> {
     }
 }
 
-impl<BackendData: Backend> SabiniwmState<BackendData> {
+impl<BackendData> SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
     pub fn maximize_request_x11(&mut self, window: &X11Surface) {
         let Some(elem) = self
             .space

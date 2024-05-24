@@ -75,11 +75,17 @@ impl FullscreenSurface {
     }
 }
 
-impl<BackendData: Backend> BufferHandler for SabiniwmState<BackendData> {
+impl<BackendData> BufferHandler for SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
     fn buffer_destroyed(&mut self, _buffer: &WlBuffer) {}
 }
 
-impl<BackendData: Backend> CompositorHandler for SabiniwmState<BackendData> {
+impl<BackendData> CompositorHandler for SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
     fn compositor_state(&mut self) -> &mut CompositorState {
         &mut self.compositor_state
     }
@@ -144,7 +150,10 @@ impl<BackendData: Backend> CompositorHandler for SabiniwmState<BackendData> {
     }
 }
 
-impl<BackendData: Backend> WlrLayerShellHandler for SabiniwmState<BackendData> {
+impl<BackendData> WlrLayerShellHandler for SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
     fn shell_state(&mut self) -> &mut WlrLayerShellState {
         &mut self.layer_shell_state
     }
@@ -179,7 +188,10 @@ impl<BackendData: Backend> WlrLayerShellHandler for SabiniwmState<BackendData> {
     }
 }
 
-impl<BackendData: Backend> SabiniwmState<BackendData> {
+impl<BackendData> SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
     pub fn window_for_surface(&self, surface: &WlSurface) -> Option<WindowElement> {
         self.space
             .elements()

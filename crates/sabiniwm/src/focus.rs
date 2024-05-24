@@ -60,7 +60,10 @@ impl From<PointerFocusTarget> for WlSurface {
     }
 }
 
-impl<BackendData: Backend> PointerTarget<SabiniwmState<BackendData>> for PointerFocusTarget {
+impl<BackendData> PointerTarget<SabiniwmState<BackendData>> for PointerFocusTarget
+where
+    BackendData: Backend,
+{
     fn enter(
         &self,
         seat: &Seat<SabiniwmState<BackendData>>,
@@ -279,7 +282,10 @@ impl<BackendData: Backend> PointerTarget<SabiniwmState<BackendData>> for Pointer
     }
 }
 
-impl<BackendData: Backend> KeyboardTarget<SabiniwmState<BackendData>> for KeyboardFocusTarget {
+impl<BackendData> KeyboardTarget<SabiniwmState<BackendData>> for KeyboardFocusTarget
+where
+    BackendData: Backend,
+{
     fn enter(
         &self,
         seat: &Seat<SabiniwmState<BackendData>>,
@@ -375,7 +381,10 @@ impl<BackendData: Backend> KeyboardTarget<SabiniwmState<BackendData>> for Keyboa
     }
 }
 
-impl<BackendData: Backend> TouchTarget<SabiniwmState<BackendData>> for PointerFocusTarget {
+impl<BackendData> TouchTarget<SabiniwmState<BackendData>> for PointerFocusTarget
+where
+    BackendData: Backend,
+{
     fn down(
         &self,
         seat: &Seat<SabiniwmState<BackendData>>,

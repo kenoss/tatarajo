@@ -59,7 +59,10 @@ use std::convert::TryInto;
 use std::process::Command;
 use std::sync::atomic::Ordering;
 
-impl<BackendData: Backend> SabiniwmState<BackendData> {
+impl<BackendData> SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
     fn process_common_key_action(&mut self, action: KeyAction) {
         match action {
             KeyAction::None => (),
