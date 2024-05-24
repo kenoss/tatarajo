@@ -1,6 +1,6 @@
 use super::ssd::HEADER_BAR_HEIGHT;
 use crate::focus::PointerFocusTarget;
-use crate::SabiniwmState;
+use crate::state::{Backend, SabiniwmState};
 use smithay::backend::renderer::element::solid::SolidColorRenderElement;
 use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
 use smithay::backend::renderer::element::AsRenderElements;
@@ -147,14 +147,14 @@ impl WaylandFocus for SSD {
     }
 }
 
-impl<Backend> PointerTarget<SabiniwmState<Backend>> for SSD
+impl<BackendData> PointerTarget<SabiniwmState<BackendData>> for SSD
 where
-    Backend: crate::state::Backend,
+    BackendData: Backend,
 {
     fn enter(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         event: &MotionEvent,
     ) {
         let mut state = self.0.decoration_state();
@@ -164,8 +164,8 @@ where
     }
     fn motion(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         event: &MotionEvent,
     ) {
         let mut state = self.0.decoration_state();
@@ -175,15 +175,15 @@ where
     }
     fn relative_motion(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &RelativeMotionEvent,
     ) {
     }
     fn button(
         &self,
-        seat: &Seat<SabiniwmState<Backend>>,
-        data: &mut SabiniwmState<Backend>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &ButtonEvent,
     ) {
         let mut state = self.0.decoration_state();
@@ -193,16 +193,21 @@ where
     }
     fn axis(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _frame: AxisFrame,
     ) {
     }
-    fn frame(&self, _seat: &Seat<SabiniwmState<Backend>>, _data: &mut SabiniwmState<Backend>) {}
+    fn frame(
+        &self,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
+    ) {
+    }
     fn leave(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _serial: Serial,
         _time: u32,
     ) {
@@ -213,70 +218,70 @@ where
     }
     fn gesture_swipe_begin(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &GestureSwipeBeginEvent,
     ) {
     }
     fn gesture_swipe_update(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &GestureSwipeUpdateEvent,
     ) {
     }
     fn gesture_swipe_end(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &GestureSwipeEndEvent,
     ) {
     }
     fn gesture_pinch_begin(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &GesturePinchBeginEvent,
     ) {
     }
     fn gesture_pinch_update(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &GesturePinchUpdateEvent,
     ) {
     }
     fn gesture_pinch_end(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &GesturePinchEndEvent,
     ) {
     }
     fn gesture_hold_begin(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &GestureHoldBeginEvent,
     ) {
     }
     fn gesture_hold_end(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &GestureHoldEndEvent,
     ) {
     }
 }
 
-impl<Backend> TouchTarget<SabiniwmState<Backend>> for SSD
+impl<BackendData> TouchTarget<SabiniwmState<BackendData>> for SSD
 where
-    Backend: crate::state::Backend,
+    BackendData: Backend,
 {
     fn down(
         &self,
-        seat: &Seat<SabiniwmState<Backend>>,
-        data: &mut SabiniwmState<Backend>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &smithay::input::touch::DownEvent,
         _seq: Serial,
     ) {
@@ -291,8 +296,8 @@ where
 
     fn up(
         &self,
-        seat: &Seat<SabiniwmState<Backend>>,
-        data: &mut SabiniwmState<Backend>,
+        seat: &Seat<SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState<BackendData>,
         event: &smithay::input::touch::UpEvent,
         _seq: Serial,
     ) {
@@ -304,8 +309,8 @@ where
 
     fn motion(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         event: &smithay::input::touch::MotionEvent,
         _seq: Serial,
     ) {
@@ -317,24 +322,24 @@ where
 
     fn frame(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _seq: Serial,
     ) {
     }
 
     fn cancel(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _seq: Serial,
     ) {
     }
 
     fn shape(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &smithay::input::touch::ShapeEvent,
         _seq: Serial,
     ) {
@@ -342,8 +347,8 @@ where
 
     fn orientation(
         &self,
-        _seat: &Seat<SabiniwmState<Backend>>,
-        _data: &mut SabiniwmState<Backend>,
+        _seat: &Seat<SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState<BackendData>,
         _event: &smithay::input::touch::OrientationEvent,
         _seq: Serial,
     ) {

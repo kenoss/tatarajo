@@ -452,9 +452,9 @@ where
 }
 
 #[cfg(feature = "winit")]
-impl<Backend> SabiniwmState<Backend>
+impl<BackendData> SabiniwmState<BackendData>
 where
-    Backend: crate::state::Backend,
+    BackendData: Backend,
 {
     pub fn process_input_event_windowed<B: InputBackend>(
         &mut self,
