@@ -147,7 +147,10 @@ impl WaylandFocus for SSD {
     }
 }
 
-impl<Backend: crate::state::Backend> PointerTarget<SabiniwmState<Backend>> for SSD {
+impl<Backend> PointerTarget<SabiniwmState<Backend>> for SSD
+where
+    Backend: crate::state::Backend,
+{
     fn enter(
         &self,
         _seat: &Seat<SabiniwmState<Backend>>,
@@ -266,7 +269,10 @@ impl<Backend: crate::state::Backend> PointerTarget<SabiniwmState<Backend>> for S
     }
 }
 
-impl<Backend: crate::state::Backend> TouchTarget<SabiniwmState<Backend>> for SSD {
+impl<Backend> TouchTarget<SabiniwmState<Backend>> for SSD
+where
+    Backend: crate::state::Backend,
+{
     fn down(
         &self,
         seat: &Seat<SabiniwmState<Backend>>,
@@ -394,7 +400,10 @@ render_elements!(
     Decoration=SolidColorRenderElement,
 );
 
-impl<R: Renderer> std::fmt::Debug for WindowRenderElement<R> {
+impl<R> std::fmt::Debug for WindowRenderElement<R>
+where
+    R: Renderer,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Window(arg0) => f.debug_tuple("Window").field(arg0).finish(),

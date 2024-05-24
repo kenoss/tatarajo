@@ -52,7 +52,10 @@ render_elements! {
     Memory=MemoryRenderBufferRenderElement<R>,
 }
 
-impl<R: Renderer> std::fmt::Debug for PointerRenderElement<R> {
+impl<R> std::fmt::Debug for PointerRenderElement<R>
+where
+    R: Renderer,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Surface(arg0) => f.debug_tuple("Surface").field(arg0).finish(),
@@ -62,8 +65,9 @@ impl<R: Renderer> std::fmt::Debug for PointerRenderElement<R> {
     }
 }
 
-impl<T: Texture + 'static, R> AsRenderElements<R> for PointerElement
+impl<T, R> AsRenderElements<R> for PointerElement
 where
+    T: Texture + 'static,
     R: Renderer<TextureId = T> + ImportAll + ImportMem,
 {
     type RenderElement = PointerRenderElement<R>;
@@ -128,7 +132,10 @@ pub struct FpsElement<T: Texture> {
 }
 
 #[cfg(feature = "debug")]
-impl<T: Texture> FpsElement<T> {
+impl<T> FpsElement<T>
+where
+    T: Texture,
+{
     pub fn new(texture: T) -> Self {
         FpsElement {
             id: Id::new(),

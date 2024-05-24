@@ -115,7 +115,10 @@ pub struct SabiniwmState<BackendData: Backend + 'static> {
     pub show_window_preview: bool,
 }
 
-impl<BackendData: Backend + 'static> SabiniwmState<BackendData> {
+impl<BackendData> SabiniwmState<BackendData>
+where
+    BackendData: Backend + 'static,
+{
     pub fn init(
         display: Display<SabiniwmState<BackendData>>,
         handle: LoopHandle<'static, CalloopData<BackendData>>,

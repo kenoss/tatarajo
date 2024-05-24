@@ -221,7 +221,10 @@ impl HeaderBar {
     }
 }
 
-impl<R: Renderer> AsRenderElements<R> for HeaderBar {
+impl<R> AsRenderElements<R> for HeaderBar
+where
+    R: Renderer,
+{
     type RenderElement = SolidColorRenderElement;
 
     fn render_elements<C: From<Self::RenderElement>>(

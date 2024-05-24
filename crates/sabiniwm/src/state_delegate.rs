@@ -415,9 +415,9 @@ where
 
 smithay::delegate_fractional_scale!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
 
-impl<BackendData: Backend + 'static> SecurityContextHandler for SabiniwmState<BackendData>
+impl<BackendData> SecurityContextHandler for SabiniwmState<BackendData>
 where
-    BackendData: Backend,
+    BackendData: Backend + 'static,
 {
     fn context_created(
         &mut self,
@@ -443,9 +443,9 @@ where
 
 smithay::delegate_security_context!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
 
-impl<BackendData: Backend + 'static> XWaylandKeyboardGrabHandler for SabiniwmState<BackendData>
+impl<BackendData> XWaylandKeyboardGrabHandler for SabiniwmState<BackendData>
 where
-    BackendData: Backend,
+    BackendData: Backend + 'static,
 {
     fn keyboard_focus_for_xsurface(&self, surface: &WlSurface) -> Option<KeyboardFocusTarget> {
         let elem = self
