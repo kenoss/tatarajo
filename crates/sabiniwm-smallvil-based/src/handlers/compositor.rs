@@ -44,7 +44,10 @@ impl CompositorHandler for Sabiniwm {
 }
 
 impl BufferHandler for Sabiniwm {
-    fn buffer_destroyed(&mut self, _buffer: &wl_buffer::WlBuffer) {}
+    fn buffer_destroyed(&mut self, _buffer: &wl_buffer::WlBuffer) {
+        // TODO: Delegate to Backend.
+        // self.backend_data.buffer_destroyed(buffer);
+    }
 }
 
 impl ShmHandler for Sabiniwm {

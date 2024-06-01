@@ -1,7 +1,6 @@
 use crate::drawing::*;
 use crate::render::*;
 use crate::state::{post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState};
-use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
 use smithay::backend::renderer::element::AsRenderElements;
@@ -11,7 +10,6 @@ use smithay::backend::renderer::ImportEgl;
 use smithay::backend::renderer::{ImportDma, ImportMemWl};
 use smithay::backend::winit::{self, WinitEvent, WinitGraphicsBackend};
 use smithay::backend::SwapBuffersError;
-use smithay::delegate_dmabuf;
 use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
 use smithay::output::{Mode, PhysicalProperties, Subpixel};
 use smithay::reexports::calloop::EventLoop;
@@ -21,9 +19,7 @@ use smithay::reexports::wayland_server::Display;
 use smithay::reexports::winit::platform::pump_events::PumpStatus;
 use smithay::utils::{IsAlive, Scale, Transform};
 use smithay::wayland::compositor;
-use smithay::wayland::dmabuf::{
-    DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
-};
+use smithay::wayland::dmabuf::{DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufState};
 #[cfg(feature = "debug")]
 use smithay::{
     backend::{allocator::Fourcc, renderer::ImportMem},
@@ -45,31 +41,23 @@ pub struct WinitData {
     pub fps: fps_ticker::Fps,
 }
 
-impl DmabufHandler for SabiniwmState<WinitData> {
-    fn dmabuf_state(&mut self) -> &mut DmabufState {
-        &mut self.backend_data.dmabuf_state.0
+impl smithay::wayland::buffer::BufferHandler for WinitData {
+    fn buffer_destroyed(&mut self, _buffer: &wayland_server::protocol::wl_buffer::WlBuffer) {}
+}
+
+impl crate::state::DmabufHandlerDelegate for WinitData {
+    fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
+        &mut self.dmabuf_state.0
     }
 
     fn dmabuf_imported(
         &mut self,
-        _global: &DmabufGlobal,
-        dmabuf: Dmabuf,
-        notifier: ImportNotifier,
-    ) {
-        if self
-            .backend_data
-            .backend
-            .renderer()
-            .import_dmabuf(&dmabuf, None)
-            .is_ok()
-        {
-            let _ = notifier.successful::<SabiniwmState<WinitData>>();
-        } else {
-            notifier.failed();
-        }
+        _global: &smithay::wayland::dmabuf::DmabufGlobal,
+        dmabuf: smithay::backend::allocator::dmabuf::Dmabuf,
+    ) -> bool {
+        self.backend.renderer().import_dmabuf(&dmabuf, None).is_ok()
     }
 }
-delegate_dmabuf!(SabiniwmState<WinitData>);
 
 impl Backend for WinitData {
     fn seat_name(&self) -> String {

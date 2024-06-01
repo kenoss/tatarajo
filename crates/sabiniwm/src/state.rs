@@ -413,7 +413,17 @@ pub fn take_presentation_feedback(
     output_presentation_feedback
 }
 
-pub trait Backend {
+// TODO: Make it `pub(crate)`.
+pub trait DmabufHandlerDelegate: smithay::wayland::buffer::BufferHandler {
+    fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState;
+    fn dmabuf_imported(
+        &mut self,
+        global: &smithay::wayland::dmabuf::DmabufGlobal,
+        dmabuf: smithay::backend::allocator::dmabuf::Dmabuf,
+    ) -> bool;
+}
+
+pub trait Backend: DmabufHandlerDelegate {
     const HAS_RELATIVE_MOTION: bool = false;
     const HAS_GESTURES: bool = false;
     fn seat_name(&self) -> String;

@@ -468,3 +468,27 @@ where
 }
 
 smithay::delegate_xdg_foreign!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+
+impl<BackendData> smithay::wayland::dmabuf::DmabufHandler for SabiniwmState<BackendData>
+where
+    BackendData: Backend,
+{
+    fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
+        self.backend_data.dmabuf_state()
+    }
+
+    fn dmabuf_imported(
+        &mut self,
+        global: &smithay::wayland::dmabuf::DmabufGlobal,
+        dmabuf: smithay::backend::allocator::dmabuf::Dmabuf,
+        notifier: smithay::wayland::dmabuf::ImportNotifier,
+    ) {
+        if self.backend_data.dmabuf_imported(global, dmabuf) {
+            let _ = notifier.successful::<SabiniwmState<BackendData>>();
+        } else {
+            notifier.failed();
+        }
+    }
+}
+
+smithay::delegate_dmabuf!(@<BackendData: Backend> SabiniwmState<BackendData>);

@@ -37,6 +37,7 @@ use smithay::backend::session::libseat::{self, LibSeatSession};
 use smithay::backend::session::{Event as SessionEvent, Session};
 use smithay::backend::udev::{all_gpus, primary_gpu, UdevBackend, UdevEvent};
 use smithay::backend::SwapBuffersError;
+use smithay::delegate_drm_lease;
 use smithay::desktop::space::{Space, SurfaceTree};
 use smithay::desktop::utils::OutputPresentationFeedback;
 use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
@@ -56,13 +57,10 @@ use smithay::utils::{
     Clock, DeviceFd, IsAlive, Logical, Monotonic, Physical, Point, Rectangle, Scale, Transform,
 };
 use smithay::wayland::compositor;
-use smithay::wayland::dmabuf::{
-    DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufHandler, DmabufState, ImportNotifier,
-};
+use smithay::wayland::dmabuf::{DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufState};
 use smithay::wayland::drm_lease::{
     DrmLease, DrmLeaseBuilder, DrmLeaseHandler, DrmLeaseRequest, DrmLeaseState, LeaseRejected,
 };
-use smithay::{delegate_dmabuf, delegate_drm_lease};
 use smithay_drm_extras::drm_scanner::{DrmScanEvent, DrmScanner};
 use smithay_drm_extras::edid::EdidInfo;
 use std::collections::hash_map::HashMap;
@@ -134,32 +132,31 @@ impl UdevData {
     }
 }
 
-impl DmabufHandler for SabiniwmState<UdevData> {
-    fn dmabuf_state(&mut self) -> &mut DmabufState {
-        &mut self.backend_data.dmabuf_state.as_mut().unwrap().0
+impl smithay::wayland::buffer::BufferHandler for UdevData {
+    fn buffer_destroyed(&mut self, _buffer: &wayland_server::protocol::wl_buffer::WlBuffer) {}
+}
+
+impl crate::state::DmabufHandlerDelegate for UdevData {
+    fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
+        &mut self.dmabuf_state.as_mut().unwrap().0
     }
 
     fn dmabuf_imported(
         &mut self,
-        _global: &DmabufGlobal,
-        dmabuf: Dmabuf,
-        notifier: ImportNotifier,
-    ) {
-        if self
-            .backend_data
+        _global: &smithay::wayland::dmabuf::DmabufGlobal,
+        dmabuf: smithay::backend::allocator::dmabuf::Dmabuf,
+    ) -> bool {
+        let ret = self
             .gpus
-            .single_renderer(&self.backend_data.primary_gpu)
+            .single_renderer(&self.primary_gpu)
             .and_then(|mut renderer| renderer.import_dmabuf(&dmabuf, None))
-            .is_ok()
-        {
-            dmabuf.set_node(self.backend_data.primary_gpu);
-            let _ = notifier.successful::<SabiniwmState<UdevData>>();
-        } else {
-            notifier.failed();
+            .is_ok();
+        if ret {
+            dmabuf.set_node(self.primary_gpu);
         }
+        ret
     }
 }
-delegate_dmabuf!(SabiniwmState<UdevData>);
 
 impl Backend for UdevData {
     const HAS_RELATIVE_MOTION: bool = true;
