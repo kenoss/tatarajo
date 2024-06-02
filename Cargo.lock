@@ -1365,6 +1365,8 @@ name = "sabiniwm-pistachio"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "big_s",
+ "maplit",
  "sabiniwm",
  "time",
  "tracing",

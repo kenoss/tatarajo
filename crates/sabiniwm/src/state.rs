@@ -1,4 +1,6 @@
+use crate::action::Action;
 use crate::cursor::Cursor;
+use crate::input::{KeySeq, Keymap};
 use crate::shell::WindowElement;
 use smithay::backend::renderer::element::utils::select_dmabuf_feedback;
 use smithay::backend::renderer::element::{
@@ -9,7 +11,6 @@ use smithay::desktop::utils::{
     update_surface_primary_scanout_output, OutputPresentationFeedback,
 };
 use smithay::desktop::{PopupManager, Space};
-use smithay::input::keyboard::{Keysym, XkbConfig};
 use smithay::input::pointer::{CursorImageStatus, PointerHandle};
 use smithay::input::{Seat, SeatState};
 use smithay::reexports::calloop::generic::Generic;
@@ -63,7 +64,6 @@ impl ClientData for ClientState {
 
 pub struct SabiniwmState {
     pub(crate) backend_data: Box<dyn Backend>,
-    pub(crate) socket_name: Option<String>,
     pub(crate) display_handle: DisplayHandle,
     pub(crate) running: Arc<AtomicBool>,
     pub(crate) handle: LoopHandle<'static, CalloopData>,
@@ -88,7 +88,6 @@ pub struct SabiniwmState {
     pub(crate) dnd_icon: Option<wayland_server::protocol::wl_surface::WlSurface>,
 
     // input-related fields
-    pub(crate) suppressed_keys: Vec<Keysym>,
     pub(crate) cursor_status: Arc<Mutex<CursorImageStatus>>,
     pub(crate) seat_name: String,
     pub(crate) seat: Seat<SabiniwmState>,
@@ -103,15 +102,24 @@ pub struct SabiniwmState {
     pub(crate) renderdoc: Option<renderdoc::RenderDoc<renderdoc::V141>>,
 
     pub(crate) show_window_preview: bool,
+
+    pub(crate) keymap: Keymap<Action>,
+    pub(crate) keyseq: KeySeq,
+    // pub(crate) view: View,
+    // pub(crate) focus_update_decider: FocusUpdateDecider,
 }
 
 impl SabiniwmState {
     pub(crate) fn init(
+        keymap: Keymap<Action>,
         display: Display<SabiniwmState>,
         handle: LoopHandle<'static, CalloopData>,
         backend_data: Box<dyn Backend>,
         listen_on_socket: bool,
     ) -> SabiniwmState {
+        // TODO: Remove this variable.
+        assert!(listen_on_socket);
+
         let dh = display.handle();
 
         let clock = Clock::new();
@@ -135,6 +143,10 @@ impl SabiniwmState {
         } else {
             None
         };
+        if let Some(socket_name) = &socket_name {
+            std::env::set_var("WAYLAND_DISPLAY", socket_name);
+        }
+
         handle
             .insert_source(
                 Generic::new(display, Interest::READ, Mode::Level),
@@ -183,8 +195,12 @@ impl SabiniwmState {
 
         let cursor_status = Arc::new(Mutex::new(CursorImageStatus::default_named()));
         let pointer = seat.add_pointer();
-        seat.add_keyboard(XkbConfig::default(), 200, 25)
-            .expect("Failed to initialize the keyboard");
+
+        let xkb_config = smithay::input::keyboard::XkbConfig {
+            layout: "custom",
+            ..Default::default()
+        };
+        seat.add_keyboard(xkb_config, 200, 60).unwrap();
 
         let cursor_status2 = cursor_status.clone();
         seat.tablet_seat()
@@ -237,7 +253,6 @@ impl SabiniwmState {
         SabiniwmState {
             backend_data,
             display_handle: dh,
-            socket_name,
             running: Arc::new(AtomicBool::new(true)),
             handle,
             space: Space::default(),
@@ -254,7 +269,6 @@ impl SabiniwmState {
             xdg_shell_state,
             xdg_foreign_state,
             dnd_icon: None,
-            suppressed_keys: Vec::new(),
             cursor_status,
             seat_name,
             seat,
@@ -266,6 +280,11 @@ impl SabiniwmState {
             #[cfg(feature = "debug")]
             renderdoc: renderdoc::RenderDoc::new().ok(),
             show_window_preview: false,
+
+            keymap,
+            keyseq: KeySeq::new(),
+            // view,
+            // focus_update_decider: FocusUpdateDecider::new(),
         }
     }
 }

@@ -1,4 +1,6 @@
+use crate::action::Action;
 use crate::drawing::*;
+use crate::input::Keymap;
 use crate::render::*;
 use crate::shell::WindowElement;
 use crate::state::{
@@ -100,6 +102,8 @@ struct UdevOutputId {
 
 pub struct UdevData {
     pub session: LibSeatSession,
+    // TODO: Remove this.
+    #[allow(dead_code)]
     dh: DisplayHandle,
     dmabuf_state: Option<(DmabufState, DmabufGlobal)>,
     primary_gpu: DrmNode,
@@ -194,7 +198,7 @@ impl Backend for UdevData {
     }
 }
 
-pub fn run_udev() {
+pub fn run_udev(keymap: Keymap<Action>) {
     let mut event_loop = EventLoop::try_new().unwrap();
     let display = Display::new().unwrap();
     let mut display_handle = display.handle();
@@ -253,7 +257,7 @@ pub fn run_udev() {
         debug_flags: DebugFlags::empty(),
         keyboards: Vec::new(),
     });
-    let mut state = SabiniwmState::init(display, event_loop.handle(), data, true);
+    let mut state = SabiniwmState::init(keymap, display, event_loop.handle(), data, true);
 
     /*
      * Initialize the udev backend
@@ -280,7 +284,6 @@ pub fn run_udev() {
     event_loop
         .handle()
         .insert_source(libinput_backend, move |mut event, _, data| {
-            let dh = data.state.backend_data_udev().dh.clone();
             if let InputEvent::DeviceAdded { device } = &mut event {
                 if device.has_capability(DeviceCapability::Keyboard) {
                     if let Some(led_state) = data
@@ -305,7 +308,7 @@ pub fn run_udev() {
                 }
             }
 
-            data.state.process_input_event(&dh, event)
+            data.state.process_input_event(event);
         })
         .unwrap();
 
