@@ -1,5 +1,5 @@
 use crate::shell::{WindowElement, SSD};
-use crate::state::{Backend, SabiniwmState};
+use crate::state::SabiniwmState;
 pub use smithay::backend::input::KeyState;
 pub use smithay::desktop::{LayerSurface, PopupKind};
 use smithay::desktop::{Window, WindowSurface};
@@ -60,28 +60,15 @@ impl From<PointerFocusTarget> for WlSurface {
     }
 }
 
-impl<BackendData> PointerTarget<SabiniwmState<BackendData>> for PointerFocusTarget
-where
-    BackendData: Backend,
-{
-    fn enter(
-        &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
-        event: &MotionEvent,
-    ) {
+impl PointerTarget<SabiniwmState> for PointerFocusTarget {
+    fn enter(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, event: &MotionEvent) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::enter(w, seat, data, event),
             PointerFocusTarget::X11Surface(w) => PointerTarget::enter(w, seat, data, event),
             PointerFocusTarget::SSD(w) => PointerTarget::enter(w, seat, data, event),
         }
     }
-    fn motion(
-        &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
-        event: &MotionEvent,
-    ) {
+    fn motion(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, event: &MotionEvent) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::motion(w, seat, data, event),
             PointerFocusTarget::X11Surface(w) => PointerTarget::motion(w, seat, data, event),
@@ -90,8 +77,8 @@ where
     }
     fn relative_motion(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &RelativeMotionEvent,
     ) {
         match self {
@@ -104,35 +91,21 @@ where
             PointerFocusTarget::SSD(w) => PointerTarget::relative_motion(w, seat, data, event),
         }
     }
-    fn button(
-        &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
-        event: &ButtonEvent,
-    ) {
+    fn button(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, event: &ButtonEvent) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::button(w, seat, data, event),
             PointerFocusTarget::X11Surface(w) => PointerTarget::button(w, seat, data, event),
             PointerFocusTarget::SSD(w) => PointerTarget::button(w, seat, data, event),
         }
     }
-    fn axis(
-        &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
-        frame: AxisFrame,
-    ) {
+    fn axis(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, frame: AxisFrame) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::axis(w, seat, data, frame),
             PointerFocusTarget::X11Surface(w) => PointerTarget::axis(w, seat, data, frame),
             PointerFocusTarget::SSD(w) => PointerTarget::axis(w, seat, data, frame),
         }
     }
-    fn frame(
-        &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
-    ) {
+    fn frame(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::frame(w, seat, data),
             PointerFocusTarget::X11Surface(w) => PointerTarget::frame(w, seat, data),
@@ -141,8 +114,8 @@ where
     }
     fn leave(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         serial: Serial,
         time: u32,
     ) {
@@ -154,8 +127,8 @@ where
     }
     fn gesture_swipe_begin(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &GestureSwipeBeginEvent,
     ) {
         match self {
@@ -170,8 +143,8 @@ where
     }
     fn gesture_swipe_update(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &GestureSwipeUpdateEvent,
     ) {
         match self {
@@ -186,8 +159,8 @@ where
     }
     fn gesture_swipe_end(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &GestureSwipeEndEvent,
     ) {
         match self {
@@ -202,8 +175,8 @@ where
     }
     fn gesture_pinch_begin(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &GesturePinchBeginEvent,
     ) {
         match self {
@@ -218,8 +191,8 @@ where
     }
     fn gesture_pinch_update(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &GesturePinchUpdateEvent,
     ) {
         match self {
@@ -234,8 +207,8 @@ where
     }
     fn gesture_pinch_end(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &GesturePinchEndEvent,
     ) {
         match self {
@@ -250,8 +223,8 @@ where
     }
     fn gesture_hold_begin(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &GestureHoldBeginEvent,
     ) {
         match self {
@@ -266,8 +239,8 @@ where
     }
     fn gesture_hold_end(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &GestureHoldEndEvent,
     ) {
         match self {
@@ -282,14 +255,11 @@ where
     }
 }
 
-impl<BackendData> KeyboardTarget<SabiniwmState<BackendData>> for KeyboardFocusTarget
-where
-    BackendData: Backend,
-{
+impl KeyboardTarget<SabiniwmState> for KeyboardFocusTarget {
     fn enter(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         keys: Vec<KeysymHandle<'_>>,
         serial: Serial,
     ) {
@@ -308,12 +278,7 @@ where
             }
         }
     }
-    fn leave(
-        &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
-        serial: Serial,
-    ) {
+    fn leave(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, serial: Serial) {
         match self {
             KeyboardFocusTarget::Window(w) => match w.underlying_surface() {
                 WindowSurface::Wayland(w) => {
@@ -331,8 +296,8 @@ where
     }
     fn key(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         key: KeysymHandle<'_>,
         state: KeyState,
         serial: Serial,
@@ -357,8 +322,8 @@ where
     }
     fn modifiers(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         modifiers: ModifiersState,
         serial: Serial,
     ) {
@@ -381,14 +346,11 @@ where
     }
 }
 
-impl<BackendData> TouchTarget<SabiniwmState<BackendData>> for PointerFocusTarget
-where
-    BackendData: Backend,
-{
+impl TouchTarget<SabiniwmState> for PointerFocusTarget {
     fn down(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &smithay::input::touch::DownEvent,
         seq: Serial,
     ) {
@@ -401,8 +363,8 @@ where
 
     fn up(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &smithay::input::touch::UpEvent,
         seq: Serial,
     ) {
@@ -415,8 +377,8 @@ where
 
     fn motion(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &smithay::input::touch::MotionEvent,
         seq: Serial,
     ) {
@@ -427,12 +389,7 @@ where
         }
     }
 
-    fn frame(
-        &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
-        seq: Serial,
-    ) {
+    fn frame(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, seq: Serial) {
         match self {
             PointerFocusTarget::WlSurface(w) => TouchTarget::frame(w, seat, data, seq),
             PointerFocusTarget::X11Surface(w) => TouchTarget::frame(w, seat, data, seq),
@@ -440,12 +397,7 @@ where
         }
     }
 
-    fn cancel(
-        &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
-        seq: Serial,
-    ) {
+    fn cancel(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, seq: Serial) {
         match self {
             PointerFocusTarget::WlSurface(w) => TouchTarget::cancel(w, seat, data, seq),
             PointerFocusTarget::X11Surface(w) => TouchTarget::cancel(w, seat, data, seq),
@@ -455,8 +407,8 @@ where
 
     fn shape(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &smithay::input::touch::ShapeEvent,
         seq: Serial,
     ) {
@@ -469,8 +421,8 @@ where
 
     fn orientation(
         &self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        data: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        data: &mut SabiniwmState,
         event: &smithay::input::touch::OrientationEvent,
         seq: Serial,
     ) {

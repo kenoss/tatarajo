@@ -3,7 +3,6 @@ use super::{
     ResizeData, ResizeState, SurfaceData, TouchMoveSurfaceGrab, WindowElement,
 };
 use crate::focus::KeyboardFocusTarget;
-use crate::state::Backend;
 use crate::{CalloopData, SabiniwmState};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::Window;
@@ -36,10 +35,7 @@ impl OldGeometry {
     }
 }
 
-impl<BackendData> XwmHandler for CalloopData<BackendData>
-where
-    BackendData: Backend,
-{
+impl XwmHandler for CalloopData {
     fn xwm_state(&mut self, _xwm: XwmId) -> &mut X11Wm {
         self.state.xwm.as_mut().unwrap()
     }
@@ -350,10 +346,7 @@ where
     }
 }
 
-impl<BackendData> SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl SabiniwmState {
     pub fn maximize_request_x11(&mut self, window: &X11Surface) {
         let Some(elem) = self
             .space

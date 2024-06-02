@@ -4,7 +4,7 @@ use super::{
 };
 use crate::focus::KeyboardFocusTarget;
 use crate::shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab};
-use crate::state::{Backend, SabiniwmState};
+use crate::state::SabiniwmState;
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::{
     find_popup_root_surface, get_popup_toplevel_coords, layer_map_for_output, PopupKeyboardGrab,
@@ -27,10 +27,7 @@ use smithay::wayland::shell::xdg::{
 };
 use std::cell::RefCell;
 
-impl<BackendData> XdgShellHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl XdgShellHandler for SabiniwmState {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
         &mut self.xdg_shell_state
     }
@@ -80,7 +77,7 @@ where
     }
 
     fn move_request(&mut self, surface: ToplevelSurface, seat: wl_seat::WlSeat, serial: Serial) {
-        let seat: Seat<SabiniwmState<BackendData>> = Seat::from_resource(&seat).unwrap();
+        let seat: Seat<SabiniwmState> = Seat::from_resource(&seat).unwrap();
         self.move_request_xdg(&surface, &seat, serial)
     }
 
@@ -91,7 +88,7 @@ where
         serial: Serial,
         edges: xdg_toplevel::ResizeEdge,
     ) {
-        let seat: Seat<SabiniwmState<BackendData>> = Seat::from_resource(&seat).unwrap();
+        let seat: Seat<SabiniwmState> = Seat::from_resource(&seat).unwrap();
 
         if let Some(touch) = seat.get_touch() {
             if touch.has_grab(serial) {
@@ -398,7 +395,7 @@ where
     }
 
     fn grab(&mut self, surface: PopupSurface, seat: wl_seat::WlSeat, serial: Serial) {
-        let seat: Seat<SabiniwmState<BackendData>> = Seat::from_resource(&seat).unwrap();
+        let seat: Seat<SabiniwmState> = Seat::from_resource(&seat).unwrap();
         let kind = PopupKind::Xdg(surface);
         if let Some(root) = find_popup_root_surface(&kind).ok().and_then(|root| {
             self.space
@@ -447,10 +444,7 @@ where
     }
 }
 
-impl<BackendData> SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl SabiniwmState {
     pub fn move_request_xdg(
         &mut self,
         surface: &ToplevelSurface,

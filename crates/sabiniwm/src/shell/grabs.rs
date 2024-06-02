@@ -1,6 +1,6 @@
 use super::{SurfaceData, WindowElement};
 use crate::focus::PointerFocusTarget;
-use crate::state::{Backend, SabiniwmState};
+use crate::state::SabiniwmState;
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::WindowSurface;
 use smithay::input::pointer::{
@@ -17,20 +17,17 @@ use smithay::wayland::shell::xdg::SurfaceCachedState;
 use smithay::xwayland::xwm::ResizeEdge as X11ResizeEdge;
 use std::cell::RefCell;
 
-pub struct PointerMoveSurfaceGrab<B: Backend + 'static> {
-    pub start_data: PointerGrabStartData<SabiniwmState<B>>,
+pub struct PointerMoveSurfaceGrab {
+    pub start_data: PointerGrabStartData<SabiniwmState>,
     pub window: WindowElement,
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl<BackendData> PointerGrab<SabiniwmState<BackendData>> for PointerMoveSurfaceGrab<BackendData>
-where
-    BackendData: Backend,
-{
+impl PointerGrab<SabiniwmState> for PointerMoveSurfaceGrab {
     fn motion(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         _focus: Option<(PointerFocusTarget, Point<i32, Logical>)>,
         event: &MotionEvent,
     ) {
@@ -46,8 +43,8 @@ where
 
     fn relative_motion(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         focus: Option<(PointerFocusTarget, Point<i32, Logical>)>,
         event: &RelativeMotionEvent,
     ) {
@@ -56,8 +53,8 @@ where
 
     fn button(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &ButtonEvent,
     ) {
         handle.button(data, event);
@@ -69,8 +66,8 @@ where
 
     fn axis(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         details: AxisFrame,
     ) {
         handle.axis(data, details)
@@ -78,16 +75,16 @@ where
 
     fn frame(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
     ) {
         handle.frame(data);
     }
 
     fn gesture_swipe_begin(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureSwipeBeginEvent,
     ) {
         handle.gesture_swipe_begin(data, event);
@@ -95,8 +92,8 @@ where
 
     fn gesture_swipe_update(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureSwipeUpdateEvent,
     ) {
         handle.gesture_swipe_update(data, event);
@@ -104,8 +101,8 @@ where
 
     fn gesture_swipe_end(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureSwipeEndEvent,
     ) {
         handle.gesture_swipe_end(data, event);
@@ -113,8 +110,8 @@ where
 
     fn gesture_pinch_begin(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GesturePinchBeginEvent,
     ) {
         handle.gesture_pinch_begin(data, event);
@@ -122,8 +119,8 @@ where
 
     fn gesture_pinch_update(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GesturePinchUpdateEvent,
     ) {
         handle.gesture_pinch_update(data, event);
@@ -131,8 +128,8 @@ where
 
     fn gesture_pinch_end(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GesturePinchEndEvent,
     ) {
         handle.gesture_pinch_end(data, event);
@@ -140,8 +137,8 @@ where
 
     fn gesture_hold_begin(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureHoldBeginEvent,
     ) {
         handle.gesture_hold_begin(data, event);
@@ -149,34 +146,31 @@ where
 
     fn gesture_hold_end(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureHoldEndEvent,
     ) {
         handle.gesture_hold_end(data, event);
     }
 
-    fn start_data(&self) -> &PointerGrabStartData<SabiniwmState<BackendData>> {
+    fn start_data(&self) -> &PointerGrabStartData<SabiniwmState> {
         &self.start_data
     }
 }
 
-pub struct TouchMoveSurfaceGrab<B: Backend + 'static> {
-    pub start_data: TouchGrabStartData<SabiniwmState<B>>,
+pub struct TouchMoveSurfaceGrab {
+    pub start_data: TouchGrabStartData<SabiniwmState>,
     pub window: WindowElement,
     pub initial_window_location: Point<i32, Logical>,
 }
 
-impl<BackendData> TouchGrab<SabiniwmState<BackendData>> for TouchMoveSurfaceGrab<BackendData>
-where
-    BackendData: Backend,
-{
+impl TouchGrab<SabiniwmState> for TouchMoveSurfaceGrab {
     fn down(
         &mut self,
-        _data: &mut SabiniwmState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         _focus: Option<(
-            <SabiniwmState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
+            <SabiniwmState as smithay::input::SeatHandler>::TouchFocus,
             Point<i32, Logical>,
         )>,
         _event: &smithay::input::touch::DownEvent,
@@ -186,8 +180,8 @@ where
 
     fn up(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         event: &smithay::input::touch::UpEvent,
         seq: Serial,
     ) {
@@ -201,10 +195,10 @@ where
 
     fn motion(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         _focus: Option<(
-            <SabiniwmState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
+            <SabiniwmState as smithay::input::SeatHandler>::TouchFocus,
             Point<i32, Logical>,
         )>,
         event: &smithay::input::touch::MotionEvent,
@@ -222,23 +216,23 @@ where
 
     fn frame(
         &mut self,
-        _data: &mut SabiniwmState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         _seq: Serial,
     ) {
     }
 
     fn cancel(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         seq: Serial,
     ) {
         handle.cancel(data, seq);
         handle.unset_grab(data);
     }
 
-    fn start_data(&self) -> &smithay::input::touch::GrabStartData<SabiniwmState<BackendData>> {
+    fn start_data(&self) -> &smithay::input::touch::GrabStartData<SabiniwmState> {
         &self.start_data
     }
 }
@@ -312,8 +306,8 @@ pub enum ResizeState {
     WaitingForCommit(ResizeData),
 }
 
-pub struct PointerResizeSurfaceGrab<B: Backend + 'static> {
-    pub start_data: PointerGrabStartData<SabiniwmState<B>>,
+pub struct PointerResizeSurfaceGrab {
+    pub start_data: PointerGrabStartData<SabiniwmState>,
     pub window: WindowElement,
     pub edges: ResizeEdge,
     pub initial_window_location: Point<i32, Logical>,
@@ -321,14 +315,11 @@ pub struct PointerResizeSurfaceGrab<B: Backend + 'static> {
     pub last_window_size: Size<i32, Logical>,
 }
 
-impl<BackendData> PointerGrab<SabiniwmState<BackendData>> for PointerResizeSurfaceGrab<BackendData>
-where
-    BackendData: Backend,
-{
+impl PointerGrab<SabiniwmState> for PointerResizeSurfaceGrab {
     fn motion(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         _focus: Option<(PointerFocusTarget, Point<i32, Logical>)>,
         event: &MotionEvent,
     ) {
@@ -413,8 +404,8 @@ where
 
     fn relative_motion(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         focus: Option<(PointerFocusTarget, Point<i32, Logical>)>,
         event: &RelativeMotionEvent,
     ) {
@@ -423,8 +414,8 @@ where
 
     fn button(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &ButtonEvent,
     ) {
         handle.button(data, event);
@@ -519,8 +510,8 @@ where
 
     fn axis(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         details: AxisFrame,
     ) {
         handle.axis(data, details)
@@ -528,16 +519,16 @@ where
 
     fn frame(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
     ) {
         handle.frame(data);
     }
 
     fn gesture_swipe_begin(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureSwipeBeginEvent,
     ) {
         handle.gesture_swipe_begin(data, event);
@@ -545,8 +536,8 @@ where
 
     fn gesture_swipe_update(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureSwipeUpdateEvent,
     ) {
         handle.gesture_swipe_update(data, event);
@@ -554,8 +545,8 @@ where
 
     fn gesture_swipe_end(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureSwipeEndEvent,
     ) {
         handle.gesture_swipe_end(data, event);
@@ -563,8 +554,8 @@ where
 
     fn gesture_pinch_begin(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GesturePinchBeginEvent,
     ) {
         handle.gesture_pinch_begin(data, event);
@@ -572,8 +563,8 @@ where
 
     fn gesture_pinch_update(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GesturePinchUpdateEvent,
     ) {
         handle.gesture_pinch_update(data, event);
@@ -581,8 +572,8 @@ where
 
     fn gesture_pinch_end(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GesturePinchEndEvent,
     ) {
         handle.gesture_pinch_end(data, event);
@@ -590,8 +581,8 @@ where
 
     fn gesture_hold_begin(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureHoldBeginEvent,
     ) {
         handle.gesture_hold_begin(data, event);
@@ -599,20 +590,20 @@ where
 
     fn gesture_hold_end(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut PointerInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut PointerInnerHandle<'_, SabiniwmState>,
         event: &GestureHoldEndEvent,
     ) {
         handle.gesture_hold_end(data, event);
     }
 
-    fn start_data(&self) -> &PointerGrabStartData<SabiniwmState<BackendData>> {
+    fn start_data(&self) -> &PointerGrabStartData<SabiniwmState> {
         &self.start_data
     }
 }
 
-pub struct TouchResizeSurfaceGrab<B: Backend + 'static> {
-    pub start_data: TouchGrabStartData<SabiniwmState<B>>,
+pub struct TouchResizeSurfaceGrab {
+    pub start_data: TouchGrabStartData<SabiniwmState>,
     pub window: WindowElement,
     pub edges: ResizeEdge,
     pub initial_window_location: Point<i32, Logical>,
@@ -620,16 +611,13 @@ pub struct TouchResizeSurfaceGrab<B: Backend + 'static> {
     pub last_window_size: Size<i32, Logical>,
 }
 
-impl<BackendData> TouchGrab<SabiniwmState<BackendData>> for TouchResizeSurfaceGrab<BackendData>
-where
-    BackendData: Backend,
-{
+impl TouchGrab<SabiniwmState> for TouchResizeSurfaceGrab {
     fn down(
         &mut self,
-        _data: &mut SabiniwmState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         _focus: Option<(
-            <SabiniwmState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
+            <SabiniwmState as smithay::input::SeatHandler>::TouchFocus,
             Point<i32, Logical>,
         )>,
         _event: &smithay::input::touch::DownEvent,
@@ -639,8 +627,8 @@ where
 
     fn up(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         event: &smithay::input::touch::UpEvent,
         _seq: Serial,
     ) {
@@ -735,10 +723,10 @@ where
 
     fn motion(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         _focus: Option<(
-            <SabiniwmState<BackendData> as smithay::input::SeatHandler>::TouchFocus,
+            <SabiniwmState as smithay::input::SeatHandler>::TouchFocus,
             Point<i32, Logical>,
         )>,
         event: &smithay::input::touch::MotionEvent,
@@ -826,23 +814,23 @@ where
 
     fn frame(
         &mut self,
-        _data: &mut SabiniwmState<BackendData>,
-        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        _data: &mut SabiniwmState,
+        _handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         _seq: Serial,
     ) {
     }
 
     fn cancel(
         &mut self,
-        data: &mut SabiniwmState<BackendData>,
-        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState<BackendData>>,
+        data: &mut SabiniwmState,
+        handle: &mut smithay::input::touch::TouchInnerHandle<'_, SabiniwmState>,
         seq: Serial,
     ) {
         handle.cancel(data, seq);
         handle.unset_grab(data);
     }
 
-    fn start_data(&self) -> &smithay::input::touch::GrabStartData<SabiniwmState<BackendData>> {
+    fn start_data(&self) -> &smithay::input::touch::GrabStartData<SabiniwmState> {
         &self.start_data
     }
 }

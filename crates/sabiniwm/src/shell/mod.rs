@@ -1,4 +1,4 @@
-use crate::state::{Backend, SabiniwmState};
+use crate::state::SabiniwmState;
 use crate::{CalloopData, ClientState};
 use smithay::backend::renderer::utils::on_commit_buffer_handler;
 use smithay::desktop::space::SpaceElement;
@@ -75,17 +75,11 @@ impl FullscreenSurface {
     }
 }
 
-impl<BackendData> BufferHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl BufferHandler for SabiniwmState {
     fn buffer_destroyed(&mut self, _buffer: &WlBuffer) {}
 }
 
-impl<BackendData> CompositorHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl CompositorHandler for SabiniwmState {
     fn compositor_state(&mut self) -> &mut CompositorState {
         &mut self.compositor_state
     }
@@ -130,7 +124,7 @@ where
     }
 
     fn commit(&mut self, surface: &WlSurface) {
-        X11Wm::commit_hook::<CalloopData<BackendData>>(surface);
+        X11Wm::commit_hook::<CalloopData>(surface);
 
         on_commit_buffer_handler::<Self>(surface);
         self.backend_data.early_import(surface);
@@ -150,10 +144,7 @@ where
     }
 }
 
-impl<BackendData> WlrLayerShellHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl WlrLayerShellHandler for SabiniwmState {
     fn shell_state(&mut self) -> &mut WlrLayerShellState {
         &mut self.layer_shell_state
     }
@@ -188,10 +179,7 @@ where
     }
 }
 
-impl<BackendData> SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl SabiniwmState {
     pub fn window_for_surface(&self, surface: &WlSurface) -> Option<WindowElement> {
         self.space
             .elements()

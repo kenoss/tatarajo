@@ -1,5 +1,5 @@
 use super::WindowElement;
-use crate::state::{Backend, SabiniwmState};
+use crate::state::SabiniwmState;
 use smithay::backend::renderer::element::solid::{SolidColorBuffer, SolidColorRenderElement};
 use smithay::backend::renderer::element::{AsRenderElements, Kind};
 use smithay::backend::renderer::Renderer;
@@ -44,15 +44,13 @@ impl HeaderBar {
         self.pointer_loc = None;
     }
 
-    pub fn clicked<BackendData>(
+    pub fn clicked(
         &mut self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        state: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        state: &mut SabiniwmState,
         window: &WindowElement,
         serial: Serial,
-    ) where
-        BackendData: Backend,
-    {
+    ) {
         match self.pointer_loc.as_ref() {
             Some(loc) if loc.x >= (self.width - BUTTON_WIDTH) as f64 => {
                 match window.0.underlying_surface() {
@@ -94,15 +92,13 @@ impl HeaderBar {
         };
     }
 
-    pub fn touch_down<BackendData>(
+    pub fn touch_down(
         &mut self,
-        seat: &Seat<SabiniwmState<BackendData>>,
-        state: &mut SabiniwmState<BackendData>,
+        seat: &Seat<SabiniwmState>,
+        state: &mut SabiniwmState,
         window: &WindowElement,
         serial: Serial,
-    ) where
-        BackendData: Backend,
-    {
+    ) {
         match self.pointer_loc.as_ref() {
             Some(loc) if loc.x >= (self.width - BUTTON_WIDTH) as f64 => {}
             Some(loc) if loc.x >= (self.width - (BUTTON_WIDTH * 2)) as f64 => {}
@@ -127,15 +123,13 @@ impl HeaderBar {
         };
     }
 
-    pub fn touch_up<BackendData>(
+    pub fn touch_up(
         &mut self,
-        _seat: &Seat<SabiniwmState<BackendData>>,
-        state: &mut SabiniwmState<BackendData>,
+        _seat: &Seat<SabiniwmState>,
+        state: &mut SabiniwmState,
         window: &WindowElement,
         _serial: Serial,
-    ) where
-        BackendData: Backend,
-    {
+    ) {
         match self.pointer_loc.as_ref() {
             Some(loc) if loc.x >= (self.width - BUTTON_WIDTH) as f64 => {
                 match window.0.underlying_surface() {

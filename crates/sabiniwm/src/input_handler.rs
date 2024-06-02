@@ -1,8 +1,5 @@
 use crate::focus::PointerFocusTarget;
 use crate::shell::FullscreenSurface;
-use crate::state::Backend;
-#[cfg(feature = "udev")]
-use crate::udev::UdevData;
 use crate::SabiniwmState;
 #[cfg(any(feature = "winit", feature = "udev"))]
 use smithay::backend::input::AbsolutePositionEvent;
@@ -10,8 +7,6 @@ use smithay::backend::input::{
     self, Axis, AxisSource, Event, InputBackend, InputEvent, KeyState, KeyboardKeyEvent,
     PointerAxisEvent, PointerButtonEvent,
 };
-#[cfg(feature = "udev")]
-use smithay::backend::renderer::DebugFlags;
 use smithay::desktop::{layer_map_for_output, WindowSurfaceType};
 use smithay::input::keyboard::{keysyms as xkb, FilterResult, Keysym, ModifiersState};
 use smithay::input::pointer::{AxisFrame, ButtonEvent, MotionEvent};
@@ -39,6 +34,7 @@ use smithay::{
             ProximityState, TabletToolButtonEvent, TabletToolEvent, TabletToolProximityEvent,
             TabletToolTipEvent, TabletToolTipState, TouchEvent,
         },
+        renderer::DebugFlags,
         session::Session,
     },
     input::{
@@ -59,10 +55,7 @@ use std::convert::TryInto;
 use std::process::Command;
 use std::sync::atomic::Ordering;
 
-impl<BackendData> SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl SabiniwmState {
     fn process_common_key_action(&mut self, action: KeyAction) {
         match action {
             KeyAction::None => (),
@@ -452,10 +445,7 @@ where
 }
 
 #[cfg(feature = "winit")]
-impl<BackendData> SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl SabiniwmState {
     pub fn process_input_event_windowed<B: InputBackend>(
         &mut self,
         dh: &DisplayHandle,
@@ -601,7 +591,7 @@ where
 }
 
 #[cfg(feature = "udev")]
-impl SabiniwmState<UdevData> {
+impl SabiniwmState {
     pub fn process_input_event<B: InputBackend>(
         &mut self,
         dh: &DisplayHandle,
@@ -612,7 +602,7 @@ impl SabiniwmState<UdevData> {
                 #[cfg(feature = "udev")]
                 KeyAction::VtSwitch(vt) => {
                     info!(to = vt, "Trying to switch vt");
-                    if let Err(err) = self.backend_data.session.change_vt(vt) {
+                    if let Err(err) = self.backend_data_udev_mut().session.change_vt(vt) {
                         error!(vt, "Error switching vt: {}", err);
                     }
                 }
@@ -760,9 +750,10 @@ impl SabiniwmState<UdevData> {
                     }
                 }
                 KeyAction::ToggleTint => {
-                    let mut debug_flags = self.backend_data.debug_flags();
+                    let backend_data = self.backend_data_udev_mut();
+                    let mut debug_flags = backend_data.debug_flags();
                     debug_flags.toggle(DebugFlags::TINT);
-                    self.backend_data.set_debug_flags(debug_flags);
+                    backend_data.set_debug_flags(debug_flags);
                 }
 
                 action => match action {

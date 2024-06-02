@@ -48,8 +48,8 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-pub struct CalloopData<BackendData: Backend + 'static> {
-    pub state: SabiniwmState<BackendData>,
+pub struct CalloopData {
+    pub state: SabiniwmState,
     pub display_handle: DisplayHandle,
 }
 
@@ -65,13 +65,12 @@ impl ClientData for ClientState {
     fn disconnected(&self, _client_id: ClientId, _reason: DisconnectReason) {}
 }
 
-#[derive(Debug)]
-pub struct SabiniwmState<BackendData: Backend + 'static> {
-    pub backend_data: BackendData,
+pub struct SabiniwmState {
+    pub backend_data: Box<dyn Backend>,
     pub socket_name: Option<String>,
     pub display_handle: DisplayHandle,
     pub running: Arc<AtomicBool>,
-    pub handle: LoopHandle<'static, CalloopData<BackendData>>,
+    pub handle: LoopHandle<'static, CalloopData>,
 
     // desktop
     pub space: Space<WindowElement>,
@@ -84,7 +83,7 @@ pub struct SabiniwmState<BackendData: Backend + 'static> {
     pub output_manager_state: OutputManagerState,
     pub primary_selection_state: PrimarySelectionState,
     pub data_control_state: DataControlState,
-    pub seat_state: SeatState<SabiniwmState<BackendData>>,
+    pub seat_state: SeatState<SabiniwmState>,
     pub keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
     pub shm_state: ShmState,
     pub viewporter_state: ViewporterState,
@@ -101,9 +100,9 @@ pub struct SabiniwmState<BackendData: Backend + 'static> {
     pub suppressed_keys: Vec<Keysym>,
     pub cursor_status: Arc<Mutex<CursorImageStatus>>,
     pub seat_name: String,
-    pub seat: Seat<SabiniwmState<BackendData>>,
+    pub seat: Seat<SabiniwmState>,
     pub clock: Clock<Monotonic>,
-    pub pointer: PointerHandle<SabiniwmState<BackendData>>,
+    pub pointer: PointerHandle<SabiniwmState>,
 
     pub xwayland: XWayland,
     pub xwm: Option<X11Wm>,
@@ -115,16 +114,13 @@ pub struct SabiniwmState<BackendData: Backend + 'static> {
     pub show_window_preview: bool,
 }
 
-impl<BackendData> SabiniwmState<BackendData>
-where
-    BackendData: Backend + 'static,
-{
+impl SabiniwmState {
     pub fn init(
-        display: Display<SabiniwmState<BackendData>>,
-        handle: LoopHandle<'static, CalloopData<BackendData>>,
-        backend_data: BackendData,
+        display: Display<SabiniwmState>,
+        handle: LoopHandle<'static, CalloopData>,
+        backend_data: Box<dyn Backend>,
         listen_on_socket: bool,
-    ) -> SabiniwmState<BackendData> {
+    ) -> SabiniwmState {
         let dh = display.handle();
 
         let clock = Clock::new();
@@ -181,12 +177,11 @@ where
         TextInputManagerState::new::<Self>(&dh);
         InputMethodManagerState::new::<Self, _>(&dh, |_client| true);
         VirtualKeyboardManagerState::new::<Self, _>(&dh, |_client| true);
-        // Expose global only if backend supports relative motion events
-        if BackendData::HAS_RELATIVE_MOTION {
+        if backend_data.has_relative_motion() {
             RelativePointerManagerState::new::<Self>(&dh);
         }
         PointerConstraintsState::new::<Self>(&dh);
-        if BackendData::HAS_GESTURES {
+        if backend_data.has_gesture() {
             PointerGesturesState::new::<Self>(&dh);
         }
         TabletManagerState::new::<Self>(&dh);
@@ -423,11 +418,13 @@ pub trait DmabufHandlerDelegate: smithay::wayland::buffer::BufferHandler {
     ) -> bool;
 }
 
-pub trait Backend: DmabufHandlerDelegate {
-    const HAS_RELATIVE_MOTION: bool = false;
-    const HAS_GESTURES: bool = false;
+pub trait Backend: downcast::Any + DmabufHandlerDelegate {
+    fn has_relative_motion(&self) -> bool;
+    fn has_gesture(&self) -> bool;
     fn seat_name(&self) -> String;
     fn reset_buffers(&mut self, output: &smithay::output::Output);
     fn early_import(&mut self, surface: &wayland_server::protocol::wl_surface::WlSurface);
     fn update_led_state(&mut self, led_state: smithay::input::keyboard::LedState);
 }
+
+downcast::downcast!(dyn Backend);

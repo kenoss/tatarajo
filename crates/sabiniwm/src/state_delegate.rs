@@ -1,5 +1,5 @@
 use crate::focus::{KeyboardFocusTarget, PointerFocusTarget};
-use crate::state::{Backend, ClientState, SabiniwmState};
+use crate::state::{ClientState, SabiniwmState};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::utils::surface_primary_scanout_output;
 use smithay::desktop::{PopupKind, PopupManager};
@@ -45,21 +45,15 @@ use smithay::wayland::xwayland_keyboard_grab::XWaylandKeyboardGrabHandler;
 use std::os::unix::io::OwnedFd;
 use std::sync::Arc;
 
-smithay::delegate_compositor!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_compositor!(SabiniwmState);
 
-impl<BackendData> DataDeviceHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl DataDeviceHandler for SabiniwmState {
     fn data_device_state(&self) -> &DataDeviceState {
         &self.data_device_state
     }
 }
 
-impl<BackendData> ClientDndGrabHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl ClientDndGrabHandler for SabiniwmState {
     fn started(
         &mut self,
         _source: Option<WlDataSource>,
@@ -73,25 +67,19 @@ where
     }
 }
 
-impl<BackendData> ServerDndGrabHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl ServerDndGrabHandler for SabiniwmState {
     fn send(&mut self, _mime_type: String, _fd: OwnedFd, _seat: Seat<Self>) {
         unreachable!("Anvil doesn't do server-side grabs");
     }
 }
 
-smithay::delegate_data_device!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_data_device!(SabiniwmState);
 
-impl<BackendData> OutputHandler for SabiniwmState<BackendData> where BackendData: Backend {}
+impl OutputHandler for SabiniwmState {}
 
-smithay::delegate_output!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_output!(SabiniwmState);
 
-impl<BackendData> SelectionHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl SelectionHandler for SabiniwmState {
     type SelectionUserData = ();
 
     fn new_selection(
@@ -123,48 +111,36 @@ where
     }
 }
 
-impl<BackendData> PrimarySelectionHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl PrimarySelectionHandler for SabiniwmState {
     fn primary_selection_state(&self) -> &PrimarySelectionState {
         &self.primary_selection_state
     }
 }
 
-smithay::delegate_primary_selection!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_primary_selection!(SabiniwmState);
 
-impl<BackendData> DataControlHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl DataControlHandler for SabiniwmState {
     fn data_control_state(&self) -> &DataControlState {
         &self.data_control_state
     }
 }
 
-smithay::delegate_data_control!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_data_control!(SabiniwmState);
 
-impl<BackendData> ShmHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl ShmHandler for SabiniwmState {
     fn shm_state(&self) -> &ShmState {
         &self.shm_state
     }
 }
 
-smithay::delegate_shm!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_shm!(SabiniwmState);
 
-impl<BackendData> SeatHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl SeatHandler for SabiniwmState {
     type KeyboardFocus = KeyboardFocusTarget;
     type PointerFocus = PointerFocusTarget;
     type TouchFocus = PointerFocusTarget;
 
-    fn seat_state(&mut self) -> &mut SeatState<SabiniwmState<BackendData>> {
+    fn seat_state(&mut self) -> &mut SeatState<SabiniwmState> {
         &mut self.seat_state
     }
 
@@ -186,14 +162,11 @@ where
     }
 }
 
-smithay::delegate_seat!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_tablet_manager!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_text_input_manager!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_seat!(SabiniwmState);
+smithay::delegate_tablet_manager!(SabiniwmState);
+smithay::delegate_text_input_manager!(SabiniwmState);
 
-impl<BackendData> InputMethodHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl InputMethodHandler for SabiniwmState {
     fn new_popup(&mut self, surface: PopupSurface) {
         if let Err(err) = self.popups.track_popup(PopupKind::from(surface)) {
             warn!("Failed to track popup: {}", err);
@@ -216,12 +189,9 @@ where
     }
 }
 
-smithay::delegate_input_method_manager!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_input_method_manager!(SabiniwmState);
 
-impl<BackendData> KeyboardShortcutsInhibitHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl KeyboardShortcutsInhibitHandler for SabiniwmState {
     fn keyboard_shortcuts_inhibit_state(&mut self) -> &mut KeyboardShortcutsInhibitState {
         &mut self.keyboard_shortcuts_inhibit_state
     }
@@ -232,15 +202,12 @@ where
     }
 }
 
-smithay::delegate_keyboard_shortcuts_inhibit!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_virtual_keyboard_manager!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_pointer_gestures!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_relative_pointer!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_keyboard_shortcuts_inhibit!(SabiniwmState);
+smithay::delegate_virtual_keyboard_manager!(SabiniwmState);
+smithay::delegate_pointer_gestures!(SabiniwmState);
+smithay::delegate_relative_pointer!(SabiniwmState);
 
-impl<BackendData> PointerConstraintsHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl PointerConstraintsHandler for SabiniwmState {
     fn new_constraint(&mut self, surface: &WlSurface, pointer: &PointerHandle<Self>) {
         // XXX region
         if pointer
@@ -256,13 +223,10 @@ where
     }
 }
 
-smithay::delegate_pointer_constraints!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_viewporter!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_pointer_constraints!(SabiniwmState);
+smithay::delegate_viewporter!(SabiniwmState);
 
-impl<BackendData> XdgActivationHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl XdgActivationHandler for SabiniwmState {
     fn activation_state(&mut self) -> &mut XdgActivationState {
         &mut self.xdg_activation_state
     }
@@ -300,12 +264,9 @@ where
     }
 }
 
-smithay::delegate_xdg_activation!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_xdg_activation!(SabiniwmState);
 
-impl<BackendData> XdgDecorationHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl XdgDecorationHandler for SabiniwmState {
     fn new_decoration(&mut self, toplevel: ToplevelSurface) {
         use xdg_decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode;
         // Set the default to client side
@@ -356,15 +317,12 @@ where
     }
 }
 
-smithay::delegate_xdg_decoration!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_xdg_shell!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_layer_shell!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
-smithay::delegate_presentation!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_xdg_decoration!(SabiniwmState);
+smithay::delegate_xdg_shell!(SabiniwmState);
+smithay::delegate_layer_shell!(SabiniwmState);
+smithay::delegate_presentation!(SabiniwmState);
 
-impl<BackendData> FractionalScaleHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl FractionalScaleHandler for SabiniwmState {
     fn new_fractional_scale(
         &mut self,
         surface: smithay::reexports::wayland_server::protocol::wl_surface::WlSurface,
@@ -413,12 +371,9 @@ where
     }
 }
 
-smithay::delegate_fractional_scale!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_fractional_scale!(SabiniwmState);
 
-impl<BackendData> SecurityContextHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend + 'static,
-{
+impl SecurityContextHandler for SabiniwmState {
     fn context_created(
         &mut self,
         source: SecurityContextListenerSource,
@@ -441,12 +396,9 @@ where
     }
 }
 
-smithay::delegate_security_context!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_security_context!(SabiniwmState);
 
-impl<BackendData> XWaylandKeyboardGrabHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend + 'static,
-{
+impl XWaylandKeyboardGrabHandler for SabiniwmState {
     fn keyboard_focus_for_xsurface(&self, surface: &WlSurface) -> Option<KeyboardFocusTarget> {
         let elem = self
             .space
@@ -456,23 +408,17 @@ where
     }
 }
 
-smithay::delegate_xwayland_keyboard_grab!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_xwayland_keyboard_grab!(SabiniwmState);
 
-impl<BackendData> XdgForeignHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl XdgForeignHandler for SabiniwmState {
     fn xdg_foreign_state(&mut self) -> &mut XdgForeignState {
         &mut self.xdg_foreign_state
     }
 }
 
-smithay::delegate_xdg_foreign!(@<BackendData: Backend + 'static> SabiniwmState<BackendData>);
+smithay::delegate_xdg_foreign!(SabiniwmState);
 
-impl<BackendData> smithay::wayland::dmabuf::DmabufHandler for SabiniwmState<BackendData>
-where
-    BackendData: Backend,
-{
+impl smithay::wayland::dmabuf::DmabufHandler for SabiniwmState {
     fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
         self.backend_data.dmabuf_state()
     }
@@ -484,11 +430,11 @@ where
         notifier: smithay::wayland::dmabuf::ImportNotifier,
     ) {
         if self.backend_data.dmabuf_imported(global, dmabuf) {
-            let _ = notifier.successful::<SabiniwmState<BackendData>>();
+            let _ = notifier.successful::<SabiniwmState>();
         } else {
             notifier.failed();
         }
     }
 }
 
-smithay::delegate_dmabuf!(@<BackendData: Backend> SabiniwmState<BackendData>);
+smithay::delegate_dmabuf!(SabiniwmState);

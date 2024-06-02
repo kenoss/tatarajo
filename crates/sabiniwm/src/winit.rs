@@ -41,6 +41,16 @@ pub struct WinitData {
     pub fps: fps_ticker::Fps,
 }
 
+macro_rules! backend_data_winit_mut {
+    ($state:ident) => {
+        $state
+            .backend_data
+            .as_mut()
+            .downcast_mut::<WinitData>()
+            .unwrap()
+    };
+}
+
 impl smithay::wayland::buffer::BufferHandler for WinitData {
     fn buffer_destroyed(&mut self, _buffer: &wayland_server::protocol::wl_buffer::WlBuffer) {}
 }
@@ -60,6 +70,14 @@ impl crate::state::DmabufHandlerDelegate for WinitData {
 }
 
 impl Backend for WinitData {
+    fn has_relative_motion(&self) -> bool {
+        false
+    }
+
+    fn has_gesture(&self) -> bool {
+        false
+    }
+
     fn seat_name(&self) -> String {
         String::from("winit")
     }
@@ -98,7 +116,7 @@ pub fn run_winit() {
             model: "Winit".into(),
         },
     );
-    let _global = output.create_global::<SabiniwmState<WinitData>>(&display.handle());
+    let _global = output.create_global::<SabiniwmState>(&display.handle());
     output.change_current_state(
         Some(mode),
         Some(Transform::Flipped180),
@@ -152,17 +170,16 @@ pub fn run_winit() {
     // Note: egl on Mesa requires either v4 or wl_drm (initialized with bind_wl_display)
     let dmabuf_state = if let Some(default_feedback) = dmabuf_default_feedback {
         let mut dmabuf_state = DmabufState::new();
-        let dmabuf_global = dmabuf_state
-            .create_global_with_default_feedback::<SabiniwmState<WinitData>>(
-                &display.handle(),
-                &default_feedback,
-            );
+        let dmabuf_global = dmabuf_state.create_global_with_default_feedback::<SabiniwmState>(
+            &display.handle(),
+            &default_feedback,
+        );
         (dmabuf_state, dmabuf_global, Some(default_feedback))
     } else {
         let dmabuf_formats = backend.renderer().dmabuf_formats().collect::<Vec<_>>();
         let mut dmabuf_state = DmabufState::new();
-        let dmabuf_global = dmabuf_state
-            .create_global::<SabiniwmState<WinitData>>(&display.handle(), dmabuf_formats);
+        let dmabuf_global =
+            dmabuf_state.create_global::<SabiniwmState>(&display.handle(), dmabuf_formats);
         (dmabuf_state, dmabuf_global, None)
     };
 
@@ -178,19 +195,22 @@ pub fn run_winit() {
     let data = {
         let damage_tracker = OutputDamageTracker::from_output(&output);
 
-        WinitData {
+        Box::new(WinitData {
             backend,
             damage_tracker,
             dmabuf_state,
             full_redraw: 0,
             #[cfg(feature = "debug")]
             fps: fps_ticker::Fps::default(),
-        }
+        })
     };
     let mut state = SabiniwmState::init(display, event_loop.handle(), data, true);
-    state
-        .shm_state
-        .update_formats(state.backend_data.backend.renderer().shm_formats());
+    state.shm_state.update_formats(
+        backend_data_winit_mut!(state)
+            .backend
+            .renderer()
+            .shm_formats(),
+    );
     state.space.map_output(&output, (0, 0));
 
     if let Err(e) = state.xwayland.start(
@@ -234,7 +254,8 @@ pub fn run_winit() {
 
         // drawing logic
         {
-            let backend = &mut state.backend_data.backend;
+            let backend_data = backend_data_winit_mut!(state);
+            let backend = &mut backend_data.backend;
 
             let mut cursor_guard = state.cursor_status.lock().unwrap();
 
@@ -252,14 +273,14 @@ pub fn run_winit() {
             pointer_element.set_status(cursor_guard.clone());
 
             #[cfg(feature = "debug")]
-            let fps = state.backend_data.fps.avg().round() as u32;
+            let fps = state.backend_data_winit().fps.avg().round() as u32;
             #[cfg(feature = "debug")]
             fps_element.update_fps(fps);
 
-            let full_redraw = &mut state.backend_data.full_redraw;
+            let full_redraw = &mut backend_data.full_redraw;
             *full_redraw = full_redraw.saturating_sub(1);
             let space = &mut state.space;
-            let damage_tracker = &mut state.backend_data.damage_tracker;
+            let damage_tracker = &mut backend_data.damage_tracker;
             let show_window_preview = state.show_window_preview;
 
             let dnd_icon = state.dnd_icon.as_ref();
@@ -450,6 +471,6 @@ pub fn run_winit() {
         }
 
         #[cfg(feature = "debug")]
-        state.backend_data.fps.tick();
+        state.backend_data_winit().fps.tick();
     }
 }
