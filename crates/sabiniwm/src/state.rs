@@ -19,26 +19,22 @@ use smithay::reexports::wayland_server::{Display, DisplayHandle};
 use smithay::utils::{Clock, Monotonic, Point, Size};
 use smithay::wayland::compositor::{CompositorClientState, CompositorState};
 use smithay::wayland::dmabuf::DmabufFeedback;
-use smithay::wayland::fractional_scale::{with_fractional_scale, FractionalScaleManagerState};
+use smithay::wayland::fractional_scale::with_fractional_scale;
 use smithay::wayland::input_method::InputMethodManagerState;
 use smithay::wayland::keyboard_shortcuts_inhibit::KeyboardShortcutsInhibitState;
-use smithay::wayland::output::OutputManagerState;
 use smithay::wayland::pointer_constraints::PointerConstraintsState;
 use smithay::wayland::pointer_gestures::PointerGesturesState;
-use smithay::wayland::presentation::PresentationState;
 use smithay::wayland::relative_pointer::RelativePointerManagerState;
 use smithay::wayland::security_context::{SecurityContext, SecurityContextState};
 use smithay::wayland::selection::data_device::DataDeviceState;
 use smithay::wayland::selection::primary_selection::PrimarySelectionState;
 use smithay::wayland::selection::wlr_data_control::DataControlState;
 use smithay::wayland::shell::wlr_layer::WlrLayerShellState;
-use smithay::wayland::shell::xdg::decoration::XdgDecorationState;
 use smithay::wayland::shell::xdg::XdgShellState;
 use smithay::wayland::shm::ShmState;
 use smithay::wayland::socket::ListeningSocketSource;
 use smithay::wayland::tablet_manager::{TabletManagerState, TabletSeatTrait};
 use smithay::wayland::text_input::TextInputManagerState;
-use smithay::wayland::viewporter::ViewporterState;
 use smithay::wayland::virtual_keyboard::VirtualKeyboardManagerState;
 use smithay::wayland::xdg_activation::XdgActivationState;
 use smithay::wayland::xdg_foreign::XdgForeignState;
@@ -80,23 +76,13 @@ pub struct SabiniwmState {
     pub(crate) compositor_state: CompositorState,
     pub(crate) data_device_state: DataDeviceState,
     pub(crate) layer_shell_state: WlrLayerShellState,
-    #[allow(dead_code)]
-    pub(crate) output_manager_state: OutputManagerState,
     pub(crate) primary_selection_state: PrimarySelectionState,
     pub(crate) data_control_state: DataControlState,
     pub(crate) seat_state: SeatState<SabiniwmState>,
     pub(crate) keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
     pub(crate) shm_state: ShmState,
-    #[allow(dead_code)]
-    pub(crate) viewporter_state: ViewporterState,
     pub(crate) xdg_activation_state: XdgActivationState,
-    #[allow(dead_code)]
-    pub(crate) xdg_decoration_state: XdgDecorationState,
     pub(crate) xdg_shell_state: XdgShellState,
-    #[allow(dead_code)]
-    pub(crate) presentation_state: PresentationState,
-    #[allow(dead_code)]
-    pub(crate) fractional_scale_manager_state: FractionalScaleManagerState,
     pub(crate) xdg_foreign_state: XdgForeignState,
 
     pub(crate) dnd_icon: Option<wayland_server::protocol::wl_surface::WlSurface>,
@@ -166,18 +152,13 @@ impl SabiniwmState {
         let compositor_state = CompositorState::new::<Self>(&dh);
         let data_device_state = DataDeviceState::new::<Self>(&dh);
         let layer_shell_state = WlrLayerShellState::new::<Self>(&dh);
-        let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&dh);
         let primary_selection_state = PrimarySelectionState::new::<Self>(&dh);
         let data_control_state =
             DataControlState::new::<Self, _>(&dh, Some(&primary_selection_state), |_| true);
         let mut seat_state = SeatState::new();
         let shm_state = ShmState::new::<Self>(&dh, vec![]);
-        let viewporter_state = ViewporterState::new::<Self>(&dh);
         let xdg_activation_state = XdgActivationState::new::<Self>(&dh);
-        let xdg_decoration_state = XdgDecorationState::new::<Self>(&dh);
         let xdg_shell_state = XdgShellState::new::<Self>(&dh);
-        let presentation_state = PresentationState::new::<Self>(&dh, clock.id() as u32);
-        let fractional_scale_manager_state = FractionalScaleManagerState::new::<Self>(&dh);
         let xdg_foreign_state = XdgForeignState::new::<Self>(&dh);
         TextInputManagerState::new::<Self>(&dh);
         InputMethodManagerState::new::<Self, _>(&dh, |_client| true);
@@ -264,18 +245,13 @@ impl SabiniwmState {
             compositor_state,
             data_device_state,
             layer_shell_state,
-            output_manager_state,
             primary_selection_state,
             data_control_state,
             seat_state,
             keyboard_shortcuts_inhibit_state,
             shm_state,
-            viewporter_state,
             xdg_activation_state,
-            xdg_decoration_state,
             xdg_shell_state,
-            presentation_state,
-            fractional_scale_manager_state,
             xdg_foreign_state,
             dnd_icon: None,
             suppressed_keys: Vec::new(),
