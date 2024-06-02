@@ -66,56 +66,61 @@ impl ClientData for ClientState {
 }
 
 pub struct SabiniwmState {
-    pub backend_data: Box<dyn Backend>,
-    pub socket_name: Option<String>,
-    pub display_handle: DisplayHandle,
-    pub running: Arc<AtomicBool>,
-    pub handle: LoopHandle<'static, CalloopData>,
+    pub(crate) backend_data: Box<dyn Backend>,
+    pub(crate) socket_name: Option<String>,
+    pub(crate) display_handle: DisplayHandle,
+    pub(crate) running: Arc<AtomicBool>,
+    pub(crate) handle: LoopHandle<'static, CalloopData>,
 
     // desktop
-    pub space: Space<WindowElement>,
-    pub popups: PopupManager,
+    pub(crate) space: Space<WindowElement>,
+    pub(crate) popups: PopupManager,
 
     // smithay state
-    pub compositor_state: CompositorState,
-    pub data_device_state: DataDeviceState,
-    pub layer_shell_state: WlrLayerShellState,
-    pub output_manager_state: OutputManagerState,
-    pub primary_selection_state: PrimarySelectionState,
-    pub data_control_state: DataControlState,
-    pub seat_state: SeatState<SabiniwmState>,
-    pub keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
-    pub shm_state: ShmState,
-    pub viewporter_state: ViewporterState,
-    pub xdg_activation_state: XdgActivationState,
-    pub xdg_decoration_state: XdgDecorationState,
-    pub xdg_shell_state: XdgShellState,
-    pub presentation_state: PresentationState,
-    pub fractional_scale_manager_state: FractionalScaleManagerState,
-    pub xdg_foreign_state: XdgForeignState,
+    pub(crate) compositor_state: CompositorState,
+    pub(crate) data_device_state: DataDeviceState,
+    pub(crate) layer_shell_state: WlrLayerShellState,
+    #[allow(dead_code)]
+    pub(crate) output_manager_state: OutputManagerState,
+    pub(crate) primary_selection_state: PrimarySelectionState,
+    pub(crate) data_control_state: DataControlState,
+    pub(crate) seat_state: SeatState<SabiniwmState>,
+    pub(crate) keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
+    pub(crate) shm_state: ShmState,
+    #[allow(dead_code)]
+    pub(crate) viewporter_state: ViewporterState,
+    pub(crate) xdg_activation_state: XdgActivationState,
+    #[allow(dead_code)]
+    pub(crate) xdg_decoration_state: XdgDecorationState,
+    pub(crate) xdg_shell_state: XdgShellState,
+    #[allow(dead_code)]
+    pub(crate) presentation_state: PresentationState,
+    #[allow(dead_code)]
+    pub(crate) fractional_scale_manager_state: FractionalScaleManagerState,
+    pub(crate) xdg_foreign_state: XdgForeignState,
 
-    pub dnd_icon: Option<wayland_server::protocol::wl_surface::WlSurface>,
+    pub(crate) dnd_icon: Option<wayland_server::protocol::wl_surface::WlSurface>,
 
     // input-related fields
-    pub suppressed_keys: Vec<Keysym>,
-    pub cursor_status: Arc<Mutex<CursorImageStatus>>,
-    pub seat_name: String,
-    pub seat: Seat<SabiniwmState>,
-    pub clock: Clock<Monotonic>,
-    pub pointer: PointerHandle<SabiniwmState>,
+    pub(crate) suppressed_keys: Vec<Keysym>,
+    pub(crate) cursor_status: Arc<Mutex<CursorImageStatus>>,
+    pub(crate) seat_name: String,
+    pub(crate) seat: Seat<SabiniwmState>,
+    pub(crate) clock: Clock<Monotonic>,
+    pub(crate) pointer: PointerHandle<SabiniwmState>,
 
-    pub xwayland: XWayland,
-    pub xwm: Option<X11Wm>,
-    pub xdisplay: Option<u32>,
+    pub(crate) xwayland: XWayland,
+    pub(crate) xwm: Option<X11Wm>,
+    pub(crate) xdisplay: Option<u32>,
 
     #[cfg(feature = "debug")]
-    pub renderdoc: Option<renderdoc::RenderDoc<renderdoc::V141>>,
+    pub(crate) renderdoc: Option<renderdoc::RenderDoc<renderdoc::V141>>,
 
-    pub show_window_preview: bool,
+    pub(crate) show_window_preview: bool,
 }
 
 impl SabiniwmState {
-    pub fn init(
+    pub(crate) fn init(
         display: Display<SabiniwmState>,
         handle: LoopHandle<'static, CalloopData>,
         backend_data: Box<dyn Backend>,
@@ -408,8 +413,7 @@ pub fn take_presentation_feedback(
     output_presentation_feedback
 }
 
-// TODO: Make it `pub(crate)`.
-pub trait DmabufHandlerDelegate: smithay::wayland::buffer::BufferHandler {
+pub(crate) trait DmabufHandlerDelegate: smithay::wayland::buffer::BufferHandler {
     fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState;
     fn dmabuf_imported(
         &mut self,
@@ -418,7 +422,7 @@ pub trait DmabufHandlerDelegate: smithay::wayland::buffer::BufferHandler {
     ) -> bool;
 }
 
-pub trait Backend: downcast::Any + DmabufHandlerDelegate {
+pub(crate) trait Backend: downcast::Any + DmabufHandlerDelegate {
     fn has_relative_motion(&self) -> bool;
     fn has_gesture(&self) -> bool;
     fn seat_name(&self) -> String;
