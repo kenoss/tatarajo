@@ -3,6 +3,7 @@ use crate::drawing::*;
 use crate::input::Keymap;
 use crate::render::*;
 use crate::state::{post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState};
+use crate::view::stackset::WorkspaceTag;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
 use smithay::backend::renderer::element::AsRenderElements;
@@ -87,7 +88,7 @@ impl Backend for WinitData {
     fn update_led_state(&mut self, _led_state: smithay::input::keyboard::LedState) {}
 }
 
-pub fn run_winit(keymap: Keymap<Action>) {
+pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
     let mut event_loop = EventLoop::try_new().unwrap();
     let display = Display::new().unwrap();
     let mut display_handle = display.handle();
@@ -203,7 +204,14 @@ pub fn run_winit(keymap: Keymap<Action>) {
             fps: fps_ticker::Fps::default(),
         })
     };
-    let mut state = SabiniwmState::init(keymap, display, event_loop.handle(), data, true);
+    let mut state = SabiniwmState::init(
+        workspace_tags,
+        keymap,
+        display,
+        event_loop.handle(),
+        data,
+        true,
+    );
     state.shm_state.update_formats(
         backend_data_winit_mut!(state)
             .backend
@@ -238,7 +246,6 @@ pub fn run_winit(keymap: Keymap<Action>) {
                 };
                 output.change_current_state(Some(mode), None, None, None);
                 output.set_preferred(mode);
-                crate::shell::fixup_positions(&mut state.space, state.pointer.current_location());
             }
             WinitEvent::Input(event) => {
                 state.process_input_event(event);

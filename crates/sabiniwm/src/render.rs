@@ -1,7 +1,7 @@
 #[cfg(feature = "debug")]
 use crate::drawing::FpsElement;
 use crate::drawing::{PointerRenderElement, CLEAR_COLOR};
-use crate::shell::{WindowElement, WindowRenderElement};
+use crate::view::window::WindowRenderElement;
 use smithay::backend::renderer::damage::{
     Error as OutputDamageTrackerError, OutputDamageTracker, RenderOutputResult,
 };
@@ -63,7 +63,7 @@ where
 
 pub fn output_elements<R>(
     output: &Output,
-    space: &Space<WindowElement>,
+    space: &Space<crate::view::window::Window>,
     custom_elements: impl IntoIterator<Item = CustomRenderElements<R>>,
     renderer: &mut R,
 ) -> (
@@ -79,12 +79,11 @@ where
         .map(OutputRenderElements::from)
         .collect::<Vec<_>>();
 
-    let space_elements = smithay::desktop::space::space_render_elements::<_, WindowElement, _>(
-        renderer,
-        [space],
-        output,
-        1.0,
-    )
+    let space_elements = smithay::desktop::space::space_render_elements::<
+        _,
+        crate::view::window::Window,
+        _,
+    >(renderer, [space], output, 1.0)
     .expect("output without mode?");
     output_render_elements.extend(space_elements.into_iter().map(OutputRenderElements::Space));
 
@@ -94,7 +93,7 @@ where
 #[allow(clippy::too_many_arguments)]
 pub fn render_output<R>(
     output: &Output,
-    space: &Space<WindowElement>,
+    space: &Space<crate::view::window::Window>,
     custom_elements: impl IntoIterator<Item = CustomRenderElements<R>>,
     renderer: &mut R,
     damage_tracker: &mut OutputDamageTracker,

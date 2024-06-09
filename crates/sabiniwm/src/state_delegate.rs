@@ -183,7 +183,8 @@ impl InputMethodHandler for SabiniwmState {
         self.space
             .elements()
             .find_map(|window| {
-                (window.wl_surface().as_ref() == Some(parent)).then(|| window.geometry())
+                (window.smithay_window().wl_surface().as_ref() == Some(parent))
+                    .then(|| window.geometry())
             })
             .unwrap_or_default()
     }
@@ -255,7 +256,13 @@ impl XdgActivationHandler for SabiniwmState {
             let w = self
                 .space
                 .elements()
-                .find(|window| window.wl_surface().map(|s| s == surface).unwrap_or(false))
+                .find(|window| {
+                    window
+                        .smithay_window()
+                        .wl_surface()
+                        .map(|s| s == surface)
+                        .unwrap_or(false)
+                })
                 .cloned();
             if let Some(window) = w {
                 self.space.raise_element(&window, true);
@@ -318,7 +325,6 @@ impl XdgDecorationHandler for SabiniwmState {
 }
 
 smithay::delegate_xdg_decoration!(SabiniwmState);
-smithay::delegate_xdg_shell!(SabiniwmState);
 smithay::delegate_layer_shell!(SabiniwmState);
 smithay::delegate_presentation!(SabiniwmState);
 
@@ -400,11 +406,11 @@ smithay::delegate_security_context!(SabiniwmState);
 
 impl XWaylandKeyboardGrabHandler for SabiniwmState {
     fn keyboard_focus_for_xsurface(&self, surface: &WlSurface) -> Option<KeyboardFocusTarget> {
-        let elem = self
+        let window = self
             .space
             .elements()
-            .find(|elem| elem.wl_surface().as_ref() == Some(surface))?;
-        Some(KeyboardFocusTarget::Window(elem.0.clone()))
+            .find(|window| window.smithay_window().wl_surface().as_ref() == Some(surface))?;
+        Some(KeyboardFocusTarget::Window(window.smithay_window().clone()))
     }
 }
 

@@ -1,7 +1,10 @@
 use crate::action::Action;
 use crate::cursor::Cursor;
 use crate::input::{KeySeq, Keymap};
-use crate::shell::WindowElement;
+use crate::input_event::FocusUpdateDecider;
+use crate::view::stackset::WorkspaceTag;
+use crate::view::view::View;
+use crate::view::window::Window;
 use smithay::backend::renderer::element::utils::select_dmabuf_feedback;
 use smithay::backend::renderer::element::{
     default_primary_scanout_output_compare, RenderElementStates,
@@ -17,7 +20,7 @@ use smithay::reexports::calloop::generic::Generic;
 use smithay::reexports::calloop::{Interest, LoopHandle, Mode, PostAction};
 use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason};
 use smithay::reexports::wayland_server::{Display, DisplayHandle};
-use smithay::utils::{Clock, Monotonic, Point, Size};
+use smithay::utils::{Clock, Monotonic, Point, Rectangle, Size};
 use smithay::wayland::compositor::{CompositorClientState, CompositorState};
 use smithay::wayland::dmabuf::DmabufFeedback;
 use smithay::wayland::fractional_scale::with_fractional_scale;
@@ -69,7 +72,7 @@ pub struct SabiniwmState {
     pub(crate) handle: LoopHandle<'static, CalloopData>,
 
     // desktop
-    pub(crate) space: Space<WindowElement>,
+    pub(crate) space: Space<Window>,
     pub(crate) popups: PopupManager,
 
     // smithay state
@@ -103,12 +106,13 @@ pub struct SabiniwmState {
 
     pub(crate) keymap: Keymap<Action>,
     pub(crate) keyseq: KeySeq,
-    // pub(crate) view: View,
-    // pub(crate) focus_update_decider: FocusUpdateDecider,
+    pub(crate) view: View,
+    pub(crate) focus_update_decider: FocusUpdateDecider,
 }
 
 impl SabiniwmState {
     pub(crate) fn init(
+        workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
         display: Display<SabiniwmState>,
         handle: LoopHandle<'static, CalloopData>,
@@ -248,6 +252,9 @@ impl SabiniwmState {
             xwayland
         };
 
+        let rect = Rectangle::from_loc_and_size((0, 0), (1280, 720));
+        let view = View::new(rect, workspace_tags);
+
         SabiniwmState {
             backend_data,
             display_handle: dh,
@@ -280,8 +287,8 @@ impl SabiniwmState {
 
             keymap,
             keyseq: KeySeq::new(),
-            // view,
-            // focus_update_decider: FocusUpdateDecider::new(),
+            view,
+            focus_update_decider: FocusUpdateDecider::new(),
         }
     }
 }
@@ -295,7 +302,7 @@ pub struct SurfaceDmabufFeedback<'a> {
 pub fn post_repaint(
     output: &smithay::output::Output,
     render_element_states: &RenderElementStates,
-    space: &Space<WindowElement>,
+    space: &Space<crate::view::window::Window>,
     dmabuf_feedback: Option<SurfaceDmabufFeedback<'_>>,
     time: impl Into<Duration>,
 ) {
@@ -303,7 +310,7 @@ pub fn post_repaint(
     let throttle = Some(Duration::from_secs(1));
 
     space.elements().for_each(|window| {
-        window.with_surfaces(|surface, states| {
+        window.smithay_window().with_surfaces(|surface, states| {
             let primary_scanout_output = update_surface_primary_scanout_output(
                 surface,
                 output,
@@ -320,9 +327,14 @@ pub fn post_repaint(
         });
 
         if space.outputs_for_element(window).contains(output) {
-            window.send_frame(output, time, throttle, surface_primary_scanout_output);
+            window.smithay_window().send_frame(
+                output,
+                time,
+                throttle,
+                surface_primary_scanout_output,
+            );
             if let Some(dmabuf_feedback) = dmabuf_feedback {
-                window.send_dmabuf_feedback(
+                window.smithay_window().send_dmabuf_feedback(
                     output,
                     surface_primary_scanout_output,
                     |surface, _| {
@@ -375,14 +387,14 @@ pub fn post_repaint(
 
 pub fn take_presentation_feedback(
     output: &smithay::output::Output,
-    space: &Space<WindowElement>,
+    space: &Space<crate::view::window::Window>,
     render_element_states: &RenderElementStates,
 ) -> OutputPresentationFeedback {
     let mut output_presentation_feedback = OutputPresentationFeedback::new(output);
 
     space.elements().for_each(|window| {
         if space.outputs_for_element(window).contains(output) {
-            window.take_presentation_feedback(
+            window.smithay_window().take_presentation_feedback(
                 &mut output_presentation_feedback,
                 surface_primary_scanout_output,
                 |surface, _| {

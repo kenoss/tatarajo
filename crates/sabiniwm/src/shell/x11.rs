@@ -1,9 +1,6 @@
-use super::{place_new_window, PointerMoveSurfaceGrab, TouchMoveSurfaceGrab, WindowElement};
 use crate::focus::KeyboardFocusTarget;
-use crate::{CalloopData, SabiniwmState};
-use smithay::desktop::Window;
-use smithay::input::pointer::Focus;
-use smithay::utils::{Logical, Rectangle, SERIAL_COUNTER};
+use crate::CalloopData;
+use smithay::utils::{Logical, Rectangle};
 use smithay::wayland::selection::data_device::{
     clear_data_device_selection, current_data_device_selection_userdata,
     request_data_device_client_selection, set_data_device_selection,
@@ -15,16 +12,7 @@ use smithay::wayland::selection::primary_selection::{
 use smithay::wayland::selection::SelectionTarget;
 use smithay::xwayland::xwm::{Reorder, ResizeEdge as X11ResizeEdge, XwmId};
 use smithay::xwayland::{X11Surface, X11Wm, XwmHandler};
-use std::cell::RefCell;
 use std::os::unix::io::OwnedFd;
-
-#[derive(Debug, Default)]
-struct OldGeometry(RefCell<Option<Rectangle<i32, Logical>>>);
-impl OldGeometry {
-    pub fn restore(&self) -> Option<Rectangle<i32, Logical>> {
-        self.0.borrow_mut().take()
-    }
-}
 
 impl XwmHandler for CalloopData {
     fn xwm_state(&mut self, _xwm: XwmId) -> &mut X11Wm {
@@ -36,25 +24,20 @@ impl XwmHandler for CalloopData {
 
     fn map_window_request(&mut self, _xwm: XwmId, window: X11Surface) {
         window.set_mapped(true).unwrap();
-        let window = WindowElement(Window::new_x11_window(window));
-        place_new_window(
-            &mut self.state.space,
-            self.state.pointer.current_location(),
-            &window,
-            true,
-        );
-        let bbox = self.state.space.element_bbox(&window).unwrap();
-        let Some(xsurface) = window.0.x11_surface() else {
-            unreachable!()
-        };
-        xsurface.configure(Some(bbox)).unwrap();
-        window.set_ssd(!xsurface.is_decorated());
+
+        let window = smithay::desktop::Window::new_x11_window(window);
+        let window_id = self.state.view.register_window(window);
+        self.state.view.layout(&mut self.state.space);
+        self.state.view.set_focus(window_id);
+        self.state.reflect_focus_from_stackset(None);
     }
 
     fn mapped_override_redirect_window(&mut self, _xwm: XwmId, window: X11Surface) {
-        let location = window.geometry().loc;
-        let window = WindowElement(Window::new_x11_window(window));
-        self.state.space.map_element(window, location, true);
+        let window = smithay::desktop::Window::new_x11_window(window);
+        let window_id = self.state.view.register_window(window);
+        self.state.view.layout(&mut self.state.space);
+        self.state.view.set_focus(window_id);
+        self.state.reflect_focus_from_stackset(None);
     }
 
     fn unmapped_window(&mut self, _xwm: XwmId, window: X11Surface) {
@@ -62,7 +45,7 @@ impl XwmHandler for CalloopData {
             .state
             .space
             .elements()
-            .find(|e| matches!(e.0.x11_surface(), Some(w) if w == &window))
+            .find(|e| matches!(e.smithay_window().x11_surface(), Some(w) if w == &window))
             .cloned();
         if let Some(elem) = maybe {
             self.state.space.unmap_elem(&elem)
@@ -106,7 +89,7 @@ impl XwmHandler for CalloopData {
             .state
             .space
             .elements()
-            .find(|e| matches!(e.0.x11_surface(), Some(w) if w == &window))
+            .find(|e| matches!(e.smithay_window().x11_surface(), Some(w) if w == &window))
             .cloned()
         else {
             return;
@@ -203,96 +186,5 @@ impl XwmHandler for CalloopData {
                 }
             }
         }
-    }
-}
-
-impl SabiniwmState {
-    // We'll remove it when we remove crates/sabiniwm/src/shell/ssd.rs
-    pub fn maximize_request_x11(&mut self, _window: &X11Surface) {}
-
-    pub fn move_request_x11(&mut self, window: &X11Surface) {
-        if let Some(touch) = self.seat.get_touch() {
-            if let Some(start_data) = touch.grab_start_data() {
-                let element = self
-                    .space
-                    .elements()
-                    .find(|e| matches!(e.0.x11_surface(), Some(w) if w == window));
-
-                if let Some(element) = element {
-                    let mut initial_window_location = self.space.element_location(element).unwrap();
-
-                    // If surface is maximized then unmaximize it
-                    if window.is_maximized() {
-                        window.set_maximized(false).unwrap();
-                        let pos = start_data.location;
-                        initial_window_location = (pos.x as i32, pos.y as i32).into();
-                        if let Some(old_geo) = window
-                            .user_data()
-                            .get::<OldGeometry>()
-                            .and_then(|data| data.restore())
-                        {
-                            window
-                                .configure(Rectangle::from_loc_and_size(
-                                    initial_window_location,
-                                    old_geo.size,
-                                ))
-                                .unwrap();
-                        }
-                    }
-
-                    let grab = TouchMoveSurfaceGrab {
-                        start_data,
-                        window: element.clone(),
-                        initial_window_location,
-                    };
-
-                    touch.set_grab(self, grab, SERIAL_COUNTER.next_serial());
-                    return;
-                }
-            }
-        }
-
-        // luckily anvil only supports one seat anyway...
-        let Some(start_data) = self.pointer.grab_start_data() else {
-            return;
-        };
-
-        let Some(element) = self
-            .space
-            .elements()
-            .find(|e| matches!(e.0.x11_surface(), Some(w) if w == window))
-        else {
-            return;
-        };
-
-        let mut initial_window_location = self.space.element_location(element).unwrap();
-
-        // If surface is maximized then unmaximize it
-        if window.is_maximized() {
-            window.set_maximized(false).unwrap();
-            let pos = self.pointer.current_location();
-            initial_window_location = (pos.x as i32, pos.y as i32).into();
-            if let Some(old_geo) = window
-                .user_data()
-                .get::<OldGeometry>()
-                .and_then(|data| data.restore())
-            {
-                window
-                    .configure(Rectangle::from_loc_and_size(
-                        initial_window_location,
-                        old_geo.size,
-                    ))
-                    .unwrap();
-            }
-        }
-
-        let grab = PointerMoveSurfaceGrab {
-            start_data,
-            window: element.clone(),
-            initial_window_location,
-        };
-
-        let pointer = self.pointer.clone();
-        pointer.set_grab(self, grab, SERIAL_COUNTER.next_serial(), Focus::Clear);
     }
 }

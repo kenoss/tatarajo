@@ -17,6 +17,7 @@ pub mod focus;
 pub mod input;
 pub(crate) mod input_event;
 pub mod input_handler;
+pub(crate) mod model;
 pub mod render;
 pub mod shell;
 pub mod state;
@@ -25,6 +26,7 @@ pub mod state_delegate;
 pub mod udev;
 #[allow(unused)]
 pub(crate) mod util;
+pub mod view;
 #[cfg(feature = "winit")]
 pub mod winit;
 

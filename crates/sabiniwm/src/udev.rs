@@ -2,11 +2,11 @@ use crate::action::Action;
 use crate::drawing::*;
 use crate::input::Keymap;
 use crate::render::*;
-use crate::shell::WindowElement;
 use crate::state::{
     post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState,
     SurfaceDmabufFeedback,
 };
+use crate::view::stackset::WorkspaceTag;
 use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::allocator::gbm::{GbmAllocator, GbmBufferFlags, GbmDevice};
 use smithay::backend::allocator::Fourcc;
@@ -188,7 +188,7 @@ impl Backend for UdevData {
     }
 }
 
-pub fn run_udev(keymap: Keymap<Action>) {
+pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
     let mut event_loop = EventLoop::try_new().unwrap();
     let display = Display::new().unwrap();
     let mut display_handle = display.handle();
@@ -247,7 +247,14 @@ pub fn run_udev(keymap: Keymap<Action>) {
         debug_flags: DebugFlags::empty(),
         keyboards: Vec::new(),
     });
-    let mut state = SabiniwmState::init(keymap, display, event_loop.handle(), data, true);
+    let mut state = SabiniwmState::init(
+        workspace_tags,
+        keymap,
+        display,
+        event_loop.handle(),
+        data,
+        true,
+    );
 
     /*
      * Initialize the udev backend
@@ -1263,9 +1270,6 @@ impl SabiniwmState {
                 _ => {}
             }
         }
-
-        // fixup window coordinates
-        crate::shell::fixup_positions(&mut self.space, self.pointer.current_location());
     }
 
     fn device_removed(&mut self, node: DrmNode) {
@@ -1307,8 +1311,6 @@ impl SabiniwmState {
 
             debug!("Dropping device");
         }
-
-        crate::shell::fixup_positions(&mut self.space, self.pointer.current_location());
     }
 
     fn frame_finish(
@@ -1680,7 +1682,7 @@ impl SabiniwmState {
 fn render_surface<'a>(
     surface: &'a mut SurfaceData,
     renderer: &mut UdevRenderer<'a>,
-    space: &Space<WindowElement>,
+    space: &Space<crate::view::window::Window>,
     output: &smithay::output::Output,
     pointer_location: Point<f64, Logical>,
     pointer_image: &MemoryRenderBuffer,

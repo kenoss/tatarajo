@@ -6,6 +6,7 @@ use anyhow::{anyhow, Result};
 use big_s::S;
 use sabiniwm::action::Action;
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
+use sabiniwm::view::stackset::WorkspaceTag;
 
 static POSSIBLE_BACKENDS: &[&str] = &[
     "--winit : Run anvil as a X11 or Wayland client using winit.",
@@ -41,6 +42,8 @@ fn tracing_init() -> Result<()> {
 fn main() -> Result<()> {
     tracing_init()?;
 
+    let workspace_tags = (0..=9).map(|i| WorkspaceTag(format!("{}", i))).collect();
+
     let keyseq_serde = KeySeqSerde::new(hashmap! {
         S("C") => ModMask::CONTROL,
         S("M") => ModMask::MOD1,
@@ -69,15 +72,13 @@ fn main() -> Result<()> {
         // kbd("H-k") => (action::ActionWindowKill {}).into_action(),
     });
 
-    // let workspace_tags = (0..=9).map(|i| WorkspaceTag(format!("{}", i))).collect();
-
     let arg = ::std::env::args().nth(1);
     match arg.as_ref().map(|s| &s[..]) {
         Some("--winit") => {
-            sabiniwm::winit::run_winit(keymap);
+            sabiniwm::winit::run_winit(workspace_tags, keymap);
         }
         Some("--tty-udev") => {
-            sabiniwm::udev::run_udev(keymap);
+            sabiniwm::udev::run_udev(workspace_tags, keymap);
         }
         Some(other) => {
             return Err(anyhow!("Unknown backend: {}", other));

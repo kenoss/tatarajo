@@ -39,9 +39,9 @@ impl SabiniwmState {
         } else if let Some(focus) = self.space.element_under(pos).and_then(|(window, loc)| {
             window
                 .surface_under(pos - loc.to_f64(), WindowSurfaceType::ALL)
-                .map(|(surface, surf_loc)| (surface, surf_loc + loc))
+                .map(|(surface, surf_loc)| (surface.into(), surf_loc + loc))
         }) {
-            under = Some(focus);
+            under = Some(focus)
         } else if let Some(focus) = layers
             .layer_under(WlrLayer::Bottom, pos)
             .or_else(|| layers.layer_under(WlrLayer::Background, pos))

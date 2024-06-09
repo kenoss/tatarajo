@@ -1,40 +1,28 @@
 use crate::state::SabiniwmState;
 use crate::{CalloopData, ClientState};
 use smithay::backend::renderer::utils::on_commit_buffer_handler;
-use smithay::desktop::space::SpaceElement;
-use smithay::desktop::{
-    layer_map_for_output, LayerSurface, PopupKind, PopupManager, Space, WindowSurfaceType,
-};
+use smithay::desktop::{layer_map_for_output, LayerSurface};
 use smithay::output::Output;
 use smithay::reexports::calloop::Interest;
 use smithay::reexports::wayland_server::protocol::wl_buffer::WlBuffer;
 use smithay::reexports::wayland_server::protocol::wl_output;
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::reexports::wayland_server::{Client, Resource};
-use smithay::utils::{Logical, Point, Rectangle, Size};
+use smithay::utils::{Logical, Rectangle};
 use smithay::wayland::buffer::BufferHandler;
 use smithay::wayland::compositor::{
     add_blocker, add_pre_commit_hook, get_parent, is_sync_subsurface, with_states,
-    with_surface_tree_upward, BufferAssignment, CompositorClientState, CompositorHandler,
-    CompositorState, SurfaceAttributes, TraversalAction,
+    BufferAssignment, CompositorClientState, CompositorHandler, CompositorState, SurfaceAttributes,
 };
 use smithay::wayland::dmabuf::get_dmabuf;
+use smithay::wayland::seat::WaylandFocus;
 use smithay::wayland::shell::wlr_layer::{
-    Layer, LayerSurface as WlrLayerSurface, LayerSurfaceData, WlrLayerShellHandler,
-    WlrLayerShellState,
+    Layer, LayerSurface as WlrLayerSurface, WlrLayerShellHandler, WlrLayerShellState,
 };
-use smithay::wayland::shell::xdg::{XdgPopupSurfaceData, XdgToplevelSurfaceData};
 use smithay::xwayland::{X11Wm, XWaylandClientData};
-use std::cell::RefCell;
 
-mod element;
-mod grabs;
-pub(crate) mod ssd;
 mod x11;
 mod xdg;
-
-pub use self::element::*;
-pub use self::grabs::*;
 
 impl BufferHandler for SabiniwmState {
     fn buffer_destroyed(&mut self, _buffer: &WlBuffer) {}
@@ -96,12 +84,10 @@ impl CompositorHandler for SabiniwmState {
                 root = parent;
             }
             if let Some(window) = self.window_for_surface(&root) {
-                window.0.on_commit();
+                window.smithay_window().on_commit();
             }
         }
         self.popups.commit(surface);
-
-        ensure_initial_configure(surface, &self.space, &mut self.popups)
     }
 }
 
@@ -141,10 +127,16 @@ impl WlrLayerShellHandler for SabiniwmState {
 }
 
 impl SabiniwmState {
-    pub fn window_for_surface(&self, surface: &WlSurface) -> Option<WindowElement> {
+    pub fn window_for_surface(&self, surface: &WlSurface) -> Option<crate::view::window::Window> {
         self.space
             .elements()
-            .find(|window| window.wl_surface().map(|s| s == *surface).unwrap_or(false))
+            .find(|window| {
+                window
+                    .smithay_window()
+                    .wl_surface()
+                    .map(|s| s == *surface)
+                    .unwrap_or(false)
+            })
             .cloned()
     }
 }
@@ -152,191 +144,4 @@ impl SabiniwmState {
 #[derive(Default)]
 pub struct SurfaceData {
     pub geometry: Option<Rectangle<i32, Logical>>,
-    pub resize_state: ResizeState,
-}
-
-fn ensure_initial_configure(
-    surface: &WlSurface,
-    space: &Space<WindowElement>,
-    popups: &mut PopupManager,
-) {
-    with_surface_tree_upward(
-        surface,
-        (),
-        |_, _, _| TraversalAction::DoChildren(()),
-        |_, states, _| {
-            states
-                .data_map
-                .insert_if_missing(|| RefCell::new(SurfaceData::default()));
-        },
-        |_, _, _| true,
-    );
-
-    if let Some(window) = space
-        .elements()
-        .find(|window| window.wl_surface().map(|s| s == *surface).unwrap_or(false))
-        .cloned()
-    {
-        // send the initial configure if relevant
-        if let Some(toplevel) = window.0.toplevel() {
-            let initial_configure_sent = with_states(surface, |states| {
-                states
-                    .data_map
-                    .get::<XdgToplevelSurfaceData>()
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .initial_configure_sent
-            });
-            if !initial_configure_sent {
-                toplevel.send_configure();
-            }
-        }
-
-        with_states(surface, |states| {
-            let mut data = states
-                .data_map
-                .get::<RefCell<SurfaceData>>()
-                .unwrap()
-                .borrow_mut();
-
-            // Finish resizing.
-            if let ResizeState::WaitingForCommit(_) = data.resize_state {
-                data.resize_state = ResizeState::NotResizing;
-            }
-        });
-
-        return;
-    }
-
-    if let Some(popup) = popups.find_popup(surface) {
-        let popup = match popup {
-            PopupKind::Xdg(ref popup) => popup,
-            // Doesn't require configure
-            PopupKind::InputMethod(ref _input_popup) => {
-                return;
-            }
-        };
-
-        let initial_configure_sent = with_states(surface, |states| {
-            states
-                .data_map
-                .get::<XdgPopupSurfaceData>()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .initial_configure_sent
-        });
-        if !initial_configure_sent {
-            // NOTE: This should never fail as the initial configure is always
-            // allowed.
-            popup.send_configure().expect("initial configure failed");
-        }
-
-        return;
-    };
-
-    if let Some(output) = space.outputs().find(|o| {
-        let map = layer_map_for_output(o);
-        map.layer_for_surface(surface, WindowSurfaceType::TOPLEVEL)
-            .is_some()
-    }) {
-        let initial_configure_sent = with_states(surface, |states| {
-            states
-                .data_map
-                .get::<LayerSurfaceData>()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .initial_configure_sent
-        });
-
-        let mut map = layer_map_for_output(output);
-
-        // arrange the layers before sending the initial configure
-        // to respect any size the client may have sent
-        map.arrange();
-        // send the initial configure if relevant
-        if !initial_configure_sent {
-            let layer = map
-                .layer_for_surface(surface, WindowSurfaceType::TOPLEVEL)
-                .unwrap();
-
-            layer.layer_surface().send_configure();
-        }
-    };
-}
-
-fn place_new_window(
-    space: &mut Space<WindowElement>,
-    pointer_location: Point<f64, Logical>,
-    window: &WindowElement,
-    activate: bool,
-) {
-    let output = space
-        .output_under(pointer_location)
-        .next()
-        .or_else(|| space.outputs().next())
-        .cloned();
-    let output_geometry = output
-        .and_then(|o| {
-            let geo = space.output_geometry(&o)?;
-            let map = layer_map_for_output(&o);
-            let zone = map.non_exclusive_zone();
-            Some(Rectangle::from_loc_and_size(geo.loc + zone.loc, zone.size))
-        })
-        .unwrap_or_else(|| Rectangle::from_loc_and_size((0, 0), (800, 800)));
-
-    // set the initial toplevel bounds
-    #[allow(irrefutable_let_patterns)]
-    if let Some(toplevel) = window.0.toplevel() {
-        toplevel.with_pending_state(|state| {
-            state.bounds = Some(output_geometry.size);
-        });
-    }
-
-    let x = output_geometry.loc.x;
-    let y = output_geometry.loc.y;
-
-    space.map_element(window.clone(), (x, y), activate);
-}
-
-pub fn fixup_positions(space: &mut Space<WindowElement>, pointer_location: Point<f64, Logical>) {
-    // fixup outputs
-    let mut offset = Point::<i32, Logical>::from((0, 0));
-    for output in space.outputs().cloned().collect::<Vec<_>>().into_iter() {
-        let size = space
-            .output_geometry(&output)
-            .map(|geo| geo.size)
-            .unwrap_or_else(|| Size::from((0, 0)));
-        space.map_output(&output, offset);
-        layer_map_for_output(&output).arrange();
-        offset.x += size.w;
-    }
-
-    // fixup windows
-    let mut orphaned_windows = Vec::new();
-    let outputs = space
-        .outputs()
-        .flat_map(|o| {
-            let geo = space.output_geometry(o)?;
-            let map = layer_map_for_output(o);
-            let zone = map.non_exclusive_zone();
-            Some(Rectangle::from_loc_and_size(geo.loc + zone.loc, zone.size))
-        })
-        .collect::<Vec<_>>();
-    for window in space.elements() {
-        let window_location = match space.element_location(window) {
-            Some(loc) => loc,
-            None => continue,
-        };
-        let geo_loc = window.bbox().loc + window_location;
-
-        if !outputs.iter().any(|o_geo| o_geo.contains(geo_loc)) {
-            orphaned_windows.push(window.clone());
-        }
-    }
-    for window in orphaned_windows.into_iter() {
-        place_new_window(space, pointer_location, &window, false);
-    }
 }

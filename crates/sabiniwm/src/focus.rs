@@ -1,4 +1,3 @@
-use crate::shell::{WindowElement, SSD};
 use crate::state::SabiniwmState;
 pub use smithay::backend::input::KeyState;
 pub use smithay::desktop::{LayerSurface, PopupKind};
@@ -41,7 +40,6 @@ impl IsAlive for KeyboardFocusTarget {
 pub enum PointerFocusTarget {
     WlSurface(WlSurface),
     X11Surface(X11Surface),
-    SSD(SSD),
 }
 
 impl IsAlive for PointerFocusTarget {
@@ -49,7 +47,6 @@ impl IsAlive for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => w.alive(),
             PointerFocusTarget::X11Surface(w) => w.alive(),
-            PointerFocusTarget::SSD(x) => x.alive(),
         }
     }
 }
@@ -65,14 +62,12 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::enter(w, seat, data, event),
             PointerFocusTarget::X11Surface(w) => PointerTarget::enter(w, seat, data, event),
-            PointerFocusTarget::SSD(w) => PointerTarget::enter(w, seat, data, event),
         }
     }
     fn motion(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, event: &MotionEvent) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::motion(w, seat, data, event),
             PointerFocusTarget::X11Surface(w) => PointerTarget::motion(w, seat, data, event),
-            PointerFocusTarget::SSD(w) => PointerTarget::motion(w, seat, data, event),
         }
     }
     fn relative_motion(
@@ -88,28 +83,24 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::relative_motion(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::relative_motion(w, seat, data, event),
         }
     }
     fn button(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, event: &ButtonEvent) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::button(w, seat, data, event),
             PointerFocusTarget::X11Surface(w) => PointerTarget::button(w, seat, data, event),
-            PointerFocusTarget::SSD(w) => PointerTarget::button(w, seat, data, event),
         }
     }
     fn axis(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, frame: AxisFrame) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::axis(w, seat, data, frame),
             PointerFocusTarget::X11Surface(w) => PointerTarget::axis(w, seat, data, frame),
-            PointerFocusTarget::SSD(w) => PointerTarget::axis(w, seat, data, frame),
         }
     }
     fn frame(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState) {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::frame(w, seat, data),
             PointerFocusTarget::X11Surface(w) => PointerTarget::frame(w, seat, data),
-            PointerFocusTarget::SSD(w) => PointerTarget::frame(w, seat, data),
         }
     }
     fn leave(
@@ -122,7 +113,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => PointerTarget::leave(w, seat, data, serial, time),
             PointerFocusTarget::X11Surface(w) => PointerTarget::leave(w, seat, data, serial, time),
-            PointerFocusTarget::SSD(w) => PointerTarget::leave(w, seat, data, serial, time),
         }
     }
     fn gesture_swipe_begin(
@@ -138,7 +128,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::gesture_swipe_begin(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::gesture_swipe_begin(w, seat, data, event),
         }
     }
     fn gesture_swipe_update(
@@ -154,7 +143,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::gesture_swipe_update(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::gesture_swipe_update(w, seat, data, event),
         }
     }
     fn gesture_swipe_end(
@@ -170,7 +158,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::gesture_swipe_end(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::gesture_swipe_end(w, seat, data, event),
         }
     }
     fn gesture_pinch_begin(
@@ -186,7 +173,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::gesture_pinch_begin(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::gesture_pinch_begin(w, seat, data, event),
         }
     }
     fn gesture_pinch_update(
@@ -202,7 +188,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::gesture_pinch_update(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::gesture_pinch_update(w, seat, data, event),
         }
     }
     fn gesture_pinch_end(
@@ -218,7 +203,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::gesture_pinch_end(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::gesture_pinch_end(w, seat, data, event),
         }
     }
     fn gesture_hold_begin(
@@ -234,7 +218,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::gesture_hold_begin(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::gesture_hold_begin(w, seat, data, event),
         }
     }
     fn gesture_hold_end(
@@ -250,7 +233,6 @@ impl PointerTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 PointerTarget::gesture_hold_end(w, seat, data, event)
             }
-            PointerFocusTarget::SSD(w) => PointerTarget::gesture_hold_end(w, seat, data, event),
         }
     }
 }
@@ -357,7 +339,6 @@ impl TouchTarget<SabiniwmState> for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => TouchTarget::down(w, seat, data, event, seq),
             PointerFocusTarget::X11Surface(w) => TouchTarget::down(w, seat, data, event, seq),
-            PointerFocusTarget::SSD(w) => TouchTarget::down(w, seat, data, event, seq),
         }
     }
 
@@ -371,7 +352,6 @@ impl TouchTarget<SabiniwmState> for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => TouchTarget::up(w, seat, data, event, seq),
             PointerFocusTarget::X11Surface(w) => TouchTarget::up(w, seat, data, event, seq),
-            PointerFocusTarget::SSD(w) => TouchTarget::up(w, seat, data, event, seq),
         }
     }
 
@@ -385,7 +365,6 @@ impl TouchTarget<SabiniwmState> for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => TouchTarget::motion(w, seat, data, event, seq),
             PointerFocusTarget::X11Surface(w) => TouchTarget::motion(w, seat, data, event, seq),
-            PointerFocusTarget::SSD(w) => TouchTarget::motion(w, seat, data, event, seq),
         }
     }
 
@@ -393,7 +372,6 @@ impl TouchTarget<SabiniwmState> for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => TouchTarget::frame(w, seat, data, seq),
             PointerFocusTarget::X11Surface(w) => TouchTarget::frame(w, seat, data, seq),
-            PointerFocusTarget::SSD(w) => TouchTarget::frame(w, seat, data, seq),
         }
     }
 
@@ -401,7 +379,6 @@ impl TouchTarget<SabiniwmState> for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => TouchTarget::cancel(w, seat, data, seq),
             PointerFocusTarget::X11Surface(w) => TouchTarget::cancel(w, seat, data, seq),
-            PointerFocusTarget::SSD(w) => TouchTarget::cancel(w, seat, data, seq),
         }
     }
 
@@ -415,7 +392,6 @@ impl TouchTarget<SabiniwmState> for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => TouchTarget::shape(w, seat, data, event, seq),
             PointerFocusTarget::X11Surface(w) => TouchTarget::shape(w, seat, data, event, seq),
-            PointerFocusTarget::SSD(w) => TouchTarget::shape(w, seat, data, event, seq),
         }
     }
 
@@ -431,7 +407,6 @@ impl TouchTarget<SabiniwmState> for PointerFocusTarget {
             PointerFocusTarget::X11Surface(w) => {
                 TouchTarget::orientation(w, seat, data, event, seq)
             }
-            PointerFocusTarget::SSD(w) => TouchTarget::orientation(w, seat, data, event, seq),
         }
     }
 }
@@ -441,17 +416,12 @@ impl WaylandFocus for PointerFocusTarget {
         match self {
             PointerFocusTarget::WlSurface(w) => w.wl_surface(),
             PointerFocusTarget::X11Surface(w) => w.wl_surface(),
-            PointerFocusTarget::SSD(_) => None,
         }
     }
     fn same_client_as(&self, object_id: &ObjectId) -> bool {
         match self {
             PointerFocusTarget::WlSurface(w) => w.same_client_as(object_id),
             PointerFocusTarget::X11Surface(w) => w.same_client_as(object_id),
-            PointerFocusTarget::SSD(w) => w
-                .wl_surface()
-                .map(|surface| surface.same_client_as(object_id))
-                .unwrap_or(false),
         }
     }
 }
@@ -496,9 +466,9 @@ impl From<&X11Surface> for PointerFocusTarget {
     }
 }
 
-impl From<WindowElement> for KeyboardFocusTarget {
-    fn from(w: WindowElement) -> Self {
-        KeyboardFocusTarget::Window(w.0.clone())
+impl From<smithay::desktop::Window> for KeyboardFocusTarget {
+    fn from(w: smithay::desktop::Window) -> Self {
+        KeyboardFocusTarget::Window(w)
     }
 }
 
