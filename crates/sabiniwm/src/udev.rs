@@ -1584,7 +1584,6 @@ impl SabiniwmState {
             &self.dnd_icon,
             &mut self.cursor_status.lock().unwrap(),
             &self.clock,
-            self.show_window_preview,
         );
         let reschedule = match &result {
             Ok(has_rendered) => !has_rendered,
@@ -1699,7 +1698,6 @@ fn render_surface<'a>(
     dnd_icon: &Option<wayland_server::protocol::wl_surface::WlSurface>,
     cursor_status: &mut CursorImageStatus,
     clock: &Clock<Monotonic>,
-    show_window_preview: bool,
 ) -> Result<bool, SwapBuffersError> {
     let output_geometry = space.output_geometry(output).unwrap();
     let scale = Scale::from(output.current_scale().fractional_scale());
@@ -1770,13 +1768,7 @@ fn render_surface<'a>(
         custom_elements.push(CustomRenderElements::Fps(element.clone()));
     }
 
-    let (elements, clear_color) = output_elements(
-        output,
-        space,
-        custom_elements,
-        renderer,
-        show_window_preview,
-    );
+    let (elements, clear_color) = output_elements(output, space, custom_elements, renderer);
     let res =
         surface
             .compositor

@@ -101,8 +101,6 @@ pub struct SabiniwmState {
     #[cfg(feature = "debug")]
     pub(crate) renderdoc: Option<renderdoc::RenderDoc<renderdoc::V141>>,
 
-    pub(crate) show_window_preview: bool,
-
     pub(crate) keymap: Keymap<Action>,
     pub(crate) keyseq: KeySeq,
     // pub(crate) view: View,
@@ -279,7 +277,6 @@ impl SabiniwmState {
             xdisplay: None,
             #[cfg(feature = "debug")]
             renderdoc: renderdoc::RenderDoc::new().ok(),
-            show_window_preview: false,
 
             keymap,
             keyseq: KeySeq::new(),

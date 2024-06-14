@@ -283,7 +283,6 @@ pub fn run_winit(keymap: Keymap<Action>) {
             *full_redraw = full_redraw.saturating_sub(1);
             let space = &mut state.space;
             let damage_tracker = &mut backend_data.damage_tracker;
-            let show_window_preview = state.show_window_preview;
 
             let dnd_icon = state.dnd_icon.as_ref();
 
@@ -357,19 +356,12 @@ pub fn run_winit(keymap: Keymap<Action>) {
                 #[cfg(feature = "debug")]
                 elements.push(CustomRenderElements::Fps(fps_element.clone()));
 
-                render_output(
-                    &output,
-                    space,
-                    elements,
-                    renderer,
-                    damage_tracker,
-                    age,
-                    show_window_preview,
+                render_output(&output, space, elements, renderer, damage_tracker, age).map_err(
+                    |err| match err {
+                        OutputDamageTrackerError::Rendering(err) => err.into(),
+                        _ => unreachable!(),
+                    },
                 )
-                .map_err(|err| match err {
-                    OutputDamageTrackerError::Rendering(err) => err.into(),
-                    _ => unreachable!(),
-                })
             });
 
             match render_res {
