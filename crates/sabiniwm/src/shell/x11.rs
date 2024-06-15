@@ -26,10 +26,6 @@ use std::os::unix::io::OwnedFd;
 #[derive(Debug, Default)]
 struct OldGeometry(RefCell<Option<Rectangle<i32, Logical>>>);
 impl OldGeometry {
-    pub fn save(&self, geo: Rectangle<i32, Logical>) {
-        *self.0.borrow_mut() = Some(geo);
-    }
-
     pub fn restore(&self) -> Option<Rectangle<i32, Logical>> {
         self.0.borrow_mut().take()
     }
@@ -123,32 +119,6 @@ impl XwmHandler for CalloopData {
         self.state.space.map_element(elem, geometry.loc, false);
         // TODO: We don't properly handle the order of override-redirect windows here,
         //       they are always mapped top and then never reordered.
-    }
-
-    fn maximize_request(&mut self, _xwm: XwmId, window: X11Surface) {
-        self.state.maximize_request_x11(&window);
-    }
-
-    fn unmaximize_request(&mut self, _xwm: XwmId, window: X11Surface) {
-        let Some(elem) = self
-            .state
-            .space
-            .elements()
-            .find(|e| matches!(e.0.x11_surface(), Some(w) if w == &window))
-            .cloned()
-        else {
-            return;
-        };
-
-        window.set_maximized(false).unwrap();
-        if let Some(old_geo) = window
-            .user_data()
-            .get::<OldGeometry>()
-            .and_then(|data| data.restore())
-        {
-            window.configure(old_geo).unwrap();
-            self.state.space.map_element(elem, old_geo.loc, false);
-        }
     }
 
     fn resize_request(
@@ -286,36 +256,8 @@ impl XwmHandler for CalloopData {
 }
 
 impl SabiniwmState {
-    pub fn maximize_request_x11(&mut self, window: &X11Surface) {
-        let Some(elem) = self
-            .space
-            .elements()
-            .find(|e| matches!(e.0.x11_surface(), Some(w) if w == window))
-            .cloned()
-        else {
-            return;
-        };
-
-        let old_geo = self.space.element_bbox(&elem).unwrap();
-        let outputs_for_window = self.space.outputs_for_element(&elem);
-        let output = outputs_for_window
-            .first()
-            // The window hasn't been mapped yet, use the primary output instead
-            .or_else(|| self.space.outputs().next())
-            // Assumes that at least one output exists
-            .expect("No outputs found");
-        let geometry = self.space.output_geometry(output).unwrap();
-
-        window.set_maximized(true).unwrap();
-        window.configure(geometry).unwrap();
-        window.user_data().insert_if_missing(OldGeometry::default);
-        window
-            .user_data()
-            .get::<OldGeometry>()
-            .unwrap()
-            .save(old_geo);
-        self.space.map_element(elem, geometry.loc, false);
-    }
+    // We'll remove it when we remove crates/sabiniwm/src/shell/ssd.rs
+    pub fn maximize_request_x11(&mut self, _window: &X11Surface) {}
 
     pub fn move_request_x11(&mut self, window: &X11Surface) {
         if let Some(touch) = self.seat.get_touch() {

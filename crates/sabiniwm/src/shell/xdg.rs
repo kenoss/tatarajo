@@ -261,52 +261,6 @@ impl XdgShellHandler for SabiniwmState {
         }
     }
 
-    fn maximize_request(&mut self, surface: ToplevelSurface) {
-        // NOTE: This should use layer-shell when it is implemented to
-        // get the correct maximum size
-        if surface
-            .current_state()
-            .capabilities
-            .contains(xdg_toplevel::WmCapabilities::Maximize)
-        {
-            let window = self.window_for_surface(surface.wl_surface()).unwrap();
-            let outputs_for_window = self.space.outputs_for_element(&window);
-            let output = outputs_for_window
-                .first()
-                // The window hasn't been mapped yet, use the primary output instead
-                .or_else(|| self.space.outputs().next())
-                // Assumes that at least one output exists
-                .expect("No outputs found");
-            let geometry = self.space.output_geometry(output).unwrap();
-
-            surface.with_pending_state(|state| {
-                state.states.set(xdg_toplevel::State::Maximized);
-                state.size = Some(geometry.size);
-            });
-            self.space.map_element(window, geometry.loc, true);
-        }
-
-        // The protocol demands us to always reply with a configure,
-        // regardless of we fulfilled the request or not
-        surface.send_configure();
-    }
-
-    fn unmaximize_request(&mut self, surface: ToplevelSurface) {
-        if !surface
-            .current_state()
-            .states
-            .contains(xdg_toplevel::State::Maximized)
-        {
-            return;
-        }
-
-        surface.with_pending_state(|state| {
-            state.states.unset(xdg_toplevel::State::Maximized);
-            state.size = None;
-        });
-        surface.send_pending_configure();
-    }
-
     fn grab(&mut self, surface: PopupSurface, seat: wl_seat::WlSeat, serial: Serial) {
         let seat: Seat<SabiniwmState> = Seat::from_resource(&seat).unwrap();
         let kind = PopupKind::Xdg(surface);
