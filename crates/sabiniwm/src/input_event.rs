@@ -182,7 +182,9 @@ impl SabiniwmState {
 
         // TODO: Check whether this is necessary.
         for window in self.space.elements() {
-            window.toplevel().unwrap().send_pending_configure();
+            if let Some(toplevel) = window.toplevel() {
+                toplevel.send_pending_configure();
+            }
         }
 
         let serial = serial.unwrap_or_else(|| SERIAL_COUNTER.next_serial());

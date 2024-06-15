@@ -236,6 +236,7 @@ impl SabiniwmState {
                         Point::from((image.xhot as u16, image.yhot as u16)),
                     )
                     .expect("Failed to set xwayland default cursor");
+                    std::env::set_var("DISPLAY", format!(":{}", display));
                     data.state.xwm = Some(wm);
                     data.state.xdisplay = Some(display);
                 }
