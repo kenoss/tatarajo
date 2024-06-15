@@ -1,14 +1,9 @@
-use super::{
-    place_new_window, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab, ResizeData, ResizeState,
-    SurfaceData, TouchMoveSurfaceGrab, WindowElement,
-};
+use super::{place_new_window, PointerMoveSurfaceGrab, TouchMoveSurfaceGrab, WindowElement};
 use crate::focus::KeyboardFocusTarget;
 use crate::{CalloopData, SabiniwmState};
-use smithay::desktop::space::SpaceElement;
 use smithay::desktop::Window;
 use smithay::input::pointer::Focus;
 use smithay::utils::{Logical, Rectangle, SERIAL_COUNTER};
-use smithay::wayland::compositor::with_states;
 use smithay::wayland::selection::data_device::{
     clear_data_device_selection, current_data_device_selection_userdata,
     request_data_device_client_selection, set_data_device_selection,
@@ -121,62 +116,18 @@ impl XwmHandler for CalloopData {
         //       they are always mapped top and then never reordered.
     }
 
+    fn move_request(&mut self, _xwm: XwmId, _window: X11Surface, _button: u32) {
+        // nop. Currently, moving windows by drag is not supproted.
+    }
+
     fn resize_request(
         &mut self,
         _xwm: XwmId,
-        window: X11Surface,
+        _window: X11Surface,
         _button: u32,
-        edges: X11ResizeEdge,
+        _edges: X11ResizeEdge,
     ) {
-        // luckily anvil only supports one seat anyway...
-        let start_data = self.state.pointer.grab_start_data().unwrap();
-
-        let Some(element) = self
-            .state
-            .space
-            .elements()
-            .find(|e| matches!(e.0.x11_surface(), Some(w) if w == &window))
-        else {
-            return;
-        };
-
-        let geometry = element.geometry();
-        let loc = self.state.space.element_location(element).unwrap();
-        let (initial_window_location, initial_window_size) = (loc, geometry.size);
-
-        with_states(&element.wl_surface().unwrap(), move |states| {
-            states
-                .data_map
-                .get::<RefCell<SurfaceData>>()
-                .unwrap()
-                .borrow_mut()
-                .resize_state = ResizeState::Resizing(ResizeData {
-                edges: edges.into(),
-                initial_window_location,
-                initial_window_size,
-            });
-        });
-
-        let grab = PointerResizeSurfaceGrab {
-            start_data,
-            window: element.clone(),
-            edges: edges.into(),
-            initial_window_location,
-            initial_window_size,
-            last_window_size: initial_window_size,
-        };
-
-        let pointer = self.state.pointer.clone();
-        pointer.set_grab(
-            &mut self.state,
-            grab,
-            SERIAL_COUNTER.next_serial(),
-            Focus::Clear,
-        );
-    }
-
-    fn move_request(&mut self, _xwm: XwmId, window: X11Surface, _button: u32) {
-        self.state.move_request_x11(&window)
+        // nop. Currently, resizing windows by drag is not supproted.
     }
 
     fn allow_selection_access(&mut self, xwm: XwmId, _selection: SelectionTarget) -> bool {

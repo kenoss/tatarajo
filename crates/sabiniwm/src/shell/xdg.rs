@@ -1,9 +1,8 @@
 use super::{
-    place_new_window, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab, ResizeData, ResizeEdge,
-    ResizeState, SurfaceData, WindowElement,
+    place_new_window, PointerMoveSurfaceGrab, ResizeEdge, ResizeState, SurfaceData, WindowElement,
 };
 use crate::focus::KeyboardFocusTarget;
-use crate::shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab};
+use crate::shell::TouchMoveSurfaceGrab;
 use crate::state::SabiniwmState;
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::{
@@ -75,125 +74,18 @@ impl XdgShellHandler for SabiniwmState {
         surface.send_repositioned(token);
     }
 
-    fn move_request(&mut self, surface: ToplevelSurface, seat: wl_seat::WlSeat, serial: Serial) {
-        let seat: Seat<SabiniwmState> = Seat::from_resource(&seat).unwrap();
-        self.move_request_xdg(&surface, &seat, serial)
+    fn move_request(&mut self, _surface: ToplevelSurface, _seat: wl_seat::WlSeat, _serial: Serial) {
+        // nop. Currently, moving windows by drag is not supproted.
     }
 
     fn resize_request(
         &mut self,
-        surface: ToplevelSurface,
-        seat: wl_seat::WlSeat,
-        serial: Serial,
-        edges: xdg_toplevel::ResizeEdge,
+        _surface: ToplevelSurface,
+        _seat: wl_seat::WlSeat,
+        _serial: Serial,
+        _edges: xdg_toplevel::ResizeEdge,
     ) {
-        let seat: Seat<SabiniwmState> = Seat::from_resource(&seat).unwrap();
-
-        if let Some(touch) = seat.get_touch() {
-            if touch.has_grab(serial) {
-                let start_data = touch.grab_start_data().unwrap();
-                info!(?start_data);
-
-                // If the client disconnects after requesting a move
-                // we can just ignore the request
-                let Some(window) = self.window_for_surface(surface.wl_surface()) else {
-                    info!("no window");
-                    return;
-                };
-
-                // If the focus was for a different surface, ignore the request.
-                if start_data.focus.is_none()
-                    || !start_data
-                        .focus
-                        .as_ref()
-                        .unwrap()
-                        .0
-                        .same_client_as(&surface.wl_surface().id())
-                {
-                    info!("different surface");
-                    return;
-                }
-                let geometry = window.geometry();
-                let loc = self.space.element_location(&window).unwrap();
-                let (initial_window_location, initial_window_size) = (loc, geometry.size);
-
-                with_states(surface.wl_surface(), move |states| {
-                    states
-                        .data_map
-                        .get::<RefCell<SurfaceData>>()
-                        .unwrap()
-                        .borrow_mut()
-                        .resize_state = ResizeState::Resizing(ResizeData {
-                        edges: edges.into(),
-                        initial_window_location,
-                        initial_window_size,
-                    });
-                });
-
-                let grab = TouchResizeSurfaceGrab {
-                    start_data,
-                    window,
-                    edges: edges.into(),
-                    initial_window_location,
-                    initial_window_size,
-                    last_window_size: initial_window_size,
-                };
-
-                touch.set_grab(self, grab, serial);
-                return;
-            }
-        }
-
-        let pointer = seat.get_pointer().unwrap();
-
-        // Check that this surface has a click grab.
-        if !pointer.has_grab(serial) {
-            return;
-        }
-
-        let start_data = pointer.grab_start_data().unwrap();
-
-        let window = self.window_for_surface(surface.wl_surface()).unwrap();
-
-        // If the focus was for a different surface, ignore the request.
-        if start_data.focus.is_none()
-            || !start_data
-                .focus
-                .as_ref()
-                .unwrap()
-                .0
-                .same_client_as(&surface.wl_surface().id())
-        {
-            return;
-        }
-
-        let geometry = window.geometry();
-        let loc = self.space.element_location(&window).unwrap();
-        let (initial_window_location, initial_window_size) = (loc, geometry.size);
-
-        with_states(surface.wl_surface(), move |states| {
-            states
-                .data_map
-                .get::<RefCell<SurfaceData>>()
-                .unwrap()
-                .borrow_mut()
-                .resize_state = ResizeState::Resizing(ResizeData {
-                edges: edges.into(),
-                initial_window_location,
-                initial_window_size,
-            });
-        });
-
-        let grab = PointerResizeSurfaceGrab {
-            start_data,
-            window,
-            edges: edges.into(),
-            initial_window_location,
-            initial_window_size,
-            last_window_size: initial_window_size,
-        };
-
-        pointer.set_grab(self, grab, serial, Focus::Clear);
+        // nop. Currently, resizing windows by drag is not supproted.
     }
 
     fn ack_configure(&mut self, surface: WlSurface, configure: Configure) {
