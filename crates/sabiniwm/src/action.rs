@@ -1,5 +1,5 @@
-// use crate::view::layout_node::{LayoutMessage, LayoutMessageI};
 use crate::state::SabiniwmState;
+use crate::view::layout_node::{LayoutMessage, LayoutMessageI};
 use dyn_clone::DynClone;
 
 pub trait ActionFnI: std::fmt::Debug + DynClone {
@@ -37,24 +37,24 @@ impl ActionFn {
 #[derive(Debug, Clone)]
 pub enum Action {
     Spawn(String),
-    // LayoutMessage(LayoutMessage),
+    LayoutMessage(LayoutMessage),
     ActionFn(ActionFn),
 }
 
-// impl From<LayoutMessage> for Action {
-//     fn from(x: LayoutMessage) -> Self {
-//         Self::LayoutMessage(x)
-//     }
-// }
+impl From<LayoutMessage> for Action {
+    fn from(x: LayoutMessage) -> Self {
+        Self::LayoutMessage(x)
+    }
+}
 
-// impl<T> From<T> for Action
-// where
-//     T: LayoutMessageI,
-// {
-//     fn from(x: T) -> Self {
-//         Self::LayoutMessage(x.into())
-//     }
-// }
+impl<T> From<T> for Action
+where
+    T: LayoutMessageI,
+{
+    fn from(x: T) -> Self {
+        Self::LayoutMessage(x.into())
+    }
+}
 
 impl Action {
     pub fn spawn(s: impl ToString) -> Self {
@@ -72,160 +72,160 @@ impl SabiniwmState {
                     .arg(s)
                     .spawn();
             }
-            // Action::LayoutMessage(message) => {
-            //     self.view.handle_layout_message(message, &mut self.space);
-            //     self.reflect_focus_from_stackset(None);
-            // }
+            Action::LayoutMessage(message) => {
+                self.view.handle_layout_message(message, &mut self.space);
+                self.reflect_focus_from_stackset(None);
+            }
             Action::ActionFn(f) => {
                 f.exec(self);
-                // self.view.layout(&mut self.space);
-                // self.reflect_focus_from_stackset(None);
+                self.view.layout(&mut self.space);
+                self.reflect_focus_from_stackset(None);
             }
         }
     }
 }
 
-// #[derive(Debug, Clone)]
-// pub enum ActionMoveFocus {
-//     Next,
-//     Prev,
-// }
+#[derive(Debug, Clone)]
+pub enum ActionMoveFocus {
+    Next,
+    Prev,
+}
 
-// impl ActionFnI for ActionMoveFocus {
-//     fn exec(&self, state: &mut SabiniwmState) {
-//         let count = match self {
-//             Self::Next => 1,
-//             Self::Prev => -1,
-//         };
-//         state.view.update_stackset_with(|stackset| {
-//             let stack = &mut stackset.workspaces.focus_mut().stack;
-//             let i = stack.mod_plus_focused_index(count);
-//             stack.set_focused_index(i);
-//         });
-//     }
-// }
+impl ActionFnI for ActionMoveFocus {
+    fn exec(&self, state: &mut SabiniwmState) {
+        let count = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let stack = &mut stackset.workspaces.focus_mut().stack;
+            let i = stack.mod_plus_focused_index(count);
+            stack.set_focused_index(i);
+        });
+    }
+}
 
-// #[derive(Debug, Clone)]
-// pub enum ActionWindowSwap {
-//     Next,
-//     Prev,
-// }
+#[derive(Debug, Clone)]
+pub enum ActionWindowSwap {
+    Next,
+    Prev,
+}
 
-// impl ActionFnI for ActionWindowSwap {
-//     fn exec(&self, state: &mut SabiniwmState) {
-//         let count = match self {
-//             Self::Next => 1,
-//             Self::Prev => -1,
-//         };
-//         state.view.update_stackset_with(|stackset| {
-//             let stack = &mut stackset.workspaces.focus_mut().stack;
+impl ActionFnI for ActionWindowSwap {
+    fn exec(&self, state: &mut SabiniwmState) {
+        let count = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let stack = &mut stackset.workspaces.focus_mut().stack;
 
-//             if stack.is_empty() {
-//                 return;
-//             }
+            if stack.is_empty() {
+                return;
+            }
 
-//             let mut stack = stack.as_mut();
-//             let i = stack.focus;
-//             let j = stack.mod_plus_focused_index(count);
-//             stack.vec.swap(i, j);
-//             stack.focus = j;
-//             stack.commit();
-//         });
-//     }
-// }
+            let mut stack = stack.as_mut();
+            let i = stack.focus;
+            let j = stack.mod_plus_focused_index(count);
+            stack.vec.swap(i, j);
+            stack.focus = j;
+            stack.commit();
+        });
+    }
+}
 
-// #[derive(Debug, Clone)]
-// pub enum ActionWorkspaceFocus {
-//     Next,
-//     Prev,
-// }
+#[derive(Debug, Clone)]
+pub enum ActionWorkspaceFocus {
+    Next,
+    Prev,
+}
 
-// impl ActionFnI for ActionWorkspaceFocus {
-//     fn exec(&self, state: &mut SabiniwmState) {
-//         let count = match self {
-//             Self::Next => 1,
-//             Self::Prev => -1,
-//         };
-//         state.view.update_stackset_with(|stackset| {
-//             let workspaces = &mut stackset.workspaces;
-//             let i = workspaces.mod_plus_focused_index(count);
-//             workspaces.set_focused_index(i);
-//         });
-//     }
-// }
+impl ActionFnI for ActionWorkspaceFocus {
+    fn exec(&self, state: &mut SabiniwmState) {
+        let count = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let workspaces = &mut stackset.workspaces;
+            let i = workspaces.mod_plus_focused_index(count);
+            workspaces.set_focused_index(i);
+        });
+    }
+}
 
-// #[derive(Debug, Clone)]
-// pub enum ActionWorkspaceFocusNonEmpty {
-//     Next,
-//     Prev,
-// }
+#[derive(Debug, Clone)]
+pub enum ActionWorkspaceFocusNonEmpty {
+    Next,
+    Prev,
+}
 
-// impl ActionFnI for ActionWorkspaceFocusNonEmpty {
-//     fn exec(&self, state: &mut SabiniwmState) {
-//         let direction = match self {
-//             Self::Next => 1,
-//             Self::Prev => -1,
-//         };
-//         // state.view.update_stackset_with(|stackset| {
-//         //     let workspaces = &mut stackset.workspaces;
-//         //     for d in 1..workspaces.len() {
-//         //         let i = workspaces.mod_plus_focused_index(direction * d as isize);
-//         //         if !workspaces.as_vec()[i].stack.is_empty() {
-//         //             workspaces.set_focused_index(i);
-//         //             return;
-//         //         }
-//         //     }
-//         // });
-//     }
-// }
+impl ActionFnI for ActionWorkspaceFocusNonEmpty {
+    fn exec(&self, state: &mut SabiniwmState) {
+        let direction = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let workspaces = &mut stackset.workspaces;
+            for d in 1..workspaces.len() {
+                let i = workspaces.mod_plus_focused_index(direction * d as isize);
+                if !workspaces.as_vec()[i].stack.is_empty() {
+                    workspaces.set_focused_index(i);
+                    return;
+                }
+            }
+        });
+    }
+}
 
-// #[derive(Debug, Clone)]
-// pub enum ActionWindowMoveToWorkspace {
-//     Next,
-//     Prev,
-// }
+#[derive(Debug, Clone)]
+pub enum ActionWindowMoveToWorkspace {
+    Next,
+    Prev,
+}
 
-// impl ActionFnI for ActionWindowMoveToWorkspace {
-//     fn exec(&self, state: &mut SabiniwmState) {
-//         let count = match self {
-//             Self::Next => 1,
-//             Self::Prev => -1,
-//         };
-//         state.view.update_stackset_with(|stackset| {
-//             let mut workspaces = stackset.workspaces.as_mut();
+impl ActionFnI for ActionWindowMoveToWorkspace {
+    fn exec(&self, state: &mut SabiniwmState) {
+        let count = match self {
+            Self::Next => 1,
+            Self::Prev => -1,
+        };
+        state.view.update_stackset_with(|stackset| {
+            let mut workspaces = stackset.workspaces.as_mut();
 
-//             let mut src = workspaces.vec[workspaces.focus].stack.as_mut();
-//             let window = src.vec.remove(src.focus);
-//             src.focus = src.focus.min(src.vec.len().saturating_sub(1));
-//             src.commit();
+            let mut src = workspaces.vec[workspaces.focus].stack.as_mut();
+            let window = src.vec.remove(src.focus);
+            src.focus = src.focus.min(src.vec.len().saturating_sub(1));
+            src.commit();
 
-//             workspaces.focus = workspaces.mod_plus_focused_index(count);
+            workspaces.focus = workspaces.mod_plus_focused_index(count);
 
-//             let dst = workspaces.vec[workspaces.focus].stack.as_mut();
-//             dst.vec.insert(dst.focus, window);
-//             dst.commit();
+            let dst = workspaces.vec[workspaces.focus].stack.as_mut();
+            dst.vec.insert(dst.focus, window);
+            dst.commit();
 
-//             workspaces.commit();
-//         });
-//     }
-// }
+            workspaces.commit();
+        });
+    }
+}
 
-// #[derive(Debug, Clone)]
-// pub struct ActionWindowKill {}
+#[derive(Debug, Clone)]
+pub struct ActionWindowKill {}
 
-// impl ActionFnI for ActionWindowKill {
-//     fn exec(&self, state: &mut SabiniwmState) {
-//         use smithay::desktop::WindowSurface;
+impl ActionFnI for ActionWindowKill {
+    fn exec(&self, state: &mut SabiniwmState) {
+        use smithay::desktop::WindowSurface;
 
-//         let Some(window) = state.view.focused_window_mut() else {
-//             return;
-//         };
+        let Some(window) = state.view.focused_window_mut() else {
+            return;
+        };
 
-//         match window.smithay_window().underlying_surface() {
-//             WindowSurface::Wayland(w) => w.send_close(),
-//             WindowSurface::X11(w) => {
-//                 let _ = w.close();
-//             }
-//         };
-//     }
-// }
+        match window.smithay_window().underlying_surface() {
+            WindowSurface::Wayland(w) => w.send_close(),
+            WindowSurface::X11(w) => {
+                let _ = w.close();
+            }
+        };
+    }
+}

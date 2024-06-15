@@ -4,8 +4,9 @@ extern crate maplit;
 
 use anyhow::{anyhow, Result};
 use big_s::S;
-use sabiniwm::action::Action;
+use sabiniwm::action::{self, Action, ActionFnI};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
+use sabiniwm::view::predefined::LayoutMessageSelect;
 use sabiniwm::view::stackset::WorkspaceTag;
 
 static POSSIBLE_BACKENDS: &[&str] = &[
@@ -56,20 +57,20 @@ fn main() -> Result<()> {
     let keymap = Keymap::new(hashmap! {
         kbd("H-x H-t") => Action::spawn("alacritty"),
 
-        // kbd("H-space") => LayoutMessageSelect::Next.into(),
+        kbd("H-space") => LayoutMessageSelect::Next.into(),
 
-        // kbd("H-t") => action::ActionMoveFocus::Next.into_action(),
-        // kbd("H-h") => action::ActionMoveFocus::Prev.into_action(),
-        // kbd("H-T") => action::ActionWindowSwap::Next.into_action(),
-        // kbd("H-H") => action::ActionWindowSwap::Prev.into_action(),
-        // kbd("H-n") => action::ActionWorkspaceFocusNonEmpty::Next.into_action(),
-        // kbd("H-d") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
-        // kbd("H-N") => action::ActionWindowMoveToWorkspace::Next.into_action(),
-        // kbd("H-D") => action::ActionWindowMoveToWorkspace::Prev.into_action(),
-        // kbd("H-v") => action::ActionWorkspaceFocus::Next.into_action(),
-        // kbd("H-b") => action::ActionWorkspaceFocus::Prev.into_action(),
+        kbd("H-t") => action::ActionMoveFocus::Next.into_action(),
+        kbd("H-h") => action::ActionMoveFocus::Prev.into_action(),
+        kbd("H-T") => action::ActionWindowSwap::Next.into_action(),
+        kbd("H-H") => action::ActionWindowSwap::Prev.into_action(),
+        kbd("H-n") => action::ActionWorkspaceFocusNonEmpty::Next.into_action(),
+        kbd("H-d") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
+        kbd("H-N") => action::ActionWindowMoveToWorkspace::Next.into_action(),
+        kbd("H-D") => action::ActionWindowMoveToWorkspace::Prev.into_action(),
+        kbd("H-v") => action::ActionWorkspaceFocus::Next.into_action(),
+        kbd("H-b") => action::ActionWorkspaceFocus::Prev.into_action(),
 
-        // kbd("H-k") => (action::ActionWindowKill {}).into_action(),
+        kbd("H-k") => (action::ActionWindowKill {}).into_action(),
     });
 
     let arg = ::std::env::args().nth(1);
