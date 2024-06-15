@@ -36,45 +36,6 @@ mod xdg;
 pub use self::element::*;
 pub use self::grabs::*;
 
-fn fullscreen_output_geometry(
-    wl_surface: &WlSurface,
-    wl_output: Option<&wl_output::WlOutput>,
-    space: &mut Space<WindowElement>,
-) -> Option<Rectangle<i32, Logical>> {
-    // First test if a specific output has been requested
-    // if the requested output is not found ignore the request
-    wl_output
-        .and_then(Output::from_resource)
-        .or_else(|| {
-            let w = space.elements().find(|window| {
-                window
-                    .wl_surface()
-                    .map(|s| s == *wl_surface)
-                    .unwrap_or(false)
-            });
-            w.and_then(|w| space.outputs_for_element(w).first().cloned())
-        })
-        .as_ref()
-        .and_then(|o| space.output_geometry(o))
-}
-
-#[derive(Default)]
-pub struct FullscreenSurface(RefCell<Option<WindowElement>>);
-
-impl FullscreenSurface {
-    pub fn set(&self, window: WindowElement) {
-        *self.0.borrow_mut() = Some(window);
-    }
-
-    pub fn get(&self) -> Option<WindowElement> {
-        self.0.borrow().clone()
-    }
-
-    pub fn clear(&self) -> Option<WindowElement> {
-        self.0.borrow_mut().take()
-    }
-}
-
 impl BufferHandler for SabiniwmState {
     fn buffer_destroyed(&mut self, _buffer: &WlBuffer) {}
 }

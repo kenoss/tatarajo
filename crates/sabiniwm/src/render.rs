@@ -1,12 +1,12 @@
 #[cfg(feature = "debug")]
 use crate::drawing::FpsElement;
-use crate::drawing::{PointerRenderElement, CLEAR_COLOR, CLEAR_COLOR_FULLSCREEN};
-use crate::shell::{FullscreenSurface, WindowElement, WindowRenderElement};
+use crate::drawing::{PointerRenderElement, CLEAR_COLOR};
+use crate::shell::{WindowElement, WindowRenderElement};
 use smithay::backend::renderer::damage::{
     Error as OutputDamageTrackerError, OutputDamageTracker, RenderOutputResult,
 };
 use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
-use smithay::backend::renderer::element::{AsRenderElements, RenderElement, Wrap};
+use smithay::backend::renderer::element::{RenderElement, Wrap};
 use smithay::backend::renderer::{ImportAll, ImportMem, Renderer};
 use smithay::desktop::space::{Space, SpaceRenderElements};
 use smithay::output::Output;
@@ -74,42 +74,21 @@ where
     R: Renderer + ImportAll + ImportMem,
     R::TextureId: Clone + 'static,
 {
-    if let Some(window) = output
-        .user_data()
-        .get::<FullscreenSurface>()
-        .and_then(|f| f.get())
-    {
-        let scale = output.current_scale().fractional_scale().into();
-        let window_render_elements: Vec<WindowRenderElement<R>> =
-            AsRenderElements::<R>::render_elements(&window, renderer, (0, 0).into(), scale, 1.0);
+    let mut output_render_elements = custom_elements
+        .into_iter()
+        .map(OutputRenderElements::from)
+        .collect::<Vec<_>>();
 
-        let elements = custom_elements
-            .into_iter()
-            .map(OutputRenderElements::from)
-            .chain(
-                window_render_elements
-                    .into_iter()
-                    .map(|e| OutputRenderElements::Window(Wrap::from(e))),
-            )
-            .collect::<Vec<_>>();
-        (elements, CLEAR_COLOR_FULLSCREEN)
-    } else {
-        let mut output_render_elements = custom_elements
-            .into_iter()
-            .map(OutputRenderElements::from)
-            .collect::<Vec<_>>();
+    let space_elements = smithay::desktop::space::space_render_elements::<_, WindowElement, _>(
+        renderer,
+        [space],
+        output,
+        1.0,
+    )
+    .expect("output without mode?");
+    output_render_elements.extend(space_elements.into_iter().map(OutputRenderElements::Space));
 
-        let space_elements = smithay::desktop::space::space_render_elements::<_, WindowElement, _>(
-            renderer,
-            [space],
-            output,
-            1.0,
-        )
-        .expect("output without mode?");
-        output_render_elements.extend(space_elements.into_iter().map(OutputRenderElements::Space));
-
-        (output_render_elements, CLEAR_COLOR)
-    }
+    (output_render_elements, CLEAR_COLOR)
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -83,9 +83,6 @@ impl Backend for WinitData {
     fn seat_name(&self) -> String {
         String::from("winit")
     }
-    fn reset_buffers(&mut self, _output: &smithay::output::Output) {
-        self.full_redraw = 4;
-    }
     fn early_import(&mut self, _surface: &wl_surface::WlSurface) {}
     fn update_led_state(&mut self, _led_state: smithay::input::keyboard::LedState) {}
 }

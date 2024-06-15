@@ -175,16 +175,6 @@ impl Backend for UdevData {
         self.session.seat()
     }
 
-    fn reset_buffers(&mut self, output: &smithay::output::Output) {
-        if let Some(id) = output.user_data().get::<UdevOutputId>() {
-            if let Some(gpu) = self.backends.get_mut(&id.device_id) {
-                if let Some(surface) = gpu.surfaces.get_mut(&id.crtc) {
-                    surface.compositor.reset_buffers();
-                }
-            }
-        }
-    }
-
     fn early_import(&mut self, surface: &wayland_server::protocol::wl_surface::WlSurface) {
         if let Err(err) = self.gpus.early_import(self.primary_gpu, surface) {
             warn!("Early buffer import failed: {}", err);

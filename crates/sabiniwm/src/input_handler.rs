@@ -1,5 +1,4 @@
 use crate::focus::PointerFocusTarget;
-use crate::shell::FullscreenSurface;
 use crate::state::SabiniwmState;
 use smithay::desktop::{layer_map_for_output, WindowSurfaceType};
 use smithay::utils::{Logical, Point};
@@ -18,14 +17,7 @@ impl SabiniwmState {
         let layers = layer_map_for_output(output);
 
         let mut under = None;
-        if let Some((surface, loc)) = output
-            .user_data()
-            .get::<FullscreenSurface>()
-            .and_then(|f| f.get())
-            .and_then(|w| w.surface_under(pos - output_geo.loc.to_f64(), WindowSurfaceType::ALL))
-        {
-            under = Some((surface, loc + output_geo.loc));
-        } else if let Some(focus) = layers
+        if let Some(focus) = layers
             .layer_under(WlrLayer::Overlay, pos)
             .or_else(|| layers.layer_under(WlrLayer::Top, pos))
             .and_then(|layer| {

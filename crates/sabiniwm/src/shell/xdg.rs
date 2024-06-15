@@ -1,6 +1,6 @@
 use super::{
-    fullscreen_output_geometry, place_new_window, FullscreenSurface, PointerMoveSurfaceGrab,
-    PointerResizeSurfaceGrab, ResizeData, ResizeEdge, ResizeState, SurfaceData, WindowElement,
+    place_new_window, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab, ResizeData, ResizeEdge,
+    ResizeState, SurfaceData, WindowElement,
 };
 use crate::focus::KeyboardFocusTarget;
 use crate::shell::{TouchMoveSurfaceGrab, TouchResizeSurfaceGrab};
@@ -12,11 +12,10 @@ use smithay::desktop::{
 };
 use smithay::input::pointer::Focus;
 use smithay::input::Seat;
-use smithay::output::Output;
 use smithay::reexports::wayland_protocols::xdg::decoration as xdg_decoration;
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
+use smithay::reexports::wayland_server::protocol::wl_seat;
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
-use smithay::reexports::wayland_server::protocol::{wl_output, wl_seat};
 use smithay::reexports::wayland_server::Resource;
 use smithay::utils::{Logical, Point, Serial};
 use smithay::wayland::compositor::{self, with_states};
@@ -260,92 +259,6 @@ impl XdgShellHandler for SabiniwmState {
                 window.set_ssd(is_ssd);
             }
         }
-    }
-
-    fn fullscreen_request(
-        &mut self,
-        surface: ToplevelSurface,
-        mut wl_output: Option<wl_output::WlOutput>,
-    ) {
-        if surface
-            .current_state()
-            .capabilities
-            .contains(xdg_toplevel::WmCapabilities::Fullscreen)
-        {
-            // NOTE: This is only one part of the solution. We can set the
-            // location and configure size here, but the surface should be rendered fullscreen
-            // independently from its buffer size
-            let wl_surface = surface.wl_surface();
-
-            let output_geometry =
-                fullscreen_output_geometry(wl_surface, wl_output.as_ref(), &mut self.space);
-
-            if let Some(geometry) = output_geometry {
-                let output = wl_output
-                    .as_ref()
-                    .and_then(Output::from_resource)
-                    .unwrap_or_else(|| self.space.outputs().next().unwrap().clone());
-                let client = self.display_handle.get_client(wl_surface.id()).unwrap();
-                for output in output.client_outputs(&client) {
-                    wl_output = Some(output);
-                }
-                let window = self
-                    .space
-                    .elements()
-                    .find(|window| {
-                        window
-                            .wl_surface()
-                            .map(|s| s == *wl_surface)
-                            .unwrap_or(false)
-                    })
-                    .unwrap();
-
-                surface.with_pending_state(|state| {
-                    state.states.set(xdg_toplevel::State::Fullscreen);
-                    state.size = Some(geometry.size);
-                    state.fullscreen_output = wl_output;
-                });
-                output
-                    .user_data()
-                    .insert_if_missing(FullscreenSurface::default);
-                output
-                    .user_data()
-                    .get::<FullscreenSurface>()
-                    .unwrap()
-                    .set(window.clone());
-                trace!("Fullscreening: {:?}", window);
-            }
-        }
-
-        // The protocol demands us to always reply with a configure,
-        // regardless of we fulfilled the request or not
-        surface.send_configure();
-    }
-
-    fn unfullscreen_request(&mut self, surface: ToplevelSurface) {
-        if !surface
-            .current_state()
-            .states
-            .contains(xdg_toplevel::State::Fullscreen)
-        {
-            return;
-        }
-
-        let ret = surface.with_pending_state(|state| {
-            state.states.unset(xdg_toplevel::State::Fullscreen);
-            state.size = None;
-            state.fullscreen_output.take()
-        });
-        if let Some(output) = ret {
-            let output = Output::from_resource(&output).unwrap();
-            if let Some(fullscreen) = output.user_data().get::<FullscreenSurface>() {
-                trace!("Unfullscreening: {:?}", fullscreen.get());
-                fullscreen.clear();
-                self.backend_data.reset_buffers(&output);
-            }
-        }
-
-        surface.send_pending_configure();
     }
 
     fn maximize_request(&mut self, surface: ToplevelSurface) {

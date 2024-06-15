@@ -418,7 +418,6 @@ pub(crate) trait Backend: downcast::Any + DmabufHandlerDelegate {
     fn has_relative_motion(&self) -> bool;
     fn has_gesture(&self) -> bool;
     fn seat_name(&self) -> String;
-    fn reset_buffers(&mut self, output: &smithay::output::Output);
     fn early_import(&mut self, surface: &wayland_server::protocol::wl_surface::WlSurface);
     fn update_led_state(&mut self, led_state: smithay::input::keyboard::LedState);
 }

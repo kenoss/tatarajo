@@ -1,6 +1,6 @@
 use super::{
-    place_new_window, FullscreenSurface, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab,
-    ResizeData, ResizeState, SurfaceData, TouchMoveSurfaceGrab, WindowElement,
+    place_new_window, PointerMoveSurfaceGrab, PointerResizeSurfaceGrab, ResizeData, ResizeState,
+    SurfaceData, TouchMoveSurfaceGrab, WindowElement,
 };
 use crate::focus::KeyboardFocusTarget;
 use crate::{CalloopData, SabiniwmState};
@@ -148,67 +148,6 @@ impl XwmHandler for CalloopData {
         {
             window.configure(old_geo).unwrap();
             self.state.space.map_element(elem, old_geo.loc, false);
-        }
-    }
-
-    fn fullscreen_request(&mut self, _xwm: XwmId, window: X11Surface) {
-        if let Some(elem) = self
-            .state
-            .space
-            .elements()
-            .find(|e| matches!(e.0.x11_surface(), Some(w) if w == &window))
-        {
-            let outputs_for_window = self.state.space.outputs_for_element(elem);
-            let output = outputs_for_window
-                .first()
-                // The window hasn't been mapped yet, use the primary output instead
-                .or_else(|| self.state.space.outputs().next())
-                // Assumes that at least one output exists
-                .expect("No outputs found");
-            let geometry = self.state.space.output_geometry(output).unwrap();
-
-            window.set_fullscreen(true).unwrap();
-            elem.set_ssd(false);
-            window.configure(geometry).unwrap();
-            output
-                .user_data()
-                .insert_if_missing(FullscreenSurface::default);
-            output
-                .user_data()
-                .get::<FullscreenSurface>()
-                .unwrap()
-                .set(elem.clone());
-            trace!("Fullscreening: {:?}", elem);
-        }
-    }
-
-    fn unfullscreen_request(&mut self, _xwm: XwmId, window: X11Surface) {
-        if let Some(elem) = self
-            .state
-            .space
-            .elements()
-            .find(|e| matches!(e.0.x11_surface(), Some(w) if w == &window))
-        {
-            window.set_fullscreen(false).unwrap();
-            elem.set_ssd(!window.is_decorated());
-            if let Some(output) = self.state.space.outputs().find(|o| {
-                o.user_data()
-                    .get::<FullscreenSurface>()
-                    .and_then(|f| f.get())
-                    .map(|w| &w == elem)
-                    .unwrap_or(false)
-            }) {
-                trace!("Unfullscreening: {:?}", elem);
-                output
-                    .user_data()
-                    .get::<FullscreenSurface>()
-                    .unwrap()
-                    .clear();
-                window
-                    .configure(self.state.space.element_bbox(elem))
-                    .unwrap();
-                self.state.backend_data.reset_buffers(output);
-            }
         }
     }
 
