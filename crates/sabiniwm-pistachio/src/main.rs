@@ -9,10 +9,10 @@ use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
 use sabiniwm::view::predefined::LayoutMessageSelect;
 use sabiniwm::view::stackset::WorkspaceTag;
 
-static POSSIBLE_BACKENDS: &[&str] = &[
-    "--winit : Run anvil as a X11 or Wayland client using winit.",
-    "--tty-udev : Run anvil as a tty udev client (requires root if without logind).",
-];
+enum Backend {
+    Udev,
+    Winit,
+}
 
 fn tracing_init() -> Result<()> {
     use time::macros::format_description;
@@ -74,24 +74,29 @@ fn main() -> Result<()> {
     });
 
     let arg = ::std::env::args().nth(1);
-    match arg.as_ref().map(|s| &s[..]) {
-        Some("--winit") => {
-            sabiniwm::winit::run_winit(workspace_tags, keymap);
-        }
-        Some("--tty-udev") => {
-            sabiniwm::udev::run_udev(workspace_tags, keymap);
-        }
+    let backend = match arg.as_ref().map(|s| &s[..]) {
+        Some("--tty-udev") => Backend::Udev,
+        Some("--winit") => Backend::Winit,
         Some(other) => {
             return Err(anyhow!("Unknown backend: {}", other));
         }
         None => {
-            println!("USAGE: sabiniwm --<backend>");
-            println!();
-            println!("Possible backends are:");
-            for b in POSSIBLE_BACKENDS {
-                println!("\t{}", b);
+            if matches!(
+                std::env::var("DISPLAY"),
+                Err(std::env::VarError::NotPresent)
+            ) && matches!(
+                std::env::var("WAYLAND_DISPLAY"),
+                Err(std::env::VarError::NotPresent)
+            ) {
+                Backend::Udev
+            } else {
+                Backend::Winit
             }
         }
+    };
+    match backend {
+        Backend::Udev => sabiniwm::udev::run_udev(workspace_tags, keymap),
+        Backend::Winit => sabiniwm::winit::run_winit(workspace_tags, keymap),
     }
 
     Ok(())
