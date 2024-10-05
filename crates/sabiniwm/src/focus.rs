@@ -1,413 +1,213 @@
 use crate::state::SabiniwmState;
-pub use smithay::backend::input::KeyState;
-pub use smithay::desktop::{LayerSurface, PopupKind};
-use smithay::desktop::{Window, WindowSurface};
-pub use smithay::input::keyboard::{KeyboardTarget, KeysymHandle, ModifiersState};
-pub use smithay::input::pointer::{
-    AxisFrame, ButtonEvent, MotionEvent, PointerTarget, RelativeMotionEvent,
-};
+use smithay::backend::input::KeyState;
+use smithay::desktop::{LayerSurface, PopupKind, WindowSurface};
+use smithay::input::keyboard::{KeysymHandle, ModifiersState};
 use smithay::input::pointer::{
-    GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent, GesturePinchEndEvent,
-    GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent, GestureSwipeUpdateEvent,
+    AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
+    GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent, GestureSwipeEndEvent,
+    GestureSwipeUpdateEvent, MotionEvent, RelativeMotionEvent,
 };
-use smithay::input::touch::TouchTarget;
-pub use smithay::input::Seat;
-pub use smithay::reexports::wayland_server::backend::ObjectId;
-pub use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
-pub use smithay::reexports::wayland_server::Resource;
-pub use smithay::utils::{IsAlive, Serial};
-pub use smithay::wayland::seat::WaylandFocus;
+use smithay::input::touch::{DownEvent, OrientationEvent, ShapeEvent, UpEvent};
+use smithay::input::{Seat, SeatHandler};
+use smithay::reexports::wayland_server::backend::ObjectId;
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::utils::Serial;
+use smithay::wayland::seat::WaylandFocus;
 use smithay::xwayland::X11Surface;
 
+#[thin_delegate::external_trait_def]
+mod __external_trait_def {
+    #[thin_delegate::register]
+    pub trait IsAlive {
+        /// Check if object is alive
+        fn alive(&self) -> bool;
+    }
+
+    #[thin_delegate::register]
+    pub trait KeyboardTarget<D>: IsAlive + PartialEq + Clone + fmt::Debug + Send
+    where
+        D: SeatHandler,
+    {
+        /// Keyboard focus of a given seat was assigned to this handler
+        fn enter(&self, seat: &Seat<D>, data: &mut D, keys: Vec<KeysymHandle<'_>>, serial: Serial);
+        /// The keyboard focus of a given seat left this handler
+        fn leave(&self, seat: &Seat<D>, data: &mut D, serial: Serial);
+        /// A key was pressed on a keyboard from a given seat
+        fn key(
+            &self,
+            seat: &Seat<D>,
+            data: &mut D,
+            key: KeysymHandle<'_>,
+            state: KeyState,
+            serial: Serial,
+            time: u32,
+        );
+        /// Hold modifiers were changed on a keyboard from a given seat
+        fn modifiers(
+            &self,
+            seat: &Seat<D>,
+            data: &mut D,
+            modifiers: ModifiersState,
+            serial: Serial,
+        );
+    }
+
+    #[thin_delegate::register]
+    pub trait PointerTarget<D>: IsAlive + PartialEq + Clone + fmt::Debug + Send
+    where
+        D: SeatHandler,
+    {
+        /// A pointer of a given seat entered this handler
+        fn enter(&self, seat: &Seat<D>, data: &mut D, event: &MotionEvent);
+        /// A pointer of a given seat moved over this handler
+        fn motion(&self, seat: &Seat<D>, data: &mut D, event: &MotionEvent);
+        /// A pointer of a given seat that provides relative motion moved over this handler
+        fn relative_motion(&self, seat: &Seat<D>, data: &mut D, event: &RelativeMotionEvent);
+        /// A pointer of a given seat clicked a button
+        fn button(&self, seat: &Seat<D>, data: &mut D, event: &ButtonEvent);
+        /// A pointer of a given seat scrolled on an axis
+        fn axis(&self, seat: &Seat<D>, data: &mut D, frame: AxisFrame);
+        /// End of a pointer frame
+        fn frame(&self, seat: &Seat<D>, data: &mut D);
+        /// A pointer of a given seat started a swipe gesture
+        fn gesture_swipe_begin(&self, seat: &Seat<D>, data: &mut D, event: &GestureSwipeBeginEvent);
+        /// A pointer of a given seat updated a swipe gesture
+        fn gesture_swipe_update(
+            &self,
+            seat: &Seat<D>,
+            data: &mut D,
+            event: &GestureSwipeUpdateEvent,
+        );
+        /// A pointer of a given seat ended a swipe gesture
+        fn gesture_swipe_end(&self, seat: &Seat<D>, data: &mut D, event: &GestureSwipeEndEvent);
+        /// A pointer of a given seat started a pinch gesture
+        fn gesture_pinch_begin(&self, seat: &Seat<D>, data: &mut D, event: &GesturePinchBeginEvent);
+        /// A pointer of a given seat updated a pinch gesture
+        fn gesture_pinch_update(
+            &self,
+            seat: &Seat<D>,
+            data: &mut D,
+            event: &GesturePinchUpdateEvent,
+        );
+        /// A pointer of a given seat ended a pinch gesture
+        fn gesture_pinch_end(&self, seat: &Seat<D>, data: &mut D, event: &GesturePinchEndEvent);
+        /// A pointer of a given seat started a hold gesture
+        fn gesture_hold_begin(&self, seat: &Seat<D>, data: &mut D, event: &GestureHoldBeginEvent);
+        /// A pointer of a given seat ended a hold gesture
+        fn gesture_hold_end(&self, seat: &Seat<D>, data: &mut D, event: &GestureHoldEndEvent);
+        /// A pointer of a given seat left this handler
+        fn leave(&self, seat: &Seat<D>, data: &mut D, serial: Serial, time: u32);
+        /// A pointer of a given seat moved from another handler to this handler
+        fn replace(
+            &self,
+            replaced: <D as SeatHandler>::PointerFocus,
+            seat: &Seat<D>,
+            data: &mut D,
+            event: &MotionEvent,
+        ) {
+            PointerTarget::<D>::leave(&replaced, seat, data, event.serial, event.time);
+            data.cursor_image(seat, CursorImageStatus::default_named());
+            PointerTarget::<D>::enter(self, seat, data, event);
+        }
+    }
+
+    #[thin_delegate::register]
+    pub trait TouchTarget<D>: IsAlive + PartialEq + Clone + fmt::Debug + Send
+    where
+        D: SeatHandler,
+    {
+        /// A new touch point has appeared on the target.
+        ///
+        /// This touch point is assigned a unique ID. Future events from this touch point reference this ID.
+        /// The ID ceases to be valid after a touch up event and may be reused in the future.
+        fn down(&self, seat: &Seat<D>, data: &mut D, event: &DownEvent, seq: Serial);
+
+        /// The touch point has disappeared.
+        ///
+        /// No further events will be sent for this touch point and the touch point's ID
+        /// is released and may be reused in a future touch down event.
+        fn up(&self, seat: &Seat<D>, data: &mut D, event: &UpEvent, seq: Serial);
+
+        /// A touch point has changed coordinates.
+        // fn motion(&self, seat: &Seat<D>, data: &mut D, event: &MotionEvent, seq: Serial);
+        fn motion(
+            &self,
+            seat: &Seat<D>,
+            data: &mut D,
+            event: &smithay::input::touch::MotionEvent,
+            seq: Serial,
+        );
+
+        /// Indicates the end of a set of events that logically belong together.
+        fn frame(&self, seat: &Seat<D>, data: &mut D, seq: Serial);
+
+        /// Touch session cancelled.
+        ///
+        /// Touch cancellation applies to all touch points currently active on this target.
+        /// The client is responsible for finalizing the touch points, future touch points on
+        /// this target may reuse the touch point ID.
+        fn cancel(&self, seat: &Seat<D>, data: &mut D, seq: Serial);
+
+        /// Sent when a touch point has changed its shape.
+        ///
+        /// A touch point shape is approximated by an ellipse through the major and minor axis length.
+        /// The major axis length describes the longer diameter of the ellipse, while the minor axis
+        /// length describes the shorter diameter. Major and minor are orthogonal and both are specified
+        /// in surface-local coordinates. The center of the ellipse is always at the touch point location
+        /// as reported by [`TouchTarget::down`] or [`TouchTarget::motion`].
+        fn shape(&self, seat: &Seat<D>, data: &mut D, event: &ShapeEvent, seq: Serial);
+
+        /// Sent when a touch point has changed its orientation.
+        ///
+        /// The orientation describes the clockwise angle of a touch point's major axis to the positive surface
+        /// y-axis and is normalized to the -180 to +180 degree range. The granularity of orientation depends
+        /// on the touch device, some devices only support binary rotation values between 0 and 90 degrees.
+        fn orientation(&self, seat: &Seat<D>, data: &mut D, event: &OrientationEvent, seq: Serial);
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
+#[thin_delegate::register]
 pub enum KeyboardFocusTarget {
-    Window(Window),
-    LayerSurface(LayerSurface),
-    Popup(PopupKind),
+    Window(smithay::desktop::Window),
+    LayerSurface(smithay::desktop::LayerSurface),
+    Popup(smithay::desktop::PopupKind),
 }
 
-impl IsAlive for KeyboardFocusTarget {
-    fn alive(&self) -> bool {
-        match self {
-            KeyboardFocusTarget::Window(w) => w.alive(),
-            KeyboardFocusTarget::LayerSurface(l) => l.alive(),
-            KeyboardFocusTarget::Popup(p) => p.alive(),
+#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
+impl smithay::utils::IsAlive for KeyboardFocusTarget {}
+
+#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def, scheme = |f| {
+    match self {
+        Self::Window(w) => match w.underlying_surface() {
+            smithay::desktop::WindowSurface::Wayland(s) => f(s.wl_surface()),
+            smithay::desktop::WindowSurface::X11(s) => f(s),
         }
+        Self::LayerSurface(s) => f(s.wl_surface()),
+        Self::Popup(p) => f(p.wl_surface()),
     }
-}
+})]
+impl smithay::input::keyboard::KeyboardTarget<SabiniwmState> for KeyboardFocusTarget {}
 
 #[derive(Debug, Clone, PartialEq)]
+#[thin_delegate::register]
 pub enum PointerFocusTarget {
-    WlSurface(WlSurface),
-    X11Surface(X11Surface),
+    WlSurface(smithay::reexports::wayland_server::protocol::wl_surface::WlSurface),
+    X11Surface(smithay::xwayland::X11Surface),
 }
 
-impl IsAlive for PointerFocusTarget {
-    fn alive(&self) -> bool {
-        match self {
-            PointerFocusTarget::WlSurface(w) => w.alive(),
-            PointerFocusTarget::X11Surface(w) => w.alive(),
-        }
-    }
-}
+#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
+impl smithay::utils::IsAlive for PointerFocusTarget {}
+
+#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
+impl smithay::input::pointer::PointerTarget<SabiniwmState> for PointerFocusTarget {}
+
+#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
+impl smithay::input::touch::TouchTarget<SabiniwmState> for PointerFocusTarget {}
 
 impl From<PointerFocusTarget> for WlSurface {
     fn from(target: PointerFocusTarget) -> Self {
         target.wl_surface().unwrap()
-    }
-}
-
-impl PointerTarget<SabiniwmState> for PointerFocusTarget {
-    fn enter(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, event: &MotionEvent) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => PointerTarget::enter(w, seat, data, event),
-            PointerFocusTarget::X11Surface(w) => PointerTarget::enter(w, seat, data, event),
-        }
-    }
-    fn motion(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, event: &MotionEvent) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => PointerTarget::motion(w, seat, data, event),
-            PointerFocusTarget::X11Surface(w) => PointerTarget::motion(w, seat, data, event),
-        }
-    }
-    fn relative_motion(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &RelativeMotionEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::relative_motion(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::relative_motion(w, seat, data, event)
-            }
-        }
-    }
-    fn button(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, event: &ButtonEvent) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => PointerTarget::button(w, seat, data, event),
-            PointerFocusTarget::X11Surface(w) => PointerTarget::button(w, seat, data, event),
-        }
-    }
-    fn axis(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, frame: AxisFrame) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => PointerTarget::axis(w, seat, data, frame),
-            PointerFocusTarget::X11Surface(w) => PointerTarget::axis(w, seat, data, frame),
-        }
-    }
-    fn frame(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => PointerTarget::frame(w, seat, data),
-            PointerFocusTarget::X11Surface(w) => PointerTarget::frame(w, seat, data),
-        }
-    }
-    fn leave(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        serial: Serial,
-        time: u32,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => PointerTarget::leave(w, seat, data, serial, time),
-            PointerFocusTarget::X11Surface(w) => PointerTarget::leave(w, seat, data, serial, time),
-        }
-    }
-    fn gesture_swipe_begin(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &GestureSwipeBeginEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::gesture_swipe_begin(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::gesture_swipe_begin(w, seat, data, event)
-            }
-        }
-    }
-    fn gesture_swipe_update(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &GestureSwipeUpdateEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::gesture_swipe_update(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::gesture_swipe_update(w, seat, data, event)
-            }
-        }
-    }
-    fn gesture_swipe_end(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &GestureSwipeEndEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::gesture_swipe_end(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::gesture_swipe_end(w, seat, data, event)
-            }
-        }
-    }
-    fn gesture_pinch_begin(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &GesturePinchBeginEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::gesture_pinch_begin(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::gesture_pinch_begin(w, seat, data, event)
-            }
-        }
-    }
-    fn gesture_pinch_update(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &GesturePinchUpdateEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::gesture_pinch_update(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::gesture_pinch_update(w, seat, data, event)
-            }
-        }
-    }
-    fn gesture_pinch_end(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &GesturePinchEndEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::gesture_pinch_end(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::gesture_pinch_end(w, seat, data, event)
-            }
-        }
-    }
-    fn gesture_hold_begin(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &GestureHoldBeginEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::gesture_hold_begin(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::gesture_hold_begin(w, seat, data, event)
-            }
-        }
-    }
-    fn gesture_hold_end(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &GestureHoldEndEvent,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => {
-                PointerTarget::gesture_hold_end(w, seat, data, event)
-            }
-            PointerFocusTarget::X11Surface(w) => {
-                PointerTarget::gesture_hold_end(w, seat, data, event)
-            }
-        }
-    }
-}
-
-impl KeyboardTarget<SabiniwmState> for KeyboardFocusTarget {
-    fn enter(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        keys: Vec<KeysymHandle<'_>>,
-        serial: Serial,
-    ) {
-        match self {
-            KeyboardFocusTarget::Window(w) => match w.underlying_surface() {
-                WindowSurface::Wayland(w) => {
-                    KeyboardTarget::enter(w.wl_surface(), seat, data, keys, serial)
-                }
-                WindowSurface::X11(s) => KeyboardTarget::enter(s, seat, data, keys, serial),
-            },
-            KeyboardFocusTarget::LayerSurface(l) => {
-                KeyboardTarget::enter(l.wl_surface(), seat, data, keys, serial)
-            }
-            KeyboardFocusTarget::Popup(p) => {
-                KeyboardTarget::enter(p.wl_surface(), seat, data, keys, serial)
-            }
-        }
-    }
-    fn leave(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, serial: Serial) {
-        match self {
-            KeyboardFocusTarget::Window(w) => match w.underlying_surface() {
-                WindowSurface::Wayland(w) => {
-                    KeyboardTarget::leave(w.wl_surface(), seat, data, serial)
-                }
-                WindowSurface::X11(s) => KeyboardTarget::leave(s, seat, data, serial),
-            },
-            KeyboardFocusTarget::LayerSurface(l) => {
-                KeyboardTarget::leave(l.wl_surface(), seat, data, serial)
-            }
-            KeyboardFocusTarget::Popup(p) => {
-                KeyboardTarget::leave(p.wl_surface(), seat, data, serial)
-            }
-        }
-    }
-    fn key(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        key: KeysymHandle<'_>,
-        state: KeyState,
-        serial: Serial,
-        time: u32,
-    ) {
-        match self {
-            KeyboardFocusTarget::Window(w) => match w.underlying_surface() {
-                WindowSurface::Wayland(w) => {
-                    KeyboardTarget::key(w.wl_surface(), seat, data, key, state, serial, time)
-                }
-                WindowSurface::X11(s) => {
-                    KeyboardTarget::key(s, seat, data, key, state, serial, time)
-                }
-            },
-            KeyboardFocusTarget::LayerSurface(l) => {
-                KeyboardTarget::key(l.wl_surface(), seat, data, key, state, serial, time)
-            }
-            KeyboardFocusTarget::Popup(p) => {
-                KeyboardTarget::key(p.wl_surface(), seat, data, key, state, serial, time)
-            }
-        }
-    }
-    fn modifiers(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        modifiers: ModifiersState,
-        serial: Serial,
-    ) {
-        match self {
-            KeyboardFocusTarget::Window(w) => match w.underlying_surface() {
-                WindowSurface::Wayland(w) => {
-                    KeyboardTarget::modifiers(w.wl_surface(), seat, data, modifiers, serial)
-                }
-                WindowSurface::X11(s) => {
-                    KeyboardTarget::modifiers(s, seat, data, modifiers, serial)
-                }
-            },
-            KeyboardFocusTarget::LayerSurface(l) => {
-                KeyboardTarget::modifiers(l.wl_surface(), seat, data, modifiers, serial)
-            }
-            KeyboardFocusTarget::Popup(p) => {
-                KeyboardTarget::modifiers(p.wl_surface(), seat, data, modifiers, serial)
-            }
-        }
-    }
-}
-
-impl TouchTarget<SabiniwmState> for PointerFocusTarget {
-    fn down(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &smithay::input::touch::DownEvent,
-        seq: Serial,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => TouchTarget::down(w, seat, data, event, seq),
-            PointerFocusTarget::X11Surface(w) => TouchTarget::down(w, seat, data, event, seq),
-        }
-    }
-
-    fn up(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &smithay::input::touch::UpEvent,
-        seq: Serial,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => TouchTarget::up(w, seat, data, event, seq),
-            PointerFocusTarget::X11Surface(w) => TouchTarget::up(w, seat, data, event, seq),
-        }
-    }
-
-    fn motion(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &smithay::input::touch::MotionEvent,
-        seq: Serial,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => TouchTarget::motion(w, seat, data, event, seq),
-            PointerFocusTarget::X11Surface(w) => TouchTarget::motion(w, seat, data, event, seq),
-        }
-    }
-
-    fn frame(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, seq: Serial) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => TouchTarget::frame(w, seat, data, seq),
-            PointerFocusTarget::X11Surface(w) => TouchTarget::frame(w, seat, data, seq),
-        }
-    }
-
-    fn cancel(&self, seat: &Seat<SabiniwmState>, data: &mut SabiniwmState, seq: Serial) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => TouchTarget::cancel(w, seat, data, seq),
-            PointerFocusTarget::X11Surface(w) => TouchTarget::cancel(w, seat, data, seq),
-        }
-    }
-
-    fn shape(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &smithay::input::touch::ShapeEvent,
-        seq: Serial,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => TouchTarget::shape(w, seat, data, event, seq),
-            PointerFocusTarget::X11Surface(w) => TouchTarget::shape(w, seat, data, event, seq),
-        }
-    }
-
-    fn orientation(
-        &self,
-        seat: &Seat<SabiniwmState>,
-        data: &mut SabiniwmState,
-        event: &smithay::input::touch::OrientationEvent,
-        seq: Serial,
-    ) {
-        match self {
-            PointerFocusTarget::WlSurface(w) => TouchTarget::orientation(w, seat, data, event, seq),
-            PointerFocusTarget::X11Surface(w) => {
-                TouchTarget::orientation(w, seat, data, event, seq)
-            }
-        }
     }
 }
 
