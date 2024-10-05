@@ -11,8 +11,6 @@ use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::allocator::gbm::{GbmAllocator, GbmBufferFlags, GbmDevice};
 use smithay::backend::allocator::Fourcc;
 use smithay::backend::drm::compositor::DrmCompositor;
-#[cfg(feature = "renderer_sync")]
-use smithay::backend::drm::compositor::PrimaryPlaneElement;
 use smithay::backend::drm::{
     CreateDrmNodeError, DrmAccessError, DrmDevice, DrmDeviceFd, DrmError, DrmEvent,
     DrmEventMetadata, DrmNode, DrmSurface, GbmBufferedSurface, NodeType,
@@ -674,8 +672,6 @@ impl SurfaceComposition {
                 let res = damage_tracker
                     .render_output(renderer, age.into(), elements, clear_color)
                     .map(|res| {
-                        #[cfg(feature = "renderer_sync")]
-                        res.sync.wait();
                         let rendered = res.damage.is_some();
                         SurfaceCompositorRenderResult {
                             rendered,
@@ -693,19 +689,11 @@ impl SurfaceComposition {
             }
             SurfaceComposition::Compositor(compositor) => compositor
                 .render_frame(renderer, elements, clear_color)
-                .map(|render_frame_result| {
-                    #[cfg(feature = "renderer_sync")]
-                    if let PrimaryPlaneElement::Swapchain(element) =
-                        render_frame_result.primary_element
-                    {
-                        element.sync.wait();
-                    }
-                    SurfaceCompositorRenderResult {
-                        rendered: !render_frame_result.is_empty,
-                        damage: None,
-                        states: render_frame_result.states,
-                        sync: None,
-                    }
+                .map(|render_frame_result| SurfaceCompositorRenderResult {
+                    rendered: !render_frame_result.is_empty,
+                    damage: None,
+                    states: render_frame_result.states,
+                    sync: None,
                 })
                 .map_err(|err| match err {
                     smithay::backend::drm::compositor::RenderFrameError::PrepareFrame(err) => {

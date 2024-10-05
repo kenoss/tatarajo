@@ -36,7 +36,6 @@ rstest = "0.18.2"
 [features]
 default = ["egl", "winit", "udev", "xwayland"]
 egl = ["smithay/use_system_lib", "smithay/backend_egl"]
-renderer_sync = []
 udev = [
   "smithay-drm-extras",
   "smithay/backend_libinput",
