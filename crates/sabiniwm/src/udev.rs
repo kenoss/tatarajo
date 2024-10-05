@@ -50,8 +50,7 @@ use smithay::reexports::drm::control::{connector, crtc, Device, ModeTypeFlags};
 use smithay::reexports::drm::Device as _;
 use smithay::reexports::input::{DeviceCapability, Libinput};
 use smithay::reexports::rustix::fs::OFlags;
-use smithay::reexports::wayland_protocols::wp::linux_dmabuf::zv1::server::
-    zwp_linux_dmabuf_feedback_v1;
+use smithay::reexports::wayland_protocols::wp::linux_dmabuf::zv1::server::zwp_linux_dmabuf_feedback_v1;
 use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
 use smithay::reexports::wayland_server::backend::GlobalId;
 use smithay::reexports::wayland_server::{Display, DisplayHandle};
