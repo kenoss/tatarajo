@@ -174,6 +174,24 @@ pub enum KeyboardFocusTarget {
     Popup(smithay::desktop::PopupKind),
 }
 
+impl From<smithay::desktop::Window> for KeyboardFocusTarget {
+    fn from(x: smithay::desktop::Window) -> Self {
+        KeyboardFocusTarget::Window(x)
+    }
+}
+
+impl From<LayerSurface> for KeyboardFocusTarget {
+    fn from(x: LayerSurface) -> Self {
+        KeyboardFocusTarget::LayerSurface(x)
+    }
+}
+
+impl From<PopupKind> for KeyboardFocusTarget {
+    fn from(x: PopupKind) -> Self {
+        KeyboardFocusTarget::Popup(x)
+    }
+}
+
 #[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
 impl smithay::utils::IsAlive for KeyboardFocusTarget {}
 
@@ -183,48 +201,11 @@ impl smithay::utils::IsAlive for KeyboardFocusTarget {}
             smithay::desktop::WindowSurface::Wayland(s) => f(s.wl_surface()),
             smithay::desktop::WindowSurface::X11(s) => f(s),
         }
-        Self::LayerSurface(s) => f(s.wl_surface()),
+        Self::LayerSurface(l) => f(l.wl_surface()),
         Self::Popup(p) => f(p.wl_surface()),
     }
 })]
 impl smithay::input::keyboard::KeyboardTarget<SabiniwmState> for KeyboardFocusTarget {}
-
-#[derive(Debug, Clone, PartialEq)]
-#[thin_delegate::register]
-pub enum PointerFocusTarget {
-    WlSurface(smithay::reexports::wayland_server::protocol::wl_surface::WlSurface),
-    X11Surface(smithay::xwayland::X11Surface),
-}
-
-#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
-impl smithay::utils::IsAlive for PointerFocusTarget {}
-
-#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
-impl smithay::input::pointer::PointerTarget<SabiniwmState> for PointerFocusTarget {}
-
-#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
-impl smithay::input::touch::TouchTarget<SabiniwmState> for PointerFocusTarget {}
-
-impl From<PointerFocusTarget> for WlSurface {
-    fn from(target: PointerFocusTarget) -> Self {
-        target.wl_surface().unwrap()
-    }
-}
-
-impl WaylandFocus for PointerFocusTarget {
-    fn wl_surface(&self) -> Option<WlSurface> {
-        match self {
-            PointerFocusTarget::WlSurface(w) => w.wl_surface(),
-            PointerFocusTarget::X11Surface(w) => w.wl_surface(),
-        }
-    }
-    fn same_client_as(&self, object_id: &ObjectId) -> bool {
-        match self {
-            PointerFocusTarget::WlSurface(w) => w.same_client_as(object_id),
-            PointerFocusTarget::X11Surface(w) => w.same_client_as(object_id),
-        }
-    }
-}
 
 impl WaylandFocus for KeyboardFocusTarget {
     fn wl_surface(&self) -> Option<WlSurface> {
@@ -236,65 +217,83 @@ impl WaylandFocus for KeyboardFocusTarget {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+#[thin_delegate::register]
+pub enum PointerFocusTarget {
+    WlSurface(smithay::reexports::wayland_server::protocol::wl_surface::WlSurface),
+    X11Surface(smithay::xwayland::X11Surface),
+}
+
 impl From<WlSurface> for PointerFocusTarget {
-    fn from(value: WlSurface) -> Self {
-        PointerFocusTarget::WlSurface(value)
+    fn from(x: WlSurface) -> Self {
+        PointerFocusTarget::WlSurface(x)
     }
 }
 
 impl From<&WlSurface> for PointerFocusTarget {
-    fn from(value: &WlSurface) -> Self {
-        PointerFocusTarget::from(value.clone())
-    }
-}
-
-impl From<PopupKind> for PointerFocusTarget {
-    fn from(value: PopupKind) -> Self {
-        PointerFocusTarget::from(value.wl_surface())
+    fn from(x: &WlSurface) -> Self {
+        PointerFocusTarget::from(x.clone())
     }
 }
 
 impl From<X11Surface> for PointerFocusTarget {
-    fn from(value: X11Surface) -> Self {
-        PointerFocusTarget::X11Surface(value)
+    fn from(x: X11Surface) -> Self {
+        PointerFocusTarget::X11Surface(x)
     }
 }
 
 impl From<&X11Surface> for PointerFocusTarget {
-    fn from(value: &X11Surface) -> Self {
-        PointerFocusTarget::from(value.clone())
+    fn from(x: &X11Surface) -> Self {
+        PointerFocusTarget::from(x.clone())
     }
 }
 
-impl From<smithay::desktop::Window> for KeyboardFocusTarget {
-    fn from(w: smithay::desktop::Window) -> Self {
-        KeyboardFocusTarget::Window(w)
+impl From<PopupKind> for PointerFocusTarget {
+    fn from(x: PopupKind) -> Self {
+        PointerFocusTarget::from(x.wl_surface())
     }
 }
 
-impl From<LayerSurface> for KeyboardFocusTarget {
-    fn from(l: LayerSurface) -> Self {
-        KeyboardFocusTarget::LayerSurface(l)
-    }
-}
-
-impl From<PopupKind> for KeyboardFocusTarget {
-    fn from(p: PopupKind) -> Self {
-        KeyboardFocusTarget::Popup(p)
+impl From<PointerFocusTarget> for WlSurface {
+    fn from(x: PointerFocusTarget) -> Self {
+        x.wl_surface().unwrap()
     }
 }
 
 impl From<KeyboardFocusTarget> for PointerFocusTarget {
-    fn from(value: KeyboardFocusTarget) -> Self {
-        match value {
+    fn from(x: KeyboardFocusTarget) -> Self {
+        match x {
             KeyboardFocusTarget::Window(w) => match w.underlying_surface() {
-                WindowSurface::Wayland(w) => PointerFocusTarget::from(w.wl_surface()),
+                WindowSurface::Wayland(s) => PointerFocusTarget::from(s.wl_surface()),
                 WindowSurface::X11(s) => PointerFocusTarget::from(s),
             },
-            KeyboardFocusTarget::LayerSurface(surface) => {
-                PointerFocusTarget::from(surface.wl_surface())
-            }
-            KeyboardFocusTarget::Popup(popup) => PointerFocusTarget::from(popup.wl_surface()),
+            KeyboardFocusTarget::LayerSurface(l) => PointerFocusTarget::from(l.wl_surface()),
+            KeyboardFocusTarget::Popup(p) => PointerFocusTarget::from(p.wl_surface()),
+        }
+    }
+}
+
+#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
+impl smithay::utils::IsAlive for PointerFocusTarget {}
+
+#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
+impl smithay::input::pointer::PointerTarget<SabiniwmState> for PointerFocusTarget {}
+
+#[thin_delegate::derive_delegate(external_trait_def = __external_trait_def)]
+impl smithay::input::touch::TouchTarget<SabiniwmState> for PointerFocusTarget {}
+
+impl WaylandFocus for PointerFocusTarget {
+    fn wl_surface(&self) -> Option<WlSurface> {
+        match self {
+            PointerFocusTarget::WlSurface(w) => w.wl_surface(),
+            PointerFocusTarget::X11Surface(w) => w.wl_surface(),
+        }
+    }
+
+    fn same_client_as(&self, object_id: &ObjectId) -> bool {
+        match self {
+            PointerFocusTarget::WlSurface(w) => w.same_client_as(object_id),
+            PointerFocusTarget::X11Surface(w) => w.same_client_as(object_id),
         }
     }
 }
