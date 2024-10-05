@@ -8,6 +8,6 @@ anyhow = "1.0.81"
 big_s = "1.0.2"
 maplit = "1.0.2"
 sabiniwm = { path = "../sabiniwm" }
-time = { version = "0.3.34", features = ["macros", "local-offset"] }
+time = { version = "0.3.36", features = ["macros", "local-offset"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "fmt", "std", "time"] }
