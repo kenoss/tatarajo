@@ -1,5 +1,3 @@
-#[cfg(feature = "debug")]
-use crate::drawing::FpsElement;
 use crate::drawing::{PointerRenderElement, CLEAR_COLOR};
 use crate::view::window::WindowRenderElement;
 use smithay::backend::renderer::damage::{
@@ -16,12 +14,6 @@ smithay::backend::renderer::element::render_elements! {
         R: ImportAll + ImportMem;
     Pointer=PointerRenderElement<R>,
     Surface=WaylandSurfaceRenderElement<R>,
-    #[cfg(feature = "debug")]
-    // Note: We would like to borrow this element instead, but that would introduce
-    // a feature-dependent lifetime, which introduces a lot more feature bounds
-    // as the whole type changes and we can't have an unused lifetime (for when "debug" is disabled)
-    // in the declaration.
-    Fps=FpsElement<<R as Renderer>::TextureId>,
 }
 
 impl<R> std::fmt::Debug for CustomRenderElements<R>
@@ -32,8 +24,6 @@ where
         match self {
             Self::Pointer(arg0) => f.debug_tuple("Pointer").field(arg0).finish(),
             Self::Surface(arg0) => f.debug_tuple("Surface").field(arg0).finish(),
-            #[cfg(feature = "debug")]
-            Self::Fps(arg0) => f.debug_tuple("Fps").field(arg0).finish(),
             Self::_GenericCatcher(arg0) => f.debug_tuple("_GenericCatcher").field(arg0).finish(),
         }
     }

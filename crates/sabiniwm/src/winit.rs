@@ -23,11 +23,6 @@ use smithay::reexports::winit::platform::pump_events::PumpStatus;
 use smithay::utils::{IsAlive, Scale, Transform};
 use smithay::wayland::compositor;
 use smithay::wayland::dmabuf::{DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufState};
-#[cfg(feature = "debug")]
-use smithay::{
-    backend::{allocator::Fourcc, renderer::ImportMem},
-    reexports::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle},
-};
 use std::ffi::OsString;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
@@ -40,8 +35,6 @@ pub struct WinitData {
     damage_tracker: OutputDamageTracker,
     dmabuf_state: (DmabufState, DmabufGlobal, Option<DmabufFeedback>),
     full_redraw: u8,
-    #[cfg(feature = "debug")]
-    pub fps: fps_ticker::Fps,
 }
 
 macro_rules! backend_data_winit_mut {
@@ -125,26 +118,6 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
     );
     output.set_preferred(mode);
 
-    #[cfg(feature = "debug")]
-    let fps_image = image::io::Reader::with_format(
-        std::io::Cursor::new(FPS_NUMBERS_PNG),
-        image::ImageFormat::Png,
-    )
-    .decode()
-    .unwrap();
-    #[cfg(feature = "debug")]
-    let fps_texture = backend
-        .renderer()
-        .import_memory(
-            &fps_image.to_rgba8(),
-            Fourcc::Abgr8888,
-            (fps_image.width() as i32, fps_image.height() as i32).into(),
-            false,
-        )
-        .expect("Unable to upload FPS texture");
-    #[cfg(feature = "debug")]
-    let mut fps_element = FpsElement::new(fps_texture);
-
     let render_node = EGLDevice::device_for_display(backend.renderer().egl_context().display())
         .and_then(|device| device.try_get_render_node());
 
@@ -200,8 +173,6 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
             damage_tracker,
             dmabuf_state,
             full_redraw: 0,
-            #[cfg(feature = "debug")]
-            fps: fps_ticker::Fps::default(),
         })
     };
     let mut state = SabiniwmState::init(
@@ -278,11 +249,6 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
 
             pointer_element.set_status(cursor_guard.clone());
 
-            #[cfg(feature = "debug")]
-            let fps = state.backend_data_winit().fps.avg().round() as u32;
-            #[cfg(feature = "debug")]
-            fps_element.update_fps(fps);
-
             let full_redraw = &mut backend_data.full_redraw;
             *full_redraw = full_redraw.saturating_sub(1);
             let space = &mut state.space;
@@ -307,26 +273,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
             let cursor_pos = state.pointer.current_location() - cursor_hotspot.to_f64();
             let cursor_pos_scaled = cursor_pos.to_physical(scale).to_i32_round();
 
-            #[cfg(feature = "debug")]
-            let mut renderdoc = state.renderdoc.as_mut();
             let render_res = backend.bind().and_then(|_| {
-                #[cfg(feature = "debug")]
-                if let Some(renderdoc) = renderdoc.as_mut() {
-                    renderdoc.start_frame_capture(
-                        backend.renderer().egl_context().get_context_handle(),
-                        backend
-                            .window()
-                            .window_handle()
-                            .map(|handle| {
-                                if let RawWindowHandle::Wayland(handle) = handle.as_raw() {
-                                    handle.surface.as_ptr()
-                                } else {
-                                    std::ptr::null_mut()
-                                }
-                            })
-                            .unwrap_or_else(|_| std::ptr::null_mut()),
-                    );
-                }
                 let age = if *full_redraw > 0 {
                     0
                 } else {
@@ -357,9 +304,6 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     }
                 }
 
-                #[cfg(feature = "debug")]
-                elements.push(CustomRenderElements::Fps(fps_element.clone()));
-
                 render_output(&output, space, elements, renderer, damage_tracker, age).map_err(
                     |err| match err {
                         OutputDamageTrackerError::Rendering(err) => err.into(),
@@ -375,24 +319,6 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                         if let Err(err) = backend.submit(Some(&*damage)) {
                             warn!("Failed to submit buffer: {}", err);
                         }
-                    }
-
-                    #[cfg(feature = "debug")]
-                    if let Some(renderdoc) = renderdoc.as_mut() {
-                        renderdoc.end_frame_capture(
-                            backend.renderer().egl_context().get_context_handle(),
-                            backend
-                                .window()
-                                .window_handle()
-                                .map(|handle| {
-                                    if let RawWindowHandle::Wayland(handle) = handle.as_raw() {
-                                        handle.surface.as_ptr()
-                                    } else {
-                                        std::ptr::null_mut()
-                                    }
-                                })
-                                .unwrap_or_else(|_| std::ptr::null_mut()),
-                        );
                     }
 
                     backend.window().set_cursor_visible(cursor_visible);
@@ -425,24 +351,6 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     }
                 }
                 Err(SwapBuffersError::ContextLost(err)) => {
-                    #[cfg(feature = "debug")]
-                    if let Some(renderdoc) = renderdoc.as_mut() {
-                        renderdoc.discard_frame_capture(
-                            backend.renderer().egl_context().get_context_handle(),
-                            backend
-                                .window()
-                                .window_handle()
-                                .map(|handle| {
-                                    if let RawWindowHandle::Wayland(handle) = handle.as_raw() {
-                                        handle.surface.as_ptr()
-                                    } else {
-                                        std::ptr::null_mut()
-                                    }
-                                })
-                                .unwrap_or_else(|_| std::ptr::null_mut()),
-                        );
-                    }
-
                     error!("Critical Rendering Error: {}", err);
                     state.running.store(false, Ordering::SeqCst);
                 }
@@ -467,8 +375,5 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
             state.popups.cleanup();
             display_handle.flush_clients().unwrap();
         }
-
-        #[cfg(feature = "debug")]
-        state.backend_data_winit().fps.tick();
     }
 }

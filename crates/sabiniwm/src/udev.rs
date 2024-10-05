@@ -30,8 +30,6 @@ use smithay::backend::renderer::multigpu::{GpuManager, MultiRenderer};
 use smithay::backend::renderer::sync::SyncPoint;
 #[cfg(feature = "egl")]
 use smithay::backend::renderer::ImportEgl;
-#[cfg(feature = "debug")]
-use smithay::backend::renderer::{multigpu::MultiTexture, ImportMem};
 use smithay::backend::renderer::{
     Bind, DebugFlags, ExportMem, ImportDma, ImportMemWl, Offscreen, Renderer,
 };
@@ -110,8 +108,6 @@ pub struct UdevData {
     backends: HashMap<DrmNode, BackendData>,
     pointer_images: Vec<(xcursor::parser::Image, MemoryRenderBuffer)>,
     pointer_element: PointerElement,
-    #[cfg(feature = "debug")]
-    fps_texture: Option<MultiTexture>,
     pointer_image: crate::cursor::Cursor,
     debug_flags: DebugFlags,
     keyboards: Vec<smithay::reexports::input::Device>,
@@ -241,8 +237,6 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
         pointer_image: crate::cursor::Cursor::load(),
         pointer_images: Vec::new(),
         pointer_element: PointerElement::default(),
-        #[cfg(feature = "debug")]
-        fps_texture: None,
         debug_flags: DebugFlags::empty(),
         keyboards: Vec::new(),
     });
@@ -389,31 +383,6 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
         .gpus
         .single_renderer(&primary_gpu)
         .unwrap();
-
-    #[cfg(feature = "debug")]
-    {
-        let fps_image = image::io::Reader::with_format(
-            std::io::Cursor::new(FPS_NUMBERS_PNG),
-            image::ImageFormat::Png,
-        )
-        .decode()
-        .unwrap();
-        let fps_texture = renderer
-            .import_memory(
-                &fps_image.to_rgba8(),
-                Fourcc::Abgr8888,
-                (fps_image.width() as i32, fps_image.height() as i32).into(),
-                false,
-            )
-            .expect("Unable to upload FPS texture");
-
-        for backend in state.backend_data_udev().backends.values_mut() {
-            for surface in backend.surfaces.values_mut() {
-                surface.fps_element = Some(FpsElement::new(fps_texture.clone()));
-            }
-        }
-        state.backend_data_udev().fps_texture = Some(fps_texture);
-    }
 
     #[cfg(feature = "egl")]
     {
@@ -776,10 +745,6 @@ struct SurfaceData {
     render_node: DrmNode,
     global: Option<GlobalId>,
     compositor: SurfaceComposition,
-    #[cfg(feature = "debug")]
-    fps: fps_ticker::Fps,
-    #[cfg(feature = "debug")]
-    fps_element: Option<FpsElement<MultiTexture>>,
     dmabuf_feedback: Option<DrmSurfaceDmabufFeedback>,
 }
 
@@ -1093,13 +1058,6 @@ impl SabiniwmState {
                 device_id: node,
             });
 
-            #[cfg(feature = "debug")]
-            let fps_element = self
-                .backend_data_udev()
-                .fps_texture
-                .clone()
-                .map(FpsElement::new);
-
             let allocator = GbmAllocator::new(
                 device.gbm.clone(),
                 GbmBufferFlags::RENDERING | GbmBufferFlags::SCANOUT,
@@ -1189,10 +1147,6 @@ impl SabiniwmState {
                 render_node: device.render_node,
                 global: Some(global),
                 compositor,
-                #[cfg(feature = "debug")]
-                fps: fps_ticker::Fps::default(),
-                #[cfg(feature = "debug")]
-                fps_element,
                 dmabuf_feedback,
             };
 
@@ -1750,13 +1704,6 @@ fn render_surface<'a>(
                 }
             }
         }
-    }
-
-    #[cfg(feature = "debug")]
-    if let Some(element) = surface.fps_element.as_mut() {
-        element.update_fps(surface.fps.avg().round() as u32);
-        surface.fps.tick();
-        custom_elements.push(CustomRenderElements::Fps(element.clone()));
     }
 
     let (elements, clear_color) = output_elements(output, space, custom_elements, renderer);

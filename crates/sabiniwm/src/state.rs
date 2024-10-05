@@ -101,9 +101,6 @@ pub struct SabiniwmState {
     pub(crate) xwm: Option<X11Wm>,
     pub(crate) xdisplay: Option<u32>,
 
-    #[cfg(feature = "debug")]
-    pub(crate) renderdoc: Option<renderdoc::RenderDoc<renderdoc::V141>>,
-
     pub(crate) keymap: Keymap<Action>,
     pub(crate) keyseq: KeySeq,
     pub(crate) view: View,
@@ -283,8 +280,6 @@ impl SabiniwmState {
             xwayland,
             xwm: None,
             xdisplay: None,
-            #[cfg(feature = "debug")]
-            renderdoc: renderdoc::RenderDoc::new().ok(),
 
             keymap,
             keyseq: KeySeq::new(),
