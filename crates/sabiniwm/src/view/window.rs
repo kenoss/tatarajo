@@ -334,32 +334,22 @@ mod window {
             Decoration(SolidColorRenderElement),
         }
 
-        mod derive_delegate {
-            use super::WindowRenderElement;
-            use smithay::backend::renderer::element::{Id, Kind, UnderlyingStorage};
-            use smithay::backend::renderer::utils::CommitCounter;
-            use smithay::backend::renderer::{ImportAll, ImportMem, Renderer};
-            use smithay::utils::{
-                Buffer as BufferCoords, Physical, Point, Rectangle, Scale, Transform,
-            };
+        #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::backend::renderer::element)]
+        impl<R> smithay::backend::renderer::element::Element for WindowRenderElement<R>
+        where
+            R: smithay::backend::renderer::Renderer,
+            <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
+            R: ImportAll + ImportMem,
+        {
+        }
 
-            #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::renderer)]
-            impl<R> smithay::backend::renderer::element::Element for WindowRenderElement<R>
-            where
-                R: smithay::backend::renderer::Renderer,
-                <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
-                R: ImportAll + ImportMem,
-            {
-            }
-
-            #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::renderer)]
-            impl<R> smithay::backend::renderer::element::RenderElement<R> for WindowRenderElement<R>
-            where
-                R: smithay::backend::renderer::Renderer,
-                <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
-                R: ImportAll + ImportMem,
-            {
-            }
+        #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::backend::renderer::element)]
+        impl<R> smithay::backend::renderer::element::RenderElement<R> for WindowRenderElement<R>
+        where
+            R: smithay::backend::renderer::Renderer,
+            <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
+            R: ImportAll + ImportMem,
+        {
         }
 
         impl<R> AsRenderElements<R> for Window

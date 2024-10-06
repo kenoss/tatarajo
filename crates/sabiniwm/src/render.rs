@@ -19,30 +19,22 @@ where
     Surface(WaylandSurfaceRenderElement<R>),
 }
 
-mod derive_delegate {
-    use super::CustomRenderElements;
-    use smithay::backend::renderer::element::{Id, Kind, UnderlyingStorage};
-    use smithay::backend::renderer::utils::CommitCounter;
-    use smithay::backend::renderer::{ImportAll, ImportMem, Renderer};
-    use smithay::utils::{Buffer as BufferCoords, Physical, Point, Rectangle, Scale, Transform};
+#[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::backend::renderer::element)]
+impl<R> smithay::backend::renderer::element::Element for CustomRenderElements<R>
+where
+    R: smithay::backend::renderer::Renderer,
+    <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
+    R: ImportAll + ImportMem,
+{
+}
 
-    #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::renderer)]
-    impl<R> smithay::backend::renderer::element::Element for CustomRenderElements<R>
-    where
-        R: smithay::backend::renderer::Renderer,
-        <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
-        R: ImportAll + ImportMem,
-    {
-    }
-
-    #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::renderer)]
-    impl<R> smithay::backend::renderer::element::RenderElement<R> for CustomRenderElements<R>
-    where
-        R: smithay::backend::renderer::Renderer,
-        <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
-        R: ImportAll + ImportMem,
-    {
-    }
+#[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::backend::renderer::element)]
+impl<R> smithay::backend::renderer::element::RenderElement<R> for CustomRenderElements<R>
+where
+    R: smithay::backend::renderer::Renderer,
+    <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
+    R: ImportAll + ImportMem,
+{
 }
 
 impl<R> std::fmt::Debug for CustomRenderElements<R>
@@ -69,34 +61,26 @@ where
     Custom(CustomRenderElements<R>),
 }
 
-mod derive_delegate_for_output_render_elements {
-    use super::OutputRenderElements;
-    use smithay::backend::renderer::element::{Id, Kind, UnderlyingStorage};
-    use smithay::backend::renderer::utils::CommitCounter;
-    use smithay::backend::renderer::{ImportAll, ImportMem, Renderer};
-    use smithay::utils::{Buffer as BufferCoords, Physical, Point, Rectangle, Scale, Transform};
+#[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::backend::renderer::element)]
+impl<R, E> smithay::backend::renderer::element::Element for OutputRenderElements<R, E>
+where
+    R: smithay::backend::renderer::Renderer,
+    <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
+    E: smithay::backend::renderer::element::Element
+        + smithay::backend::renderer::element::RenderElement<R>,
+    R: ImportAll + ImportMem,
+{
+}
 
-    #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::renderer)]
-    impl<R, E> smithay::backend::renderer::element::Element for OutputRenderElements<R, E>
-    where
-        R: smithay::backend::renderer::Renderer,
-        <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
-        E: smithay::backend::renderer::element::Element
-            + smithay::backend::renderer::element::RenderElement<R>,
-        R: ImportAll + ImportMem,
-    {
-    }
-
-    #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::renderer)]
-    impl<R, E> smithay::backend::renderer::element::RenderElement<R> for OutputRenderElements<R, E>
-    where
-        R: smithay::backend::renderer::Renderer,
-        <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
-        E: smithay::backend::renderer::element::Element
-            + smithay::backend::renderer::element::RenderElement<R>,
-        R: ImportAll + ImportMem,
-    {
-    }
+#[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::backend::renderer::element)]
+impl<R, E> smithay::backend::renderer::element::RenderElement<R> for OutputRenderElements<R, E>
+where
+    R: smithay::backend::renderer::Renderer,
+    <R as smithay::backend::renderer::Renderer>::TextureId: 'static,
+    E: smithay::backend::renderer::element::Element
+        + smithay::backend::renderer::element::RenderElement<R>,
+    R: ImportAll + ImportMem,
+{
 }
 
 impl<R, E> std::fmt::Debug for OutputRenderElements<R, E>
