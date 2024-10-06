@@ -13,6 +13,7 @@ extern crate tracing;
 pub mod action;
 pub mod cursor;
 pub mod drawing;
+mod external_trait_def;
 pub mod focus;
 pub mod input;
 pub(crate) mod input_event;

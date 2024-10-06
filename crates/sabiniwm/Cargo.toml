@@ -7,12 +7,13 @@ edition = "2021"
 anyhow = "1.0.81"
 big_s = "1.0.2"
 bitflags = "2.2.1"
+derive_more = { version = "1.0.0", features = ["from"] }
 downcast = "0.11.0"
 dyn-clone = "1.0.17"
 itertools = "0.12.1"
 maplit = "1.0.2"
 smithay-drm-extras = { git = "https://github.com/Smithay/smithay", rev = "8e49b9b", optional = true }
-thin_delegate = "0.0.1"
+thin_delegate = "0.0.3"
 thiserror = "1.0.60"
 tracing = "0.1.40"
 wayland-server = { version = "0.31.0" }
