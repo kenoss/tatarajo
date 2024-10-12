@@ -115,12 +115,9 @@ where
         .map(OutputRenderElement::from)
         .collect::<Vec<_>>();
 
-    let space_elements = smithay::desktop::space::space_render_elements::<
-        _,
-        crate::view::window::Window,
-        _,
-    >(renderer, [space], output, 1.0)
-    .expect("output without mode?");
+    let space_elements =
+        smithay::desktop::space::space_render_elements(renderer, [space], output, 1.0)
+            .expect("output without mode?");
     output_render_elements.extend(space_elements.into_iter().map(OutputRenderElement::Space));
 
     (output_render_elements, CLEAR_COLOR)
