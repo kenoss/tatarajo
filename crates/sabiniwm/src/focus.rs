@@ -50,7 +50,7 @@ impl smithay::utils::IsAlive for KeyboardFocusTarget {}
 )]
 impl smithay::input::keyboard::KeyboardTarget<SabiniwmState> for KeyboardFocusTarget {}
 
-impl WaylandFocus for KeyboardFocusTarget {
+impl smithay::wayland::seat::WaylandFocus for KeyboardFocusTarget {
     fn wl_surface(&self) -> Option<WlSurface> {
         match self {
             KeyboardFocusTarget::Window(w) => w.wl_surface(),
@@ -125,7 +125,7 @@ impl smithay::input::pointer::PointerTarget<SabiniwmState> for PointerFocusTarge
 #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::input::touch)]
 impl smithay::input::touch::TouchTarget<SabiniwmState> for PointerFocusTarget {}
 
-impl WaylandFocus for PointerFocusTarget {
+impl smithay::wayland::seat::WaylandFocus for PointerFocusTarget {
     fn wl_surface(&self) -> Option<WlSurface> {
         match self {
             PointerFocusTarget::WlSurface(w) => w.wl_surface(),
