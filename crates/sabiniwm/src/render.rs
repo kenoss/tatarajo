@@ -98,10 +98,10 @@ where
 }
 
 pub fn output_elements<R>(
+    renderer: &mut R,
     output: &Output,
     space: &Space<crate::view::window::Window>,
-    custom_elements: impl IntoIterator<Item = CustomRenderElement<R>>,
-    renderer: &mut R,
+    custom_elements: Vec<CustomRenderElement<R>>,
 ) -> (
     Vec<OutputRenderElement<R, WindowRenderElement<R>>>,
     [f32; 4],
@@ -125,10 +125,10 @@ where
 
 #[allow(clippy::too_many_arguments)]
 pub fn render_output<R>(
+    renderer: &mut R,
     output: &Output,
     space: &Space<crate::view::window::Window>,
-    custom_elements: impl IntoIterator<Item = CustomRenderElement<R>>,
-    renderer: &mut R,
+    custom_elements: Vec<CustomRenderElement<R>>,
     damage_tracker: &mut OutputDamageTracker,
     age: usize,
 ) -> Result<RenderOutputResult, OutputDamageTrackerError<R>>
@@ -136,6 +136,6 @@ where
     R: Renderer + ImportAll + ImportMem,
     R::TextureId: Clone + 'static,
 {
-    let (elements, clear_color) = output_elements(output, space, custom_elements, renderer);
+    let (elements, clear_color) = output_elements(renderer, output, space, custom_elements);
     damage_tracker.render_output(renderer, age, &elements, clear_color)
 }

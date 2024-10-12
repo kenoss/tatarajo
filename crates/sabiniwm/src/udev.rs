@@ -1694,7 +1694,7 @@ fn render_surface<'a>(
         }
     }
 
-    let (elements, clear_color) = output_elements(output, space, custom_elements, renderer);
+    let (elements, clear_color) = output_elements(renderer, output, space, custom_elements);
     let res =
         surface
             .compositor

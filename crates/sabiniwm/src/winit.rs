@@ -304,7 +304,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     }
                 }
 
-                render_output(&output, space, elements, renderer, damage_tracker, age).map_err(
+                render_output(renderer, &output, space, elements, damage_tracker, age).map_err(
                     |err| match err {
                         OutputDamageTrackerError::Rendering(err) => err.into(),
                         _ => unreachable!(),
