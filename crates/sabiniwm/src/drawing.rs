@@ -27,12 +27,12 @@ impl Default for PointerElement {
 }
 
 impl PointerElement {
-    pub fn set_status(&mut self, status: CursorImageStatus) {
-        self.status = status;
-    }
-
     pub fn set_buffer(&mut self, buffer: MemoryRenderBuffer) {
         self.buffer = Some(buffer);
+    }
+
+    pub fn set_status(&mut self, status: CursorImageStatus) {
+        self.status = status;
     }
 }
 
@@ -82,6 +82,7 @@ where
     R: Renderer<TextureId = T> + ImportAll + ImportMem,
 {
     type RenderElement = PointerRenderElement<R>;
+
     fn render_elements<E>(
         &self,
         renderer: &mut R,
