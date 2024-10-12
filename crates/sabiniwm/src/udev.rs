@@ -1,6 +1,6 @@
 use crate::action::Action;
-use crate::drawing::{PointerElement, CLEAR_COLOR};
 use crate::input::Keymap;
+use crate::pointer::{PointerElement, CLEAR_COLOR};
 use crate::render::{output_elements, CustomRenderElement};
 use crate::state::{
     post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState,

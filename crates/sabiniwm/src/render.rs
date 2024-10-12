@@ -1,4 +1,4 @@
-use crate::drawing::{PointerRenderElement, CLEAR_COLOR};
+use crate::pointer::{PointerRenderElement, CLEAR_COLOR};
 use crate::view::window::WindowRenderElement;
 use smithay::backend::renderer::damage::{
     Error as OutputDamageTrackerError, OutputDamageTracker, RenderOutputResult,

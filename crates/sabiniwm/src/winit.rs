@@ -1,6 +1,6 @@
 use crate::action::Action;
-use crate::drawing::PointerElement;
 use crate::input::Keymap;
+use crate::pointer::PointerElement;
 use crate::render::{render_output, CustomRenderElement};
 use crate::state::{post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState};
 use crate::view::stackset::WorkspaceTag;
