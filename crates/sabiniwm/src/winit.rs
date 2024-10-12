@@ -1,7 +1,7 @@
 use crate::action::Action;
-use crate::drawing::*;
+use crate::drawing::PointerElement;
 use crate::input::Keymap;
-use crate::render::*;
+use crate::render::{render_output, CustomRenderElement};
 use crate::state::{post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState};
 use crate::view::stackset::WorkspaceTag;
 use smithay::backend::egl::EGLDevice;
