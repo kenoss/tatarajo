@@ -282,7 +282,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
 
                 let renderer = backend.renderer();
 
-                let mut elements = Vec::<CustomRenderElements<GlesRenderer>>::new();
+                let mut elements = Vec::<CustomRenderElement<GlesRenderer>>::new();
 
                 elements.extend(pointer_element.render_elements(
                     renderer,

@@ -1635,7 +1635,7 @@ fn render_surface<'a>(
     let output_geometry = space.output_geometry(output).unwrap();
     let scale = Scale::from(output.current_scale().fractional_scale());
 
-    let mut custom_elements: Vec<CustomRenderElements<_>> = Vec::new();
+    let mut custom_elements: Vec<CustomRenderElement<_>> = Vec::new();
 
     if output_geometry.to_f64().contains(pointer_location) {
         let cursor_hotspot = if let CursorImageStatus::Surface(ref surface) = cursor_status {
@@ -1731,7 +1731,7 @@ fn initial_render(
 ) -> Result<(), SwapBuffersError> {
     surface
         .compositor
-        .render_frame::<_, CustomRenderElements<_>, GlesTexture>(renderer, &[], CLEAR_COLOR)?;
+        .render_frame::<_, CustomRenderElement<_>, GlesTexture>(renderer, &[], CLEAR_COLOR)?;
     surface.compositor.queue_frame(None, None, None)?;
     surface.compositor.reset_buffers();
 
