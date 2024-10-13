@@ -207,6 +207,9 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
 
     while state.running.load(Ordering::SeqCst) {
         let status = winit.dispatch_new_events(|event| match event {
+            WinitEvent::Input(event) => {
+                state.process_input_event(event);
+            }
             WinitEvent::Resized { size, .. } => {
                 // We only have one output
                 let output = state.space.outputs().next().unwrap().clone();
@@ -221,10 +224,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     .view
                     .resize_output(size.to_logical(1), &mut state.space);
             }
-            WinitEvent::Input(event) => {
-                state.process_input_event(event);
-            }
-            _ => (),
+            WinitEvent::CloseRequested | WinitEvent::Focus(_) | WinitEvent::Redraw => {}
         });
 
         if let PumpStatus::Exit(_) = status {

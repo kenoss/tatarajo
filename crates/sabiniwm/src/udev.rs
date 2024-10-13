@@ -1199,19 +1199,16 @@ impl SabiniwmState {
 
         for event in device.drm_scanner.scan_connectors(&device.drm) {
             match event {
-                DrmScanEvent::Connected {
-                    connector,
-                    crtc: Some(crtc),
-                } => {
-                    self.connector_connected(node, connector, crtc);
+                DrmScanEvent::Connected { connector, crtc } => {
+                    if let Some(crtc) = crtc {
+                        self.connector_connected(node, connector, crtc);
+                    }
                 }
-                DrmScanEvent::Disconnected {
-                    connector,
-                    crtc: Some(crtc),
-                } => {
-                    self.connector_disconnected(node, connector, crtc);
+                DrmScanEvent::Disconnected { connector, crtc } => {
+                    if let Some(crtc) = crtc {
+                        self.connector_disconnected(node, connector, crtc);
+                    }
                 }
-                _ => {}
             }
         }
     }
