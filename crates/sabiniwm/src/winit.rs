@@ -217,6 +217,9 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                 };
                 output.change_current_state(Some(mode), None, None, None);
                 output.set_preferred(mode);
+                state
+                    .view
+                    .resize_output(size.to_logical(1), &mut state.space);
             }
             WinitEvent::Input(event) => {
                 state.process_input_event(event);

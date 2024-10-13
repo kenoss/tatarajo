@@ -1021,10 +1021,11 @@ impl SabiniwmState {
             };
 
             let (phys_w, phys_h) = connector.size().unwrap_or((0, 0));
+            let size = (phys_w as i32, phys_h as i32);
             let output = smithay::output::Output::new(
                 output_name,
                 PhysicalProperties {
-                    size: (phys_w as i32, phys_h as i32).into(),
+                    size: size.into(),
                     subpixel: connector.subpixel().into(),
                     make,
                     model,
@@ -1045,6 +1046,8 @@ impl SabiniwmState {
                 crtc,
                 device_id: node,
             });
+
+            self.view.resize_output(size.into(), &mut self.space);
 
             let allocator = GbmAllocator::new(
                 device.gbm.clone(),
