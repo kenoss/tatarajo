@@ -28,4 +28,4 @@ pub mod state_delegate;
 pub(crate) mod util;
 pub mod view;
 
-pub use state::{CalloopData, ClientState, SabiniwmState};
+pub use state::{ClientState, SabiniwmState};

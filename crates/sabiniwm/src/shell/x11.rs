@@ -1,5 +1,5 @@
 use crate::focus::KeyboardFocusTarget;
-use crate::CalloopData;
+use crate::state::SabiniwmState;
 use smithay::utils::{Logical, Rectangle};
 use smithay::wayland::selection::data_device::{
     clear_data_device_selection, current_data_device_selection_userdata,
@@ -14,9 +14,9 @@ use smithay::xwayland::xwm::{Reorder, ResizeEdge as X11ResizeEdge, XwmId};
 use smithay::xwayland::{X11Surface, X11Wm, XwmHandler};
 use std::os::unix::io::OwnedFd;
 
-impl XwmHandler for CalloopData {
+impl XwmHandler for SabiniwmState {
     fn xwm_state(&mut self, _xwm: XwmId) -> &mut X11Wm {
-        self.state.inner.xwm.as_mut().unwrap()
+        self.inner.xwm.as_mut().unwrap()
     }
 
     fn new_window(&mut self, _xwm: XwmId, _window: X11Surface) {}
@@ -26,30 +26,29 @@ impl XwmHandler for CalloopData {
         window.set_mapped(true).unwrap();
 
         let window = smithay::desktop::Window::new_x11_window(window);
-        let window_id = self.state.inner.view.register_window(window);
-        self.state.inner.view.layout(&mut self.state.inner.space);
-        self.state.inner.view.set_focus(window_id);
-        self.state.reflect_focus_from_stackset(None);
+        let window_id = self.inner.view.register_window(window);
+        self.inner.view.layout(&mut self.inner.space);
+        self.inner.view.set_focus(window_id);
+        self.reflect_focus_from_stackset(None);
     }
 
     fn mapped_override_redirect_window(&mut self, _xwm: XwmId, window: X11Surface) {
         let window = smithay::desktop::Window::new_x11_window(window);
-        let window_id = self.state.inner.view.register_window(window);
-        self.state.inner.view.layout(&mut self.state.inner.space);
-        self.state.inner.view.set_focus(window_id);
-        self.state.reflect_focus_from_stackset(None);
+        let window_id = self.inner.view.register_window(window);
+        self.inner.view.layout(&mut self.inner.space);
+        self.inner.view.set_focus(window_id);
+        self.reflect_focus_from_stackset(None);
     }
 
     fn unmapped_window(&mut self, _xwm: XwmId, window: X11Surface) {
         let maybe = self
-            .state
             .inner
             .space
             .elements()
             .find(|e| matches!(e.smithay_window().x11_surface(), Some(w) if w == &window))
             .cloned();
         if let Some(elem) = maybe {
-            self.state.inner.space.unmap_elem(&elem)
+            self.inner.space.unmap_elem(&elem)
         }
         if !window.is_override_redirect() {
             window.set_mapped(false).unwrap();
@@ -87,7 +86,6 @@ impl XwmHandler for CalloopData {
         _above: Option<u32>,
     ) {
         let Some(elem) = self
-            .state
             .inner
             .space
             .elements()
@@ -96,10 +94,7 @@ impl XwmHandler for CalloopData {
         else {
             return;
         };
-        self.state
-            .inner
-            .space
-            .map_element(elem, geometry.loc, false);
+        self.inner.space.map_element(elem, geometry.loc, false);
         // TODO: We don't properly handle the order of override-redirect windows here,
         //       they are always mapped top and then never reordered.
     }
@@ -119,7 +114,7 @@ impl XwmHandler for CalloopData {
     }
 
     fn allow_selection_access(&mut self, xwm: XwmId, _selection: SelectionTarget) -> bool {
-        if let Some(keyboard) = self.state.inner.seat.get_keyboard() {
+        if let Some(keyboard) = self.inner.seat.get_keyboard() {
             // check that an X11 window is focused
             if let Some(KeyboardFocusTarget::Window(w)) = keyboard.current_focus() {
                 if let Some(surface) = w.x11_surface() {
@@ -142,7 +137,7 @@ impl XwmHandler for CalloopData {
         match selection {
             SelectionTarget::Clipboard => {
                 if let Err(err) =
-                    request_data_device_client_selection(&self.state.inner.seat, mime_type, fd)
+                    request_data_device_client_selection(&self.inner.seat, mime_type, fd)
                 {
                     error!(
                         ?err,
@@ -151,8 +146,7 @@ impl XwmHandler for CalloopData {
                 }
             }
             SelectionTarget::Primary => {
-                if let Err(err) =
-                    request_primary_client_selection(&self.state.inner.seat, mime_type, fd)
+                if let Err(err) = request_primary_client_selection(&self.inner.seat, mime_type, fd)
                 {
                     error!(
                         ?err,
@@ -168,36 +162,27 @@ impl XwmHandler for CalloopData {
         // TODO check, that focused windows is X11 window before doing this
         match selection {
             SelectionTarget::Clipboard => set_data_device_selection(
-                &self.state.inner.display_handle,
-                &self.state.inner.seat,
+                &self.inner.display_handle,
+                &self.inner.seat,
                 mime_types,
                 (),
             ),
-            SelectionTarget::Primary => set_primary_selection(
-                &self.state.inner.display_handle,
-                &self.state.inner.seat,
-                mime_types,
-                (),
-            ),
+            SelectionTarget::Primary => {
+                set_primary_selection(&self.inner.display_handle, &self.inner.seat, mime_types, ())
+            }
         }
     }
 
     fn cleared_selection(&mut self, _xwm: XwmId, selection: SelectionTarget) {
         match selection {
             SelectionTarget::Clipboard => {
-                if current_data_device_selection_userdata(&self.state.inner.seat).is_some() {
-                    clear_data_device_selection(
-                        &self.state.inner.display_handle,
-                        &self.state.inner.seat,
-                    )
+                if current_data_device_selection_userdata(&self.inner.seat).is_some() {
+                    clear_data_device_selection(&self.inner.display_handle, &self.inner.seat)
                 }
             }
             SelectionTarget::Primary => {
-                if current_primary_selection_userdata(&self.state.inner.seat).is_some() {
-                    clear_primary_selection(
-                        &self.state.inner.display_handle,
-                        &self.state.inner.seat,
-                    )
+                if current_primary_selection_userdata(&self.inner.seat).is_some() {
+                    clear_primary_selection(&self.inner.display_handle, &self.inner.seat)
                 }
             }
         }

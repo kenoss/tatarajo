@@ -4,7 +4,7 @@ use crate::input::Keymap;
 use crate::pointer::{PointerElement, CLEAR_COLOR};
 use crate::render::{output_elements, CustomRenderElement};
 use crate::state::{
-    post_repaint, take_presentation_feedback, CalloopData, SabiniwmState, SurfaceDmabufFeedback,
+    post_repaint, take_presentation_feedback, SabiniwmState, SurfaceDmabufFeedback,
 };
 use crate::view::stackset::WorkspaceTag;
 use smithay::backend::allocator::dmabuf::Dmabuf;
@@ -273,11 +273,10 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
      */
     event_loop
         .handle()
-        .insert_source(libinput_backend, move |mut event, _, data| {
+        .insert_source(libinput_backend, move |mut event, _, state| {
             if let InputEvent::DeviceAdded { device } = &mut event {
                 if device.has_capability(DeviceCapability::Keyboard) {
-                    if let Some(led_state) = data
-                        .state
+                    if let Some(led_state) = state
                         .inner
                         .seat
                         .get_keyboard()
@@ -285,34 +284,31 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     {
                         device.led_update(led_state.into());
                     }
-                    data.state
-                        .backend_data_udev_mut()
-                        .keyboards
-                        .push(device.clone());
+                    state.backend_data_udev_mut().keyboards.push(device.clone());
                 }
             } else if let InputEvent::DeviceRemoved { ref device } = event {
                 if device.has_capability(DeviceCapability::Keyboard) {
-                    data.state
+                    state
                         .backend_data_udev_mut()
                         .keyboards
                         .retain(|item| item != device);
                 }
             }
 
-            data.state.process_input_event(event);
+            state.process_input_event(event);
         })
         .unwrap();
 
     let handle = event_loop.handle();
     event_loop
         .handle()
-        .insert_source(notifier, move |event, &mut (), data| {
+        .insert_source(notifier, move |event, &mut (), state| {
             match event {
                 SessionEvent::PauseSession => {
                     libinput_context.suspend();
                     info!("pausing session");
 
-                    for backend in data.state.backend_data_udev_mut().backends.values_mut() {
+                    for backend in state.backend_data_udev_mut().backends.values_mut() {
                         backend.drm.pause();
                         backend.active_leases.clear();
                         if let Some(lease_global) = backend.leasing_global.as_mut() {
@@ -326,8 +322,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     if let Err(err) = libinput_context.resume() {
                         error!("Failed to resume libinput context: {:?}", err);
                     }
-                    for (node, backend) in data
-                        .state
+                    for (node, backend) in state
                         .backend_data_udev_mut()
                         .backends
                         .iter_mut()
@@ -351,7 +346,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                                 warn!("Failed to reset drm surface state: {}", err);
                             }
                         }
-                        handle.insert_idle(move |data| data.state.render(node, None));
+                        handle.insert_idle(move |state| state.render(node, None));
                     }
                 }
             }
@@ -425,23 +420,23 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
 
     event_loop
         .handle()
-        .insert_source(udev_backend, move |event, _, data| match event {
+        .insert_source(udev_backend, move |event, _, state| match event {
             UdevEvent::Added { device_id, path } => {
                 if let Err(err) = DrmNode::from_dev_id(device_id)
                     .map_err(DeviceAddError::DrmNode)
-                    .and_then(|node| data.state.device_added(node, &path))
+                    .and_then(|node| state.device_added(node, &path))
                 {
                     error!("Skipping device {device_id}: {err}");
                 }
             }
             UdevEvent::Changed { device_id } => {
                 if let Ok(node) = DrmNode::from_dev_id(device_id) {
-                    data.state.device_changed(node)
+                    state.device_changed(node)
                 }
             }
             UdevEvent::Removed { device_id } => {
                 if let Ok(node) = DrmNode::from_dev_id(device_id) {
-                    data.state.device_removed(node)
+                    state.device_removed(node)
                 }
             }
         })
@@ -465,16 +460,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
      */
 
     while state.inner.running.load(Ordering::SeqCst) {
-        let mut calloop_data = CalloopData {
-            state,
-            display_handle,
-        };
-        let result = event_loop.dispatch(Some(Duration::from_millis(16)), &mut calloop_data);
-        CalloopData {
-            state,
-            display_handle,
-        } = calloop_data;
-
+        let result = event_loop.dispatch(Some(Duration::from_millis(16)), &mut state);
         if result.is_err() {
             state.inner.running.store(false, Ordering::SeqCst);
         } else {
@@ -876,17 +862,14 @@ impl SabiniwmState {
         let registration_token = self
             .inner
             .loop_handle
-            .insert_source(
-                notifier,
-                move |event, metadata, data: &mut CalloopData| match event {
-                    DrmEvent::VBlank(crtc) => {
-                        data.state.frame_finish(node, crtc, metadata);
-                    }
-                    DrmEvent::Error(error) => {
-                        error!("{:?}", error);
-                    }
-                },
-            )
+            .insert_source(notifier, move |event, metadata, state| match event {
+                DrmEvent::VBlank(crtc) => {
+                    state.frame_finish(node, crtc, metadata);
+                }
+                DrmEvent::Error(error) => {
+                    error!("{:?}", error);
+                }
+            })
             .unwrap();
 
         let render_node =
@@ -1421,8 +1404,8 @@ impl SabiniwmState {
 
             self.inner
                 .loop_handle
-                .insert_source(timer, move |_, _, data| {
-                    data.state.render(dev_id, Some(crtc));
+                .insert_source(timer, move |_, _, state| {
+                    state.render(dev_id, Some(crtc));
                     TimeoutAction::Drop
                 })
                 .expect("failed to schedule frame timer");
@@ -1580,8 +1563,8 @@ impl SabiniwmState {
             let timer = Timer::from_duration(reschedule_duration);
             self.inner
                 .loop_handle
-                .insert_source(timer, move |_, _, data| {
-                    data.state.render(node, Some(crtc));
+                .insert_source(timer, move |_, _, state| {
+                    state.render(node, Some(crtc));
                     TimeoutAction::Drop
                 })
                 .expect("failed to schedule frame timer");
@@ -1595,7 +1578,7 @@ impl SabiniwmState {
         &mut self,
         node: DrmNode,
         crtc: crtc::Handle,
-        evt_handle: LoopHandle<'static, CalloopData>,
+        evt_handle: LoopHandle<'static, SabiniwmState>,
     ) {
         let backend_data = backend_data_udev_mut!(self);
         let device = if let Some(device) = backend_data.backends.get_mut(&node) {
@@ -1623,8 +1606,8 @@ impl SabiniwmState {
                     // TODO dont reschedule after 3(?) retries
                     warn!("Failed to submit page_flip: {}", err);
                     let handle = evt_handle.clone();
-                    evt_handle.insert_idle(move |data| {
-                        data.state.schedule_initial_render(node, crtc, handle)
+                    evt_handle.insert_idle(move |state| {
+                        state.schedule_initial_render(node, crtc, handle)
                     });
                 }
                 SwapBuffersError::ContextLost(err) => panic!("Rendering loop lost: {}", err),

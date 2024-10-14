@@ -398,12 +398,13 @@ impl SecurityContextHandler for SabiniwmState {
     ) {
         self.inner
             .loop_handle
-            .insert_source(source, move |client_stream, _, data| {
+            .insert_source(source, move |client_stream, _, state| {
                 let client_state = ClientState {
                     security_context: Some(security_context.clone()),
                     ..ClientState::default()
                 };
-                if let Err(err) = data
+                if let Err(err) = state
+                    .inner
                     .display_handle
                     .insert_client(client_stream, Arc::new(client_state))
                 {

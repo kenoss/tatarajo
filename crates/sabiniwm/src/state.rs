@@ -49,11 +49,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-pub struct CalloopData {
-    pub state: SabiniwmState,
-    pub display_handle: DisplayHandle,
-}
-
 #[derive(Debug, Default)]
 pub struct ClientState {
     pub compositor_state: CompositorClientState,
@@ -74,7 +69,7 @@ pub struct SabiniwmState {
 pub(crate) struct InnerState {
     pub(crate) display_handle: DisplayHandle,
     pub(crate) running: Arc<AtomicBool>,
-    pub(crate) loop_handle: LoopHandle<'static, CalloopData>,
+    pub(crate) loop_handle: LoopHandle<'static, SabiniwmState>,
 
     // desktop
     pub(crate) space: Space<Window>,
@@ -117,7 +112,7 @@ impl SabiniwmState {
         workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
         display: Display<SabiniwmState>,
-        loop_handle: LoopHandle<'static, CalloopData>,
+        loop_handle: LoopHandle<'static, SabiniwmState>,
         backend_data: Box<dyn Backend>,
         listen_on_socket: bool,
     ) -> SabiniwmState {
@@ -133,8 +128,9 @@ impl SabiniwmState {
             let source = ListeningSocketSource::new_auto().unwrap();
             let socket_name = source.socket_name().to_string_lossy().into_owned();
             loop_handle
-                .insert_source(source, |client_stream, _, data| {
-                    if let Err(err) = data
+                .insert_source(source, |client_stream, _, state| {
+                    if let Err(err) = state
+                        .inner
                         .display_handle
                         .insert_client(client_stream, Arc::new(ClientState::default()))
                     {
@@ -154,10 +150,10 @@ impl SabiniwmState {
         loop_handle
             .insert_source(
                 Generic::new(display, Interest::READ, Mode::Level),
-                |_, display, data| {
+                |_, display, state| {
                     // Safety: we don't drop the display
                     unsafe {
-                        display.get_mut().dispatch_clients(&mut data.state).unwrap();
+                        display.get_mut().dispatch_clients(state).unwrap();
                     }
                     Ok(PostAction::Continue)
                 },
@@ -220,7 +216,7 @@ impl SabiniwmState {
 
             let (xwayland, channel) = XWayland::new(&dh);
             let dh = dh.clone();
-            let ret = loop_handle.insert_source(channel, move |event, _, data| match event {
+            let ret = loop_handle.insert_source(channel, move |event, _, state| match event {
                 XWaylandEvent::Ready {
                     connection,
                     client,
@@ -228,7 +224,7 @@ impl SabiniwmState {
                     display,
                 } => {
                     let mut wm = X11Wm::start_wm(
-                        data.state.inner.loop_handle.clone(),
+                        state.inner.loop_handle.clone(),
                         dh.clone(),
                         connection,
                         client,
@@ -243,11 +239,11 @@ impl SabiniwmState {
                     )
                     .expect("Failed to set xwayland default cursor");
                     std::env::set_var("DISPLAY", format!(":{}", display));
-                    data.state.inner.xwm = Some(wm);
-                    data.state.inner.xdisplay = Some(display);
+                    state.inner.xwm = Some(wm);
+                    state.inner.xdisplay = Some(display);
                 }
                 XWaylandEvent::Exited => {
-                    let _ = data.state.inner.xwm.take();
+                    let _ = state.inner.xwm.take();
                 }
             });
             if let Err(e) = ret {

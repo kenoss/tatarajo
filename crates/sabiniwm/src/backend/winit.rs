@@ -3,7 +3,7 @@ use crate::backend::Backend;
 use crate::input::Keymap;
 use crate::pointer::PointerElement;
 use crate::render::{render_output, CustomRenderElement};
-use crate::state::{post_repaint, take_presentation_feedback, CalloopData, SabiniwmState};
+use crate::state::{post_repaint, take_presentation_feedback, SabiniwmState};
 use crate::view::stackset::WorkspaceTag;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
@@ -363,16 +363,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
             }
         }
 
-        let mut calloop_data = CalloopData {
-            state,
-            display_handle,
-        };
-        let result = event_loop.dispatch(Some(Duration::from_millis(1)), &mut calloop_data);
-        CalloopData {
-            state,
-            display_handle,
-        } = calloop_data;
-
+        let result = event_loop.dispatch(Some(Duration::from_millis(1)), &mut state);
         if result.is_err() {
             state.inner.running.store(false, Ordering::SeqCst);
         } else {

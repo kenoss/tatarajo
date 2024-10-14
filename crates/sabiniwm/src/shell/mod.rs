@@ -1,5 +1,5 @@
 use crate::state::SabiniwmState;
-use crate::{CalloopData, ClientState};
+use crate::ClientState;
 use smithay::backend::renderer::utils::on_commit_buffer_handler;
 use smithay::desktop::{layer_map_for_output, LayerSurface};
 use smithay::output::Output;
@@ -61,10 +61,10 @@ impl CompositorHandler for SabiniwmState {
                     let res = state
                         .inner
                         .loop_handle
-                        .insert_source(source, move |_, _, data| {
-                            data.state
+                        .insert_source(source, move |_, _, state| {
+                            state
                                 .client_compositor_state(&client)
-                                .blocker_cleared(&mut data.state, &data.display_handle);
+                                .blocker_cleared(state, &state.inner.display_handle.clone());
                             Ok(())
                         });
                     if res.is_ok() {
@@ -76,7 +76,7 @@ impl CompositorHandler for SabiniwmState {
     }
 
     fn commit(&mut self, surface: &WlSurface) {
-        X11Wm::commit_hook::<CalloopData>(surface);
+        X11Wm::commit_hook::<SabiniwmState>(surface);
 
         on_commit_buffer_handler::<Self>(surface);
         self.backend_data.early_import(surface);
