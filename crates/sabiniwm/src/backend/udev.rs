@@ -64,7 +64,6 @@ use std::collections::hash_map::HashMap;
 use std::collections::HashSet;
 use std::ffi::OsString;
 use std::path::Path;
-use std::sync::atomic::Ordering;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -459,16 +458,11 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
      * And run our loop
      */
 
-    while state.inner.running.load(Ordering::SeqCst) {
-        let result = event_loop.dispatch(Some(Duration::from_millis(16)), &mut state);
-        if result.is_err() {
-            state.inner.running.store(false, Ordering::SeqCst);
-        } else {
-            state.inner.space.refresh();
-            state.inner.popups.cleanup();
-            display_handle.flush_clients().unwrap();
-        }
-    }
+    let _ = event_loop.run(Some(Duration::from_millis(16)), &mut state, |state| {
+        state.inner.space.refresh();
+        state.inner.popups.cleanup();
+        display_handle.flush_clients().unwrap();
+    });
 }
 
 impl DrmLeaseHandler for SabiniwmState {
