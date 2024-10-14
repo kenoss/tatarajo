@@ -11,6 +11,7 @@
 extern crate tracing;
 
 pub mod action;
+pub mod backend;
 pub mod cursor;
 mod external_trait_def;
 pub mod focus;
@@ -23,12 +24,8 @@ pub mod render;
 pub mod shell;
 pub mod state;
 pub mod state_delegate;
-#[cfg(feature = "udev")]
-pub mod udev;
 #[allow(unused)]
 pub(crate) mod util;
 pub mod view;
-#[cfg(feature = "winit")]
-pub mod winit;
 
 pub use state::{CalloopData, ClientState, SabiniwmState};

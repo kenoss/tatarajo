@@ -95,8 +95,8 @@ fn main() -> Result<()> {
         }
     };
     match backend {
-        Backend::Udev => sabiniwm::udev::run_udev(workspace_tags, keymap),
-        Backend::Winit => sabiniwm::winit::run_winit(workspace_tags, keymap),
+        Backend::Udev => sabiniwm::backend::udev::run_udev(workspace_tags, keymap),
+        Backend::Winit => sabiniwm::backend::winit::run_winit(workspace_tags, keymap),
     }
 
     Ok(())
