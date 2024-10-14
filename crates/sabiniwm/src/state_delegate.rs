@@ -104,7 +104,7 @@ impl SelectionHandler for SabiniwmState {
         _user_data: &(),
     ) {
         if let Some(xwm) = self.xwm.as_mut() {
-            if let Err(err) = xwm.send_selection(ty, mime_type, fd, self.handle.clone()) {
+            if let Err(err) = xwm.send_selection(ty, mime_type, fd, self.loop_handle.clone()) {
                 warn!(?err, "Failed to send primary (X11 -> Wayland)");
             }
         }
@@ -385,7 +385,7 @@ impl SecurityContextHandler for SabiniwmState {
         source: SecurityContextListenerSource,
         security_context: SecurityContext,
     ) {
-        self.handle
+        self.loop_handle
             .insert_source(source, move |client_stream, _, data| {
                 let client_state = ClientState {
                     security_context: Some(security_context.clone()),

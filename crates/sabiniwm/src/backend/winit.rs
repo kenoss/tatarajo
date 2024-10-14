@@ -193,7 +193,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
     state.space.map_output(&output, (0, 0));
 
     if let Err(e) = state.xwayland.start(
-        state.handle.clone(),
+        state.loop_handle.clone(),
         None,
         std::iter::empty::<(OsString, OsString)>(),
         true,

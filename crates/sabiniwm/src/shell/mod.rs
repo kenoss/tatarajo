@@ -58,7 +58,7 @@ impl CompositorHandler for SabiniwmState {
             if let Some(dmabuf) = maybe_dmabuf {
                 if let Ok((blocker, source)) = dmabuf.generate_blocker(Interest::READ) {
                     let client = surface.client().unwrap();
-                    let res = state.handle.insert_source(source, move |_, _, data| {
+                    let res = state.loop_handle.insert_source(source, move |_, _, data| {
                         data.state
                             .client_compositor_state(&client)
                             .blocker_cleared(&mut data.state, &data.display_handle);

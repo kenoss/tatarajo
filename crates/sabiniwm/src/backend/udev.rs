@@ -448,7 +448,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
      * Start XWayland if supported
      */
     if let Err(e) = state.xwayland.start(
-        state.handle.clone(),
+        state.loop_handle.clone(),
         None,
         std::iter::empty::<(OsString, OsString)>(),
         true,
@@ -871,7 +871,7 @@ impl SabiniwmState {
         let gbm = GbmDevice::new(fd).map_err(DeviceAddError::GbmDevice)?;
 
         let registration_token = self
-            .handle
+            .loop_handle
             .insert_source(
                 notifier,
                 move |event, metadata, data: &mut CalloopData| match event {
@@ -1143,7 +1143,7 @@ impl SabiniwmState {
 
             device.surfaces.insert(crtc, surface);
 
-            self.schedule_initial_render(node, crtc, self.handle.clone());
+            self.schedule_initial_render(node, crtc, self.loop_handle.clone());
         }
     }
 
@@ -1248,7 +1248,8 @@ impl SabiniwmState {
                 .as_mut()
                 .remove_node(&backend_data_inner.render_node);
 
-            self.handle.remove(backend_data_inner.registration_token);
+            self.loop_handle
+                .remove(backend_data_inner.registration_token);
 
             debug!("Dropping device");
         }
@@ -1407,7 +1408,7 @@ impl SabiniwmState {
                 Timer::from_duration(repaint_delay)
             };
 
-            self.handle
+            self.loop_handle
                 .insert_source(timer, move |_, _, data| {
                     data.state.render(dev_id, Some(crtc));
                     TimeoutAction::Drop
@@ -1565,7 +1566,7 @@ impl SabiniwmState {
                 crtc,
             );
             let timer = Timer::from_duration(reschedule_duration);
-            self.handle
+            self.loop_handle
                 .insert_source(timer, move |_, _, data| {
                     data.state.render(node, Some(crtc));
                     TimeoutAction::Drop

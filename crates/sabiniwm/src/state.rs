@@ -70,7 +70,7 @@ pub struct SabiniwmState {
     pub(crate) backend_data: Box<dyn Backend>,
     pub(crate) display_handle: DisplayHandle,
     pub(crate) running: Arc<AtomicBool>,
-    pub(crate) handle: LoopHandle<'static, CalloopData>,
+    pub(crate) loop_handle: LoopHandle<'static, CalloopData>,
 
     // desktop
     pub(crate) space: Space<Window>,
@@ -113,7 +113,7 @@ impl SabiniwmState {
         workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
         display: Display<SabiniwmState>,
-        handle: LoopHandle<'static, CalloopData>,
+        loop_handle: LoopHandle<'static, CalloopData>,
         backend_data: Box<dyn Backend>,
         listen_on_socket: bool,
     ) -> SabiniwmState {
@@ -128,7 +128,7 @@ impl SabiniwmState {
         let socket_name = if listen_on_socket {
             let source = ListeningSocketSource::new_auto().unwrap();
             let socket_name = source.socket_name().to_string_lossy().into_owned();
-            handle
+            loop_handle
                 .insert_source(source, |client_stream, _, data| {
                     if let Err(err) = data
                         .display_handle
@@ -147,7 +147,7 @@ impl SabiniwmState {
             std::env::set_var("WAYLAND_DISPLAY", socket_name);
         }
 
-        handle
+        loop_handle
             .insert_source(
                 Generic::new(display, Interest::READ, Mode::Level),
                 |_, display, data| {
@@ -216,16 +216,20 @@ impl SabiniwmState {
 
             let (xwayland, channel) = XWayland::new(&dh);
             let dh = dh.clone();
-            let ret = handle.insert_source(channel, move |event, _, data| match event {
+            let ret = loop_handle.insert_source(channel, move |event, _, data| match event {
                 XWaylandEvent::Ready {
                     connection,
                     client,
                     client_fd: _,
                     display,
                 } => {
-                    let mut wm =
-                        X11Wm::start_wm(data.state.handle.clone(), dh.clone(), connection, client)
-                            .expect("Failed to attach X11 Window Manager");
+                    let mut wm = X11Wm::start_wm(
+                        data.state.loop_handle.clone(),
+                        dh.clone(),
+                        connection,
+                        client,
+                    )
+                    .expect("Failed to attach X11 Window Manager");
                     let cursor = Cursor::load();
                     let image = cursor.get_image(1, Duration::ZERO);
                     wm.set_cursor(
@@ -258,7 +262,7 @@ impl SabiniwmState {
             backend_data,
             display_handle: dh,
             running: Arc::new(AtomicBool::new(true)),
-            handle,
+            loop_handle,
             space: Space::default(),
             popups: PopupManager::default(),
             compositor_state,
