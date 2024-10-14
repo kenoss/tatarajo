@@ -73,12 +73,14 @@ impl SabiniwmState {
                     .spawn();
             }
             Action::LayoutMessage(message) => {
-                self.view.handle_layout_message(message, &mut self.space);
+                self.inner
+                    .view
+                    .handle_layout_message(message, &mut self.inner.space);
                 self.reflect_focus_from_stackset(None);
             }
             Action::ActionFn(f) => {
                 f.exec(self);
-                self.view.layout(&mut self.space);
+                self.inner.view.layout(&mut self.inner.space);
                 self.reflect_focus_from_stackset(None);
             }
         }
@@ -97,7 +99,7 @@ impl ActionFnI for ActionMoveFocus {
             Self::Next => 1,
             Self::Prev => -1,
         };
-        state.view.update_stackset_with(|stackset| {
+        state.inner.view.update_stackset_with(|stackset| {
             let stack = &mut stackset.workspaces.focus_mut().stack;
             let i = stack.mod_plus_focused_index(count);
             stack.set_focused_index(i);
@@ -117,7 +119,7 @@ impl ActionFnI for ActionWindowSwap {
             Self::Next => 1,
             Self::Prev => -1,
         };
-        state.view.update_stackset_with(|stackset| {
+        state.inner.view.update_stackset_with(|stackset| {
             let stack = &mut stackset.workspaces.focus_mut().stack;
 
             if stack.is_empty() {
@@ -146,7 +148,7 @@ impl ActionFnI for ActionWorkspaceFocus {
             Self::Next => 1,
             Self::Prev => -1,
         };
-        state.view.update_stackset_with(|stackset| {
+        state.inner.view.update_stackset_with(|stackset| {
             let workspaces = &mut stackset.workspaces;
             let i = workspaces.mod_plus_focused_index(count);
             workspaces.set_focused_index(i);
@@ -166,7 +168,7 @@ impl ActionFnI for ActionWorkspaceFocusNonEmpty {
             Self::Next => 1,
             Self::Prev => -1,
         };
-        state.view.update_stackset_with(|stackset| {
+        state.inner.view.update_stackset_with(|stackset| {
             let workspaces = &mut stackset.workspaces;
             for d in 1..workspaces.len() {
                 let i = workspaces.mod_plus_focused_index(direction * d as isize);
@@ -191,7 +193,7 @@ impl ActionFnI for ActionWindowMoveToWorkspace {
             Self::Next => 1,
             Self::Prev => -1,
         };
-        state.view.update_stackset_with(|stackset| {
+        state.inner.view.update_stackset_with(|stackset| {
             let mut workspaces = stackset.workspaces.as_mut();
 
             let mut src = workspaces.vec[workspaces.focus].stack.as_mut();
@@ -217,7 +219,7 @@ impl ActionFnI for ActionWindowKill {
     fn exec(&self, state: &mut SabiniwmState) {
         use smithay::desktop::WindowSurface;
 
-        let Some(window) = state.view.focused_window_mut() else {
+        let Some(window) = state.inner.view.focused_window_mut() else {
             return;
         };
 

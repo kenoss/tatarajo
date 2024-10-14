@@ -250,7 +250,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
     /*
      * Initialize the udev backend
      */
-    let udev_backend = match UdevBackend::new(&state.seat_name) {
+    let udev_backend = match UdevBackend::new(&state.inner.seat_name) {
         Ok(ret) => ret,
         Err(err) => {
             error!(error = ?err, "Failed to initialize udev backend");
@@ -263,7 +263,9 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
      */
     let mut libinput_context =
         Libinput::new_with_udev::<LibinputSessionInterface<LibSeatSession>>(session_cloned.into());
-    libinput_context.udev_assign_seat(&state.seat_name).unwrap();
+    libinput_context
+        .udev_assign_seat(&state.inner.seat_name)
+        .unwrap();
     let libinput_backend = LibinputInputBackend::new(libinput_context.clone());
 
     /*
@@ -276,6 +278,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                 if device.has_capability(DeviceCapability::Keyboard) {
                     if let Some(led_state) = data
                         .state
+                        .inner
                         .seat
                         .get_keyboard()
                         .map(|keyboard| keyboard.led_state())
@@ -364,7 +367,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
         }
     }
 
-    state.shm_state.update_formats(
+    state.inner.shm_state.update_formats(
         state
             .backend_data
             .downcast_mut::<UdevData>()
@@ -447,8 +450,8 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
     /*
      * Start XWayland if supported
      */
-    if let Err(e) = state.xwayland.start(
-        state.loop_handle.clone(),
+    if let Err(e) = state.inner.xwayland.start(
+        state.inner.loop_handle.clone(),
         None,
         std::iter::empty::<(OsString, OsString)>(),
         true,
@@ -461,7 +464,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
      * And run our loop
      */
 
-    while state.running.load(Ordering::SeqCst) {
+    while state.inner.running.load(Ordering::SeqCst) {
         let mut calloop_data = CalloopData {
             state,
             display_handle,
@@ -473,10 +476,10 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
         } = calloop_data;
 
         if result.is_err() {
-            state.running.store(false, Ordering::SeqCst);
+            state.inner.running.store(false, Ordering::SeqCst);
         } else {
-            state.space.refresh();
-            state.popups.cleanup();
+            state.inner.space.refresh();
+            state.inner.popups.cleanup();
             display_handle.flush_clients().unwrap();
         }
     }
@@ -871,6 +874,7 @@ impl SabiniwmState {
         let gbm = GbmDevice::new(fd).map_err(DeviceAddError::GbmDevice)?;
 
         let registration_token = self
+            .inner
             .loop_handle
             .insert_source(
                 notifier,
@@ -914,7 +918,7 @@ impl SabiniwmState {
                     render_node,
                     surfaces: HashMap::new(),
                     leasing_global: DrmLeaseState::new::<SabiniwmState>(
-                        &self.display_handle,
+                        &self.inner.display_handle,
                         &node,
                     )
                     .map_err(|err| {
@@ -1031,23 +1035,25 @@ impl SabiniwmState {
                     model,
                 },
             );
-            let global = output.create_global::<SabiniwmState>(&self.display_handle.clone());
+            let global = output.create_global::<SabiniwmState>(&self.inner.display_handle.clone());
 
-            let x = self.space.outputs().fold(0, |acc, o| {
-                acc + self.space.output_geometry(o).unwrap().size.w
+            let x = self.inner.space.outputs().fold(0, |acc, o| {
+                acc + self.inner.space.output_geometry(o).unwrap().size.w
             });
             let position = (x, 0).into();
 
             output.set_preferred(wl_mode);
             output.change_current_state(Some(wl_mode), None, None, Some(position));
-            self.space.map_output(&output, position);
+            self.inner.space.map_output(&output, position);
 
             output.user_data().insert_if_missing(|| UdevOutputId {
                 crtc,
                 device_id: node,
             });
 
-            self.view.resize_output(size.into(), &mut self.space);
+            self.inner
+                .view
+                .resize_output(size.into(), &mut self.inner.space);
 
             let allocator = GbmAllocator::new(
                 device.gbm.clone(),
@@ -1133,7 +1139,7 @@ impl SabiniwmState {
             );
 
             let surface = SurfaceData {
-                dh: self.display_handle.clone(),
+                dh: self.inner.display_handle.clone(),
                 device_id: node,
                 render_node: device.render_node,
                 global: Some(global),
@@ -1143,7 +1149,7 @@ impl SabiniwmState {
 
             device.surfaces.insert(crtc, surface);
 
-            self.schedule_initial_render(node, crtc, self.loop_handle.clone());
+            self.schedule_initial_render(node, crtc, self.inner.loop_handle.clone());
         }
     }
 
@@ -1173,6 +1179,7 @@ impl SabiniwmState {
             device.surfaces.remove(&crtc);
 
             let output = self
+                .inner
                 .space
                 .outputs()
                 .find(|o| {
@@ -1184,7 +1191,7 @@ impl SabiniwmState {
                 .cloned();
 
             if let Some(output) = output {
-                self.space.unmap_output(&output);
+                self.inner.space.unmap_output(&output);
             }
         }
     }
@@ -1248,7 +1255,8 @@ impl SabiniwmState {
                 .as_mut()
                 .remove_node(&backend_data_inner.render_node);
 
-            self.loop_handle
+            self.inner
+                .loop_handle
                 .remove(backend_data_inner.registration_token);
 
             debug!("Dropping device");
@@ -1278,7 +1286,7 @@ impl SabiniwmState {
             }
         };
 
-        let output = if let Some(output) = self.space.outputs().find(|o| {
+        let output = if let Some(output) = self.inner.space.outputs().find(|o| {
             o.user_data().get::<UdevOutputId>()
                 == Some(&UdevOutputId {
                     device_id: surface.device_id,
@@ -1315,7 +1323,10 @@ impl SabiniwmState {
                                 | wp_presentation_feedback::Kind::HwCompletion,
                         )
                     } else {
-                        (self.clock.now(), wp_presentation_feedback::Kind::Vsync)
+                        (
+                            self.inner.clock.now(),
+                            wp_presentation_feedback::Kind::Vsync,
+                        )
                     };
 
                     feedback.presented(
@@ -1408,7 +1419,8 @@ impl SabiniwmState {
                 Timer::from_duration(repaint_delay)
             };
 
-            self.loop_handle
+            self.inner
+                .loop_handle
                 .insert_source(timer, move |_, _, data| {
                     data.state.render(dev_id, Some(crtc));
                     TimeoutAction::Drop
@@ -1457,7 +1469,7 @@ impl SabiniwmState {
         // TODO get scale from the rendersurface when supporting HiDPI
         let frame = backend_data
             .pointer_image
-            .get_image(1 /*scale*/, self.clock.now().into());
+            .get_image(1 /*scale*/, self.inner.clock.now().into());
 
         let render_node = surface.render_node;
         let primary_gpu = backend_data.primary_gpu;
@@ -1494,7 +1506,7 @@ impl SabiniwmState {
                 buffer
             });
 
-        let output = if let Some(output) = self.space.outputs().find(|o| {
+        let output = if let Some(output) = self.inner.space.outputs().find(|o| {
             o.user_data().get::<UdevOutputId>()
                 == Some(&UdevOutputId {
                     device_id: surface.device_id,
@@ -1510,14 +1522,14 @@ impl SabiniwmState {
         let result = render_surface(
             surface,
             &mut renderer,
-            &self.space,
+            &self.inner.space,
             &output,
-            self.pointer.current_location(),
+            self.inner.pointer.current_location(),
             &pointer_image,
             &mut backend_data.pointer_element,
-            &self.dnd_icon,
-            &mut self.cursor_status.lock().unwrap(),
-            &self.clock,
+            &self.inner.dnd_icon,
+            &mut self.inner.cursor_status.lock().unwrap(),
+            &self.inner.clock,
         );
         let reschedule = match &result {
             Ok(has_rendered) => !has_rendered,
@@ -1566,7 +1578,8 @@ impl SabiniwmState {
                 crtc,
             );
             let timer = Timer::from_duration(reschedule_duration);
-            self.loop_handle
+            self.inner
+                .loop_handle
                 .insert_source(timer, move |_, _, data| {
                     data.state.render(node, Some(crtc));
                     TimeoutAction::Drop

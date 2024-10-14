@@ -49,7 +49,7 @@ smithay::delegate_compositor!(SabiniwmState);
 
 impl DataDeviceHandler for SabiniwmState {
     fn data_device_state(&self) -> &DataDeviceState {
-        &self.data_device_state
+        &self.inner.data_device_state
     }
 }
 
@@ -60,10 +60,10 @@ impl ClientDndGrabHandler for SabiniwmState {
         icon: Option<WlSurface>,
         _seat: Seat<Self>,
     ) {
-        self.dnd_icon = icon;
+        self.inner.dnd_icon = icon;
     }
     fn dropped(&mut self, _seat: Seat<Self>) {
-        self.dnd_icon = None;
+        self.inner.dnd_icon = None;
     }
 }
 
@@ -88,7 +88,7 @@ impl SelectionHandler for SabiniwmState {
         source: Option<SelectionSource>,
         _seat: Seat<Self>,
     ) {
-        if let Some(xwm) = self.xwm.as_mut() {
+        if let Some(xwm) = self.inner.xwm.as_mut() {
             if let Err(err) = xwm.new_selection(ty, source.map(|source| source.mime_types())) {
                 warn!(?err, ?ty, "Failed to set Xwayland selection");
             }
@@ -103,8 +103,9 @@ impl SelectionHandler for SabiniwmState {
         _seat: Seat<Self>,
         _user_data: &(),
     ) {
-        if let Some(xwm) = self.xwm.as_mut() {
-            if let Err(err) = xwm.send_selection(ty, mime_type, fd, self.loop_handle.clone()) {
+        if let Some(xwm) = self.inner.xwm.as_mut() {
+            if let Err(err) = xwm.send_selection(ty, mime_type, fd, self.inner.loop_handle.clone())
+            {
                 warn!(?err, "Failed to send primary (X11 -> Wayland)");
             }
         }
@@ -113,7 +114,7 @@ impl SelectionHandler for SabiniwmState {
 
 impl PrimarySelectionHandler for SabiniwmState {
     fn primary_selection_state(&self) -> &PrimarySelectionState {
-        &self.primary_selection_state
+        &self.inner.primary_selection_state
     }
 }
 
@@ -121,7 +122,7 @@ smithay::delegate_primary_selection!(SabiniwmState);
 
 impl DataControlHandler for SabiniwmState {
     fn data_control_state(&self) -> &DataControlState {
-        &self.data_control_state
+        &self.inner.data_control_state
     }
 }
 
@@ -129,7 +130,7 @@ smithay::delegate_data_control!(SabiniwmState);
 
 impl ShmHandler for SabiniwmState {
     fn shm_state(&self) -> &ShmState {
-        &self.shm_state
+        &self.inner.shm_state
     }
 }
 
@@ -141,11 +142,11 @@ impl SeatHandler for SabiniwmState {
     type TouchFocus = PointerFocusTarget;
 
     fn seat_state(&mut self) -> &mut SeatState<SabiniwmState> {
-        &mut self.seat_state
+        &mut self.inner.seat_state
     }
 
     fn focus_changed(&mut self, seat: &Seat<Self>, target: Option<&KeyboardFocusTarget>) {
-        let dh = &self.display_handle;
+        let dh = &self.inner.display_handle;
 
         let wl_surface = target.and_then(WaylandFocus::wl_surface);
 
@@ -154,7 +155,7 @@ impl SeatHandler for SabiniwmState {
         set_primary_focus(dh, seat, focus);
     }
     fn cursor_image(&mut self, _seat: &Seat<Self>, image: CursorImageStatus) {
-        *self.cursor_status.lock().unwrap() = image;
+        *self.inner.cursor_status.lock().unwrap() = image;
     }
 
     fn led_state_changed(&mut self, _seat: &Seat<Self>, led_state: LedState) {
@@ -168,7 +169,7 @@ smithay::delegate_text_input_manager!(SabiniwmState);
 
 impl InputMethodHandler for SabiniwmState {
     fn new_popup(&mut self, surface: PopupSurface) {
-        if let Err(err) = self.popups.track_popup(PopupKind::from(surface)) {
+        if let Err(err) = self.inner.popups.track_popup(PopupKind::from(surface)) {
             warn!("Failed to track popup: {}", err);
         }
     }
@@ -180,7 +181,8 @@ impl InputMethodHandler for SabiniwmState {
     }
 
     fn parent_geometry(&self, parent: &WlSurface) -> Rectangle<i32, smithay::utils::Logical> {
-        self.space
+        self.inner
+            .space
             .elements()
             .find_map(|window| {
                 (window.smithay_window().wl_surface().as_ref() == Some(parent))
@@ -194,7 +196,7 @@ smithay::delegate_input_method_manager!(SabiniwmState);
 
 impl KeyboardShortcutsInhibitHandler for SabiniwmState {
     fn keyboard_shortcuts_inhibit_state(&mut self) -> &mut KeyboardShortcutsInhibitState {
-        &mut self.keyboard_shortcuts_inhibit_state
+        &mut self.inner.keyboard_shortcuts_inhibit_state
     }
 
     fn new_inhibitor(&mut self, inhibitor: KeyboardShortcutsInhibitor) {
@@ -229,13 +231,13 @@ smithay::delegate_viewporter!(SabiniwmState);
 
 impl XdgActivationHandler for SabiniwmState {
     fn activation_state(&mut self) -> &mut XdgActivationState {
-        &mut self.xdg_activation_state
+        &mut self.inner.xdg_activation_state
     }
 
     fn token_created(&mut self, _token: XdgActivationToken, data: XdgActivationTokenData) -> bool {
         if let Some((serial, seat)) = data.serial {
-            let keyboard = self.seat.get_keyboard().unwrap();
-            Seat::from_resource(&seat) == Some(self.seat.clone())
+            let keyboard = self.inner.seat.get_keyboard().unwrap();
+            Seat::from_resource(&seat) == Some(self.inner.seat.clone())
                 && keyboard
                     .last_enter()
                     .map(|last_enter| serial.is_no_older_than(&last_enter))
@@ -254,6 +256,7 @@ impl XdgActivationHandler for SabiniwmState {
         if token_data.timestamp.elapsed().as_secs() < 10 {
             // Just grant the wish
             let w = self
+                .inner
                 .space
                 .elements()
                 .find(|window| {
@@ -265,7 +268,7 @@ impl XdgActivationHandler for SabiniwmState {
                 })
                 .cloned();
             if let Some(window) = w {
-                self.space.raise_element(&window, true);
+                self.inner.space.raise_element(&window, true);
             }
         }
     }
@@ -357,17 +360,25 @@ impl FractionalScaleHandler for SabiniwmState {
                         with_states(&root, |states| {
                             surface_primary_scanout_output(&root, states).or_else(|| {
                                 self.window_for_surface(&root).and_then(|window| {
-                                    self.space.outputs_for_element(&window).first().cloned()
+                                    self.inner
+                                        .space
+                                        .outputs_for_element(&window)
+                                        .first()
+                                        .cloned()
                                 })
                             })
                         })
                     } else {
                         self.window_for_surface(&root).and_then(|window| {
-                            self.space.outputs_for_element(&window).first().cloned()
+                            self.inner
+                                .space
+                                .outputs_for_element(&window)
+                                .first()
+                                .cloned()
                         })
                     }
                 })
-                .or_else(|| self.space.outputs().next().cloned());
+                .or_else(|| self.inner.space.outputs().next().cloned());
             if let Some(output) = primary_scanout_output {
                 with_fractional_scale(states, |fractional_scale| {
                     fractional_scale.set_preferred_scale(output.current_scale().fractional_scale());
@@ -385,7 +396,8 @@ impl SecurityContextHandler for SabiniwmState {
         source: SecurityContextListenerSource,
         security_context: SecurityContext,
     ) {
-        self.loop_handle
+        self.inner
+            .loop_handle
             .insert_source(source, move |client_stream, _, data| {
                 let client_state = ClientState {
                     security_context: Some(security_context.clone()),
@@ -407,6 +419,7 @@ smithay::delegate_security_context!(SabiniwmState);
 impl XWaylandKeyboardGrabHandler for SabiniwmState {
     fn keyboard_focus_for_xsurface(&self, surface: &WlSurface) -> Option<KeyboardFocusTarget> {
         let window = self
+            .inner
             .space
             .elements()
             .find(|window| window.smithay_window().wl_surface().as_ref() == Some(surface))?;
@@ -418,7 +431,7 @@ smithay::delegate_xwayland_keyboard_grab!(SabiniwmState);
 
 impl XdgForeignHandler for SabiniwmState {
     fn xdg_foreign_state(&mut self) -> &mut XdgForeignState {
-        &mut self.xdg_foreign_state
+        &mut self.inner.xdg_foreign_state
     }
 }
 

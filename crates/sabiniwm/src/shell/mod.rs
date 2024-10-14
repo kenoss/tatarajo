@@ -30,7 +30,7 @@ impl BufferHandler for SabiniwmState {
 
 impl CompositorHandler for SabiniwmState {
     fn compositor_state(&mut self) -> &mut CompositorState {
-        &mut self.compositor_state
+        &mut self.inner.compositor_state
     }
     fn client_compositor_state<'a>(&self, client: &'a Client) -> &'a CompositorClientState {
         if let Some(state) = client.get_data::<XWaylandClientData>() {
@@ -58,12 +58,15 @@ impl CompositorHandler for SabiniwmState {
             if let Some(dmabuf) = maybe_dmabuf {
                 if let Ok((blocker, source)) = dmabuf.generate_blocker(Interest::READ) {
                     let client = surface.client().unwrap();
-                    let res = state.loop_handle.insert_source(source, move |_, _, data| {
-                        data.state
-                            .client_compositor_state(&client)
-                            .blocker_cleared(&mut data.state, &data.display_handle);
-                        Ok(())
-                    });
+                    let res = state
+                        .inner
+                        .loop_handle
+                        .insert_source(source, move |_, _, data| {
+                            data.state
+                                .client_compositor_state(&client)
+                                .blocker_cleared(&mut data.state, &data.display_handle);
+                            Ok(())
+                        });
                     if res.is_ok() {
                         add_blocker(surface, blocker);
                     }
@@ -87,13 +90,13 @@ impl CompositorHandler for SabiniwmState {
                 window.smithay_window().on_commit();
             }
         }
-        self.popups.commit(surface);
+        self.inner.popups.commit(surface);
     }
 }
 
 impl WlrLayerShellHandler for SabiniwmState {
     fn shell_state(&mut self) -> &mut WlrLayerShellState {
-        &mut self.layer_shell_state
+        &mut self.inner.layer_shell_state
     }
 
     fn new_layer_surface(
@@ -106,14 +109,14 @@ impl WlrLayerShellHandler for SabiniwmState {
         let output = wl_output
             .as_ref()
             .and_then(Output::from_resource)
-            .unwrap_or_else(|| self.space.outputs().next().unwrap().clone());
+            .unwrap_or_else(|| self.inner.space.outputs().next().unwrap().clone());
         let mut map = layer_map_for_output(&output);
         map.map_layer(&LayerSurface::new(surface, namespace))
             .unwrap();
     }
 
     fn layer_destroyed(&mut self, surface: WlrLayerSurface) {
-        if let Some((mut map, layer)) = self.space.outputs().find_map(|o| {
+        if let Some((mut map, layer)) = self.inner.space.outputs().find_map(|o| {
             let map = layer_map_for_output(o);
             let layer = map
                 .layers()
@@ -128,7 +131,8 @@ impl WlrLayerShellHandler for SabiniwmState {
 
 impl SabiniwmState {
     pub fn window_for_surface(&self, surface: &WlSurface) -> Option<crate::view::window::Window> {
-        self.space
+        self.inner
+            .space
             .elements()
             .find(|window| {
                 window

@@ -9,20 +9,20 @@ use smithay::wayland::shell::xdg::{
 
 impl XdgShellHandler for SabiniwmState {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
-        &mut self.xdg_shell_state
+        &mut self.inner.xdg_shell_state
     }
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = smithay::desktop::Window::new_wayland_window(surface);
-        let window_id = self.view.register_window(window);
-        self.view.layout(&mut self.space);
-        self.view.set_focus(window_id);
+        let window_id = self.inner.view.register_window(window);
+        self.inner.view.layout(&mut self.inner.space);
+        self.inner.view.set_focus(window_id);
         self.reflect_focus_from_stackset(None);
     }
 
     fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {
         self.unconstrain_popup(&surface);
-        let _ = self.popups.track_popup(PopupKind::Xdg(surface));
+        let _ = self.inner.popups.track_popup(PopupKind::Xdg(surface));
     }
 
     fn reposition_request(
@@ -67,6 +67,7 @@ impl SabiniwmState {
             return;
         };
         let Some(window) = self
+            .inner
             .space
             .elements()
             .find(|w| w.toplevel().unwrap().wl_surface() == &root)
@@ -74,9 +75,9 @@ impl SabiniwmState {
             return;
         };
 
-        let output = self.space.outputs().next().unwrap();
-        let output_geo = self.space.output_geometry(output).unwrap();
-        let window_geo = self.space.element_geometry(window).unwrap();
+        let output = self.inner.space.outputs().next().unwrap();
+        let output_geo = self.inner.space.output_geometry(output).unwrap();
+        let window_geo = self.inner.space.element_geometry(window).unwrap();
 
         // The target geometry for the positioner should be relative to its parent's geometry, so
         // we will compute that here.

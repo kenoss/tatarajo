@@ -9,11 +9,11 @@ impl SabiniwmState {
         &self,
         pos: Point<f64, Logical>,
     ) -> Option<(PointerFocusTarget, Point<i32, Logical>)> {
-        let output = self.space.outputs().find(|o| {
-            let geometry = self.space.output_geometry(o).unwrap();
+        let output = self.inner.space.outputs().find(|o| {
+            let geometry = self.inner.space.output_geometry(o).unwrap();
             geometry.contains(pos.to_i32_round())
         })?;
-        let output_geo = self.space.output_geometry(output).unwrap();
+        let output_geo = self.inner.space.output_geometry(output).unwrap();
         let layers = layer_map_for_output(output);
 
         let mut under = None;
@@ -36,11 +36,16 @@ impl SabiniwmState {
             })
         {
             under = Some(focus)
-        } else if let Some(focus) = self.space.element_under(pos).and_then(|(window, loc)| {
-            window
-                .surface_under(pos - loc.to_f64(), WindowSurfaceType::ALL)
-                .map(|(surface, surf_loc)| (surface.into(), surf_loc + loc))
-        }) {
+        } else if let Some(focus) = self
+            .inner
+            .space
+            .element_under(pos)
+            .and_then(|(window, loc)| {
+                window
+                    .surface_under(pos - loc.to_f64(), WindowSurfaceType::ALL)
+                    .map(|(surface, surf_loc)| (surface.into(), surf_loc + loc))
+            })
+        {
             under = Some(focus)
         } else if let Some(focus) = layers
             .layer_under(WlrLayer::Bottom, pos)

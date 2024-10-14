@@ -13,9 +13,11 @@ use smithay::utils::{Logical, Point, Serial, SERIAL_COUNTER};
 
 impl SabiniwmState {
     pub(crate) fn process_input_event<I: InputBackend>(&mut self, event: InputEvent<I>) {
-        let should_update_focus =
-            self.focus_update_decider
-                .should_update_focus(&self.seat, &self.space, &event);
+        let should_update_focus = self.inner.focus_update_decider.should_update_focus(
+            &self.inner.seat,
+            &self.inner.space,
+            &event,
+        );
 
         match event {
             InputEvent::Keyboard { event, .. } => {
@@ -25,7 +27,7 @@ impl SabiniwmState {
 
                 // Note that `Seat::get_keyboard()` locks a field. If we call `SabiniwmState::process_action()` in the `filter` (the
                 // last argument), it will deadlock (if it hits a path calling e.g. `Seat::get_keyborad()` in it).
-                let action = self.seat.get_keyboard().unwrap().input(
+                let action = self.inner.seat.get_keyboard().unwrap().input(
                     self,
                     event.key_code(),
                     event.state(),
@@ -36,18 +38,18 @@ impl SabiniwmState {
                     time,
                     |this, _, keysym_handle| match event.state() {
                         KeyState::Pressed => {
-                            let was_empty = this.keyseq.is_empty();
+                            let was_empty = this.inner.keyseq.is_empty();
                             for key in KeySeq::extract(&keysym_handle).into_vec() {
-                                this.keyseq.push(key);
-                                debug!("{:?}", this.keyseq);
-                                match this.keymap.get(&this.keyseq).clone() {
+                                this.inner.keyseq.push(key);
+                                debug!("{:?}", this.inner.keyseq);
+                                match this.inner.keymap.get(&this.inner.keyseq).clone() {
                                     KeymapEntry::Complete(action) => {
-                                        this.keyseq.clear();
+                                        this.inner.keyseq.clear();
                                         return FilterResult::Intercept(Some(action));
                                     }
                                     KeymapEntry::Incomplete => {}
                                     KeymapEntry::None => {
-                                        this.keyseq.clear();
+                                        this.inner.keyseq.clear();
                                         if was_empty {
                                             return FilterResult::Forward;
                                         } else {
@@ -59,7 +61,7 @@ impl SabiniwmState {
                             FilterResult::Intercept(None)
                         }
                         KeyState::Released => {
-                            if this.keyseq.is_empty() {
+                            if this.inner.keyseq.is_empty() {
                                 FilterResult::Forward
                             } else {
                                 FilterResult::Intercept(None)
@@ -75,10 +77,10 @@ impl SabiniwmState {
             InputEvent::PointerMotionAbsolute { event, .. } => {
                 let serial = SERIAL_COUNTER.next_serial();
 
-                let pointer = self.seat.get_pointer().unwrap();
+                let pointer = self.inner.seat.get_pointer().unwrap();
 
-                let output = self.space.outputs().next().unwrap();
-                let output_geo = self.space.output_geometry(output).unwrap();
+                let output = self.inner.space.outputs().next().unwrap();
+                let output_geo = self.inner.space.output_geometry(output).unwrap();
                 let pos = event.position_transformed(output_geo.size) + output_geo.loc.to_f64();
                 let under = self.surface_under(pos);
 
@@ -100,7 +102,7 @@ impl SabiniwmState {
             InputEvent::PointerButton { event, .. } => {
                 let serial = SERIAL_COUNTER.next_serial();
 
-                let pointer = self.seat.get_pointer().unwrap();
+                let pointer = self.inner.seat.get_pointer().unwrap();
 
                 let button = event.button_code();
                 let button_state = event.state();
@@ -155,7 +157,7 @@ impl SabiniwmState {
                     }
                 }
 
-                let pointer = self.seat.get_pointer().unwrap();
+                let pointer = self.inner.seat.get_pointer().unwrap();
                 pointer.axis(self, frame);
                 pointer.frame(self);
             }
@@ -165,23 +167,23 @@ impl SabiniwmState {
 
     #[allow(unused_variables)]
     fn update_focus(&mut self, serial: Serial, pos: Point<f64, Logical>) {
-        let Some(window) = self.space.element_under(pos).map(|(w, _)| w).cloned() else {
+        let Some(window) = self.inner.space.element_under(pos).map(|(w, _)| w).cloned() else {
             return;
         };
 
-        self.view.set_focus(window.id());
+        self.inner.view.set_focus(window.id());
         self.reflect_focus_from_stackset(Some(serial));
     }
 
     pub(crate) fn reflect_focus_from_stackset(&mut self, serial: Option<Serial>) {
-        let Some(window) = self.view.focused_window() else {
+        let Some(window) = self.inner.view.focused_window() else {
             return;
         };
 
-        self.space.raise_element(window, true);
+        self.inner.space.raise_element(window, true);
 
         // TODO: Check whether this is necessary.
-        for window in self.space.elements() {
+        for window in self.inner.space.elements() {
             if let Some(toplevel) = window.toplevel() {
                 toplevel.send_pending_configure();
             }
@@ -189,7 +191,7 @@ impl SabiniwmState {
 
         let serial = serial.unwrap_or_else(|| SERIAL_COUNTER.next_serial());
 
-        let keyboard = self.seat.get_keyboard().unwrap();
+        let keyboard = self.inner.seat.get_keyboard().unwrap();
         keyboard.set_focus(self, Some(window.smithay_window().clone().into()), serial);
     }
 }

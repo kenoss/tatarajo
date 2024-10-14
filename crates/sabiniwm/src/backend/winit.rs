@@ -184,16 +184,16 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
         data,
         true,
     );
-    state.shm_state.update_formats(
+    state.inner.shm_state.update_formats(
         backend_data_winit_mut!(state)
             .backend
             .renderer()
             .shm_formats(),
     );
-    state.space.map_output(&output, (0, 0));
+    state.inner.space.map_output(&output, (0, 0));
 
-    if let Err(e) = state.xwayland.start(
-        state.loop_handle.clone(),
+    if let Err(e) = state.inner.xwayland.start(
+        state.inner.loop_handle.clone(),
         None,
         std::iter::empty::<(OsString, OsString)>(),
         true,
@@ -206,15 +206,15 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
 
     let mut pointer_element = PointerElement::default();
 
-    while state.running.load(Ordering::SeqCst) {
+    while state.inner.running.load(Ordering::SeqCst) {
         let status = winit.dispatch_new_events(|event| match event {
             WinitEvent::Input(event) => {
                 state.process_input_event(event);
             }
             WinitEvent::Resized { size, .. } => {
                 // We only have one output
-                let output = state.space.outputs().next().unwrap().clone();
-                state.space.map_output(&output, (0, 0));
+                let output = state.inner.space.outputs().next().unwrap().clone();
+                state.inner.space.map_output(&output, (0, 0));
                 let mode = Mode {
                     size,
                     refresh: 60_000,
@@ -222,14 +222,15 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                 output.change_current_state(Some(mode), None, None, None);
                 output.set_preferred(mode);
                 state
+                    .inner
                     .view
-                    .resize_output(size.to_logical(1), &mut state.space);
+                    .resize_output(size.to_logical(1), &mut state.inner.space);
             }
             WinitEvent::CloseRequested | WinitEvent::Focus(_) | WinitEvent::Redraw => {}
         });
 
         if let PumpStatus::Exit(_) = status {
-            state.running.store(false, Ordering::SeqCst);
+            state.inner.running.store(false, Ordering::SeqCst);
             break;
         }
 
@@ -238,7 +239,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
             let backend_data = backend_data_winit_mut!(state);
             let backend = &mut backend_data.backend;
 
-            let mut cursor_guard = state.cursor_status.lock().unwrap();
+            let mut cursor_guard = state.inner.cursor_status.lock().unwrap();
 
             // draw the cursor as relevant
             // reset the cursor if the surface is no longer alive
@@ -255,10 +256,10 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
 
             let full_redraw = &mut backend_data.full_redraw;
             *full_redraw = full_redraw.saturating_sub(1);
-            let space = &mut state.space;
+            let space = &mut state.inner.space;
             let damage_tracker = &mut backend_data.damage_tracker;
 
-            let dnd_icon = state.dnd_icon.as_ref();
+            let dnd_icon = state.inner.dnd_icon.as_ref();
 
             let scale = Scale::from(output.current_scale().fractional_scale());
             let cursor_hotspot = if let CursorImageStatus::Surface(ref surface) = *cursor_guard {
@@ -274,7 +275,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
             } else {
                 (0, 0).into()
             };
-            let cursor_pos = state.pointer.current_location() - cursor_hotspot.to_f64();
+            let cursor_pos = state.inner.pointer.current_location() - cursor_hotspot.to_f64();
             let cursor_pos_scaled = cursor_pos.to_physical(scale).to_i32_round();
 
             let render_res = backend.bind().and_then(|_| {
@@ -328,11 +329,11 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     backend.window().set_cursor_visible(cursor_visible);
 
                     // Send frame events so that client start drawing their next frame
-                    let time = state.clock.now();
+                    let time = state.inner.clock.now();
                     post_repaint(
                         &output,
                         &render_output_result.states,
-                        &state.space,
+                        &state.inner.space,
                         None,
                         time,
                     );
@@ -340,7 +341,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     if has_rendered {
                         let mut output_presentation_feedback = take_presentation_feedback(
                             &output,
-                            &state.space,
+                            &state.inner.space,
                             &render_output_result.states,
                         );
                         output_presentation_feedback.presented(
@@ -356,7 +357,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                 }
                 Err(SwapBuffersError::ContextLost(err)) => {
                     error!("Critical Rendering Error: {}", err);
-                    state.running.store(false, Ordering::SeqCst);
+                    state.inner.running.store(false, Ordering::SeqCst);
                 }
                 Err(err) => warn!("Rendering error: {}", err),
             }
@@ -373,10 +374,10 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
         } = calloop_data;
 
         if result.is_err() {
-            state.running.store(false, Ordering::SeqCst);
+            state.inner.running.store(false, Ordering::SeqCst);
         } else {
-            state.space.refresh();
-            state.popups.cleanup();
+            state.inner.space.refresh();
+            state.inner.popups.cleanup();
             display_handle.flush_clients().unwrap();
         }
     }

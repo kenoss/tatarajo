@@ -68,6 +68,10 @@ impl ClientData for ClientState {
 
 pub struct SabiniwmState {
     pub(crate) backend_data: Box<dyn Backend>,
+    pub(crate) inner: InnerState,
+}
+
+pub(crate) struct InnerState {
     pub(crate) display_handle: DisplayHandle,
     pub(crate) running: Arc<AtomicBool>,
     pub(crate) loop_handle: LoopHandle<'static, CalloopData>,
@@ -224,7 +228,7 @@ impl SabiniwmState {
                     display,
                 } => {
                     let mut wm = X11Wm::start_wm(
-                        data.state.loop_handle.clone(),
+                        data.state.inner.loop_handle.clone(),
                         dh.clone(),
                         connection,
                         client,
@@ -239,11 +243,11 @@ impl SabiniwmState {
                     )
                     .expect("Failed to set xwayland default cursor");
                     std::env::set_var("DISPLAY", format!(":{}", display));
-                    data.state.xwm = Some(wm);
-                    data.state.xdisplay = Some(display);
+                    data.state.inner.xwm = Some(wm);
+                    data.state.inner.xdisplay = Some(display);
                 }
                 XWaylandEvent::Exited => {
-                    let _ = data.state.xwm.take();
+                    let _ = data.state.inner.xwm.take();
                 }
             });
             if let Err(e) = ret {
@@ -260,36 +264,38 @@ impl SabiniwmState {
 
         SabiniwmState {
             backend_data,
-            display_handle: dh,
-            running: Arc::new(AtomicBool::new(true)),
-            loop_handle,
-            space: Space::default(),
-            popups: PopupManager::default(),
-            compositor_state,
-            data_device_state,
-            layer_shell_state,
-            primary_selection_state,
-            data_control_state,
-            seat_state,
-            keyboard_shortcuts_inhibit_state,
-            shm_state,
-            xdg_activation_state,
-            xdg_shell_state,
-            xdg_foreign_state,
-            dnd_icon: None,
-            cursor_status,
-            seat_name,
-            seat,
-            pointer,
-            clock,
-            xwayland,
-            xwm: None,
-            xdisplay: None,
+            inner: InnerState {
+                display_handle: dh,
+                running: Arc::new(AtomicBool::new(true)),
+                loop_handle,
+                space: Space::default(),
+                popups: PopupManager::default(),
+                compositor_state,
+                data_device_state,
+                layer_shell_state,
+                primary_selection_state,
+                data_control_state,
+                seat_state,
+                keyboard_shortcuts_inhibit_state,
+                shm_state,
+                xdg_activation_state,
+                xdg_shell_state,
+                xdg_foreign_state,
+                dnd_icon: None,
+                cursor_status,
+                seat_name,
+                seat,
+                pointer,
+                clock,
+                xwayland,
+                xwm: None,
+                xdisplay: None,
 
-            keymap,
-            keyseq: KeySeq::new(),
-            view,
-            focus_update_decider: FocusUpdateDecider::new(),
+                keymap,
+                keyseq: KeySeq::new(),
+                view,
+                focus_update_decider: FocusUpdateDecider::new(),
+            },
         }
     }
 }
