@@ -1,8 +1,9 @@
 use crate::action::Action;
+use crate::backend::Backend;
 use crate::input::Keymap;
 use crate::pointer::PointerElement;
 use crate::render::{render_output, CustomRenderElement};
-use crate::state::{post_repaint, take_presentation_feedback, Backend, CalloopData, SabiniwmState};
+use crate::state::{post_repaint, take_presentation_feedback, CalloopData, SabiniwmState};
 use crate::view::stackset::WorkspaceTag;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
@@ -51,7 +52,7 @@ impl smithay::wayland::buffer::BufferHandler for WinitData {
     fn buffer_destroyed(&mut self, _buffer: &wayland_server::protocol::wl_buffer::WlBuffer) {}
 }
 
-impl crate::state::DmabufHandlerDelegate for WinitData {
+impl crate::backend::DmabufHandlerDelegate for WinitData {
     fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
         &mut self.dmabuf_state.0
     }
