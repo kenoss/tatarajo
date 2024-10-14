@@ -20,7 +20,6 @@ use smithay::reexports::calloop::EventLoop;
 use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
 use smithay::reexports::wayland_server::protocol::wl_surface;
 use smithay::reexports::wayland_server::Display;
-use smithay::reexports::winit::platform::pump_events::PumpStatus;
 use smithay::utils::{IsAlive, Scale, Transform};
 use smithay::wayland::compositor;
 use smithay::wayland::dmabuf::{DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufState};
@@ -88,7 +87,7 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
     let mut display_handle = display.handle();
 
     #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
-    let (mut backend, mut winit) = match winit::init::<GlesRenderer>() {
+    let (mut backend, winit) = match winit::init::<GlesRenderer>() {
         Ok(ret) => ret,
         Err(err) => {
             error!("Failed to initialize Winit backend: {}", err);
@@ -206,8 +205,10 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
 
     let mut pointer_element = PointerElement::default();
 
-    while state.inner.running.load(Ordering::SeqCst) {
-        let status = winit.dispatch_new_events(|event| match event {
+    state
+        .inner
+        .loop_handle
+        .insert_source(winit, move |event, _, state| match event {
             WinitEvent::Input(event) => {
                 state.process_input_event(event);
             }
@@ -227,13 +228,10 @@ pub fn run_winit(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                     .resize_output(size.to_logical(1), &mut state.inner.space);
             }
             WinitEvent::CloseRequested | WinitEvent::Focus(_) | WinitEvent::Redraw => {}
-        });
+        })
+        .expect("Failed to init winit source");
 
-        if let PumpStatus::Exit(_) = status {
-            state.inner.running.store(false, Ordering::SeqCst);
-            break;
-        }
-
+    while state.inner.running.load(Ordering::SeqCst) {
         // drawing logic
         {
             let backend_data = backend_data_winit_mut!(state);
