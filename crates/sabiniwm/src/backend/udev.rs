@@ -96,9 +96,6 @@ struct UdevOutputId {
 
 pub struct UdevData {
     pub session: LibSeatSession,
-    // TODO: Remove this.
-    #[allow(dead_code)]
-    dh: DisplayHandle,
     dmabuf_state: Option<(DmabufState, DmabufGlobal)>,
     primary_gpu: DrmNode,
     gpus: GpuManager<GbmGlesBackend<GlesRenderer, DrmDeviceFd>>,
@@ -225,7 +222,6 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
 
     let session_cloned = session.clone();
     let data = Box::new(UdevData {
-        dh: display_handle.clone(),
         dmabuf_state: None,
         session,
         primary_gpu,
