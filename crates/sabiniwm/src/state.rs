@@ -107,6 +107,14 @@ pub(crate) struct InnerState {
     pub(crate) focus_update_decider: FocusUpdateDecider,
 }
 
+pub(crate) struct SabiniwmStateWithConcreteBackend<'a, B>
+where
+    B: Backend,
+{
+    pub backend_data: &'a mut B,
+    pub inner: &'a mut InnerState,
+}
+
 impl SabiniwmState {
     pub(crate) fn init(
         workspace_tags: Vec<WorkspaceTag>,

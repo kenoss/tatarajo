@@ -4,7 +4,8 @@ use crate::input::Keymap;
 use crate::pointer::{PointerElement, CLEAR_COLOR};
 use crate::render::{output_elements, CustomRenderElement};
 use crate::state::{
-    post_repaint, take_presentation_feedback, SabiniwmState, SurfaceDmabufFeedback,
+    post_repaint, take_presentation_feedback, SabiniwmState, SabiniwmStateWithConcreteBackend,
+    SurfaceDmabufFeedback,
 };
 use crate::view::stackset::WorkspaceTag;
 use smithay::backend::allocator::dmabuf::Dmabuf;
@@ -341,7 +342,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
                                 warn!("Failed to reset drm surface state: {}", err);
                             }
                         }
-                        handle.insert_idle(move |state| state.render(node, None));
+                        handle.insert_idle(move |state| state.as_udev_mut().render(node, None));
                     }
                 }
             }
@@ -351,7 +352,7 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
     for (device_id, path) in udev_backend.device_list() {
         if let Err(err) = DrmNode::from_dev_id(device_id)
             .map_err(DeviceAddError::DrmNode)
-            .and_then(|node| state.device_added(node, path))
+            .and_then(|node| state.as_udev_mut().device_added(node, path))
         {
             error!("Skipping device {device_id}: {err}");
         }
@@ -419,19 +420,19 @@ pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
             UdevEvent::Added { device_id, path } => {
                 if let Err(err) = DrmNode::from_dev_id(device_id)
                     .map_err(DeviceAddError::DrmNode)
-                    .and_then(|node| state.device_added(node, &path))
+                    .and_then(|node| state.as_udev_mut().device_added(node, &path))
                 {
                     error!("Skipping device {device_id}: {err}");
                 }
             }
             UdevEvent::Changed { device_id } => {
                 if let Ok(node) = DrmNode::from_dev_id(device_id) {
-                    state.device_changed(node)
+                    state.as_udev_mut().device_changed(node)
                 }
             }
             UdevEvent::Removed { device_id } => {
                 if let Ok(node) = DrmNode::from_dev_id(device_id) {
-                    state.device_removed(node)
+                    state.as_udev_mut().device_removed(node)
                 }
             }
         })
@@ -812,30 +813,32 @@ fn get_surface_dmabuf_feedback(
     })
 }
 
-// Macro version, which borrows only `Sabiniwm::backend_data`.
-macro_rules! backend_data_udev_mut {
-    ($state:ident) => {
-        $state
-            .backend_data
-            .as_mut()
-            .downcast_mut::<UdevData>()
-            .unwrap()
-    };
-}
-
 impl SabiniwmState {
-    pub(crate) fn backend_data_udev(&self) -> &UdevData {
+    fn as_udev_mut(&mut self) -> SabiniwmStateWithConcreteBackend<'_, UdevData> {
+        SabiniwmStateWithConcreteBackend {
+            backend_data: self
+                .backend_data
+                .as_mut()
+                .downcast_mut::<UdevData>()
+                .unwrap(),
+            inner: &mut self.inner,
+        }
+    }
+
+    fn backend_data_udev(&self) -> &UdevData {
         self.backend_data.as_ref().downcast_ref().unwrap()
     }
 
-    pub(crate) fn backend_data_udev_mut(&mut self) -> &mut UdevData {
+    fn backend_data_udev_mut(&mut self) -> &mut UdevData {
         self.backend_data.as_mut().downcast_mut().unwrap()
     }
+}
 
+impl SabiniwmStateWithConcreteBackend<'_, UdevData> {
     fn device_added(&mut self, node: DrmNode, path: &Path) -> Result<(), DeviceAddError> {
         // Try to open the device
         let fd = self
-            .backend_data_udev_mut()
+            .backend_data
             .session
             .open(
                 path,
@@ -854,7 +857,7 @@ impl SabiniwmState {
             .loop_handle
             .insert_source(notifier, move |event, metadata, state| match event {
                 DrmEvent::VBlank(crtc) => {
-                    state.frame_finish(node, crtc, metadata);
+                    state.as_udev_mut().frame_finish(node, crtc, metadata);
                 }
                 DrmEvent::Error(error) => {
                     error!("{:?}", error);
@@ -868,41 +871,36 @@ impl SabiniwmState {
                 .and_then(|x| x.try_get_render_node().ok().flatten())
                 .unwrap_or(node);
 
-        self.backend_data_udev_mut()
+        self.backend_data
             .gpus
             .as_mut()
             .add_node(render_node, gbm.clone())
             .map_err(DeviceAddError::AddNode)?;
 
         // FIXME
-        self.backend_data
-            .as_mut()
-            .downcast_mut::<UdevData>()
-            .unwrap()
-            .backends
-            .insert(
-                node,
-                BackendData {
-                    registration_token,
-                    gbm,
-                    drm,
-                    drm_scanner: DrmScanner::new(),
-                    non_desktop_connectors: Vec::new(),
-                    render_node,
-                    surfaces: HashMap::new(),
-                    leasing_global: DrmLeaseState::new::<SabiniwmState>(
-                        &self.inner.display_handle,
-                        &node,
-                    )
-                    .map_err(|err| {
-                        // TODO replace with inspect_err, once stable
-                        warn!(?err, "Failed to initialize drm lease global for: {}", node);
-                        err
-                    })
-                    .ok(),
-                    active_leases: Vec::new(),
-                },
-            );
+        self.backend_data.backends.insert(
+            node,
+            BackendData {
+                registration_token,
+                gbm,
+                drm,
+                drm_scanner: DrmScanner::new(),
+                non_desktop_connectors: Vec::new(),
+                render_node,
+                surfaces: HashMap::new(),
+                leasing_global: DrmLeaseState::new::<SabiniwmState>(
+                    &self.inner.display_handle,
+                    &node,
+                )
+                .map_err(|err| {
+                    // TODO replace with inspect_err, once stable
+                    warn!(?err, "Failed to initialize drm lease global for: {}", node);
+                    err
+                })
+                .ok(),
+                active_leases: Vec::new(),
+            },
+        );
 
         self.device_changed(node);
 
@@ -915,14 +913,14 @@ impl SabiniwmState {
         connector: connector::Info,
         crtc: crtc::Handle,
     ) {
-        let backend_data: &mut UdevData = backend_data_udev_mut!(self);
-        let device = if let Some(device) = backend_data.backends.get_mut(&node) {
+        let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
             device
         } else {
             return;
         };
 
-        let mut renderer = backend_data
+        let mut renderer = self
+            .backend_data
             .gpus
             .single_renderer(&device.render_node)
             .unwrap();
@@ -1055,7 +1053,7 @@ impl SabiniwmState {
                 SurfaceComposition::Surface {
                     surface: gbm_surface,
                     damage_tracker: OutputDamageTracker::from_output(&output),
-                    debug_flags: backend_data.debug_flags,
+                    debug_flags: self.backend_data.debug_flags,
                 }
             } else {
                 let driver = match device.drm.get_driver() {
@@ -1100,14 +1098,14 @@ impl SabiniwmState {
                         return;
                     }
                 };
-                compositor.set_debug_flags(backend_data.debug_flags);
+                compositor.set_debug_flags(self.backend_data.debug_flags);
                 SurfaceComposition::Compositor(compositor)
             };
 
             let dmabuf_feedback = get_surface_dmabuf_feedback(
-                backend_data.primary_gpu,
+                self.backend_data.primary_gpu,
                 device.render_node,
-                &mut backend_data.gpus,
+                &mut self.backend_data.gpus,
                 &compositor,
             );
 
@@ -1132,8 +1130,7 @@ impl SabiniwmState {
         connector: connector::Info,
         crtc: crtc::Handle,
     ) {
-        let backend_data = backend_data_udev_mut!(self);
-        let device = if let Some(device) = backend_data.backends.get_mut(&node) {
+        let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
             device
         } else {
             return;
@@ -1170,8 +1167,7 @@ impl SabiniwmState {
     }
 
     fn device_changed(&mut self, node: DrmNode) {
-        let backend_data = backend_data_udev_mut!(self);
-        let device = if let Some(device) = backend_data.backends.get_mut(&node) {
+        let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
             device
         } else {
             return;
@@ -1195,8 +1191,7 @@ impl SabiniwmState {
 
     fn device_removed(&mut self, node: DrmNode) {
         let crtcs = {
-            let backend_data = backend_data_udev_mut!(self);
-            let device = if let Some(device) = backend_data.backends.get_mut(&node) {
+            let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
                 device
             } else {
                 return;
@@ -1216,14 +1211,13 @@ impl SabiniwmState {
 
         debug!("Surfaces dropped");
 
-        let backend_data = backend_data_udev_mut!(self);
         // drop the backends on this side
-        if let Some(mut backend_data_inner) = backend_data.backends.remove(&node) {
+        if let Some(mut backend_data_inner) = self.backend_data.backends.remove(&node) {
             if let Some(mut leasing_global) = backend_data_inner.leasing_global.take() {
                 leasing_global.disable_global::<SabiniwmState>();
             }
 
-            backend_data
+            self.backend_data
                 .gpus
                 .as_mut()
                 .remove_node(&backend_data_inner.render_node);
@@ -1242,8 +1236,7 @@ impl SabiniwmState {
         crtc: crtc::Handle,
         metadata: &mut Option<DrmEventMetadata>,
     ) {
-        let backend_data = backend_data_udev_mut!(self);
-        let device_backend = match backend_data.backends.get_mut(&dev_id) {
+        let device_backend = match self.backend_data.backends.get_mut(&dev_id) {
             Some(backend) => backend,
             None => {
                 error!("Trying to finish frame on non-existent backend {}", dev_id);
@@ -1377,7 +1370,7 @@ impl SabiniwmState {
             let repaint_delay =
                 Duration::from_millis(((1_000_000f32 / output_refresh as f32) * 0.6f32) as u64);
 
-            let timer = if backend_data.primary_gpu != surface.render_node {
+            let timer = if self.backend_data.primary_gpu != surface.render_node {
                 // However, if we need to do a copy, that might not be enough.
                 // (And without actual comparision to previous frames we cannot really know.)
                 // So lets ignore that in those cases to avoid thrashing performance.
@@ -1395,7 +1388,7 @@ impl SabiniwmState {
             self.inner
                 .loop_handle
                 .insert_source(timer, move |_, _, state| {
-                    state.render(dev_id, Some(crtc));
+                    state.as_udev_mut().render(dev_id, Some(crtc));
                     TimeoutAction::Drop
                 })
                 .expect("failed to schedule frame timer");
@@ -1404,8 +1397,7 @@ impl SabiniwmState {
 
     // If crtc is `Some()`, render it, else render all crtcs
     fn render(&mut self, node: DrmNode, crtc: Option<crtc::Handle>) {
-        let backend_data = backend_data_udev_mut!(self);
-        let device_backend = match backend_data.backends.get_mut(&node) {
+        let device_backend = match self.backend_data.backends.get_mut(&node) {
             Some(backend) => backend,
             None => {
                 error!("Trying to render on non-existent backend {}", node);
@@ -1424,8 +1416,7 @@ impl SabiniwmState {
     }
 
     fn render_surface(&mut self, node: DrmNode, crtc: crtc::Handle) {
-        let backend_data = backend_data_udev_mut!(self);
-        let device = if let Some(device) = backend_data.backends.get_mut(&node) {
+        let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
             device
         } else {
             return;
@@ -1440,23 +1431,24 @@ impl SabiniwmState {
         let start = Instant::now();
 
         // TODO get scale from the rendersurface when supporting HiDPI
-        let frame = backend_data
+        let frame = self
+            .backend_data
             .pointer_image
             .get_image(1 /*scale*/, self.inner.clock.now().into());
 
         let render_node = surface.render_node;
-        let primary_gpu = backend_data.primary_gpu;
+        let primary_gpu = self.backend_data.primary_gpu;
         let mut renderer = if primary_gpu == render_node {
-            backend_data.gpus.single_renderer(&render_node)
+            self.backend_data.gpus.single_renderer(&render_node)
         } else {
             let format = surface.compositor.format();
-            backend_data
+            self.backend_data
                 .gpus
                 .renderer(&primary_gpu, &render_node, format)
         }
         .unwrap();
 
-        let pointer_images = &mut backend_data.pointer_images;
+        let pointer_images = &mut self.backend_data.pointer_images;
         let pointer_image = pointer_images
             .iter()
             .find_map(|(image, texture)| {
@@ -1499,7 +1491,7 @@ impl SabiniwmState {
             &output,
             self.inner.pointer.current_location(),
             &pointer_image,
-            &mut backend_data.pointer_element,
+            &mut self.backend_data.pointer_element,
             &self.inner.dnd_icon,
             &mut self.inner.cursor_status.lock().unwrap(),
             &self.inner.clock,
@@ -1554,7 +1546,7 @@ impl SabiniwmState {
             self.inner
                 .loop_handle
                 .insert_source(timer, move |_, _, state| {
-                    state.render(node, Some(crtc));
+                    state.as_udev_mut().render(node, Some(crtc));
                     TimeoutAction::Drop
                 })
                 .expect("failed to schedule frame timer");
@@ -1570,8 +1562,7 @@ impl SabiniwmState {
         crtc: crtc::Handle,
         evt_handle: LoopHandle<'static, SabiniwmState>,
     ) {
-        let backend_data = backend_data_udev_mut!(self);
-        let device = if let Some(device) = backend_data.backends.get_mut(&node) {
+        let device = if let Some(device) = self.backend_data.backends.get_mut(&node) {
             device
         } else {
             return;
@@ -1585,7 +1576,7 @@ impl SabiniwmState {
 
         let node = surface.render_node;
         let result = {
-            let mut renderer = backend_data.gpus.single_renderer(&node).unwrap();
+            let mut renderer = self.backend_data.gpus.single_renderer(&node).unwrap();
             initial_render(surface, &mut renderer)
         };
 
@@ -1597,7 +1588,9 @@ impl SabiniwmState {
                     warn!("Failed to submit page_flip: {}", err);
                     let handle = evt_handle.clone();
                     evt_handle.insert_idle(move |state| {
-                        state.schedule_initial_render(node, crtc, handle)
+                        state
+                            .as_udev_mut()
+                            .schedule_initial_render(node, crtc, handle)
                     });
                 }
                 SwapBuffersError::ContextLost(err) => panic!("Rendering loop lost: {}", err),
