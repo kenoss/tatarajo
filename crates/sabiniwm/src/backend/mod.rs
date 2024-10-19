@@ -13,6 +13,7 @@ pub(crate) trait DmabufHandlerDelegate: smithay::wayland::buffer::BufferHandler 
 }
 
 pub(crate) trait Backend: downcast::Any + DmabufHandlerDelegate {
+    fn init(&mut self, inner: &mut crate::state::InnerState);
     fn has_relative_motion(&self) -> bool;
     fn has_gesture(&self) -> bool;
     fn seat_name(&self) -> String;

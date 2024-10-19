@@ -1,13 +1,10 @@
-use crate::action::Action;
 use crate::backend::Backend;
-use crate::input::Keymap;
 use crate::pointer::{PointerElement, CLEAR_COLOR};
 use crate::render::{output_elements, CustomRenderElement};
 use crate::state::{
-    post_repaint, take_presentation_feedback, SabiniwmState, SabiniwmStateWithConcreteBackend,
-    SurfaceDmabufFeedback,
+    post_repaint, take_presentation_feedback, InnerState, SabiniwmState,
+    SabiniwmStateWithConcreteBackend, SurfaceDmabufFeedback,
 };
-use crate::view::stackset::WorkspaceTag;
 use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::allocator::gbm::{GbmAllocator, GbmBufferFlags, GbmDevice};
 use smithay::backend::allocator::Fourcc;
@@ -50,7 +47,7 @@ use smithay::reexports::rustix::fs::OFlags;
 use smithay::reexports::wayland_protocols::wp::linux_dmabuf::zv1::server::zwp_linux_dmabuf_feedback_v1;
 use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
 use smithay::reexports::wayland_server::backend::GlobalId;
-use smithay::reexports::wayland_server::{Display, DisplayHandle};
+use smithay::reexports::wayland_server::DisplayHandle;
 use smithay::utils::{
     Clock, DeviceFd, IsAlive, Logical, Monotonic, Physical, Point, Rectangle, Scale, Transform,
 };
@@ -109,6 +106,160 @@ pub struct UdevData {
 }
 
 impl UdevData {
+    pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> anyhow::Result<Self> {
+        /*
+         * Initialize session
+         */
+        let (session, notifier) = match LibSeatSession::new() {
+            Ok(ret) => ret,
+            Err(err) => {
+                error!("Could not initialize a session: {}", err);
+                return Err(anyhow::anyhow!("Could not initialize a session: {}", err));
+            }
+        };
+
+        /*
+         * Initialize the compositor
+         */
+        let primary_gpu = if let Ok(var) = std::env::var("ANVIL_DRM_DEVICE") {
+            DrmNode::from_path(var).expect("Invalid drm device path")
+        } else {
+            primary_gpu(session.seat())
+                .unwrap()
+                .and_then(|x| {
+                    DrmNode::from_path(x)
+                        .ok()?
+                        .node_with_type(NodeType::Render)?
+                        .ok()
+                })
+                .unwrap_or_else(|| {
+                    all_gpus(session.seat())
+                        .unwrap()
+                        .into_iter()
+                        .find_map(|x| DrmNode::from_path(x).ok())
+                        .expect("No GPU!")
+                })
+        };
+        info!("Using {} as primary gpu.", primary_gpu);
+
+        let gpus =
+            GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
+
+        /*
+         * Initialize libinput backend
+         */
+        let mut libinput_context = Libinput::new_with_udev::<
+            LibinputSessionInterface<LibSeatSession>,
+        >(session.clone().into());
+        libinput_context.udev_assign_seat(&session.seat()).unwrap();
+        let libinput_backend = LibinputInputBackend::new(libinput_context.clone());
+
+        /*
+         * Bind all our objects that get driven by the event loop
+         */
+        loop_handle
+            .insert_source(libinput_backend, move |mut event, _, state| {
+                if let InputEvent::DeviceAdded { device } = &mut event {
+                    if device.has_capability(DeviceCapability::Keyboard) {
+                        if let Some(led_state) = state
+                            .inner
+                            .seat
+                            .get_keyboard()
+                            .map(|keyboard| keyboard.led_state())
+                        {
+                            device.led_update(led_state.into());
+                        }
+                        state.backend_data_udev_mut().keyboards.push(device.clone());
+                    }
+                } else if let InputEvent::DeviceRemoved { ref device } = event {
+                    if device.has_capability(DeviceCapability::Keyboard) {
+                        state
+                            .backend_data_udev_mut()
+                            .keyboards
+                            .retain(|item| item != device);
+                    }
+                }
+
+                state.process_input_event(event);
+            })
+            .unwrap();
+
+        loop_handle
+            .insert_source(notifier, move |event, &mut (), state| {
+                match event {
+                    SessionEvent::PauseSession => {
+                        libinput_context.suspend();
+                        info!("pausing session");
+
+                        for backend in state.backend_data_udev_mut().backends.values_mut() {
+                            backend.drm.pause();
+                            backend.active_leases.clear();
+                            if let Some(lease_global) = backend.leasing_global.as_mut() {
+                                lease_global.suspend();
+                            }
+                        }
+                    }
+                    SessionEvent::ActivateSession => {
+                        info!("resuming session");
+
+                        if let Err(err) = libinput_context.resume() {
+                            error!("Failed to resume libinput context: {:?}", err);
+                        }
+                        let loop_handle = state.inner.loop_handle.clone();
+                        for (node, backend) in state
+                            .backend_data_udev_mut()
+                            .backends
+                            .iter_mut()
+                            .map(|(handle, backend)| (*handle, backend))
+                        {
+                            // if we do not care about flicking (caused by modesetting) we could just
+                            // pass true for disable connectors here. this would make sure our drm
+                            // device is in a known state (all connectors and planes disabled).
+                            // but for demonstration we choose a more optimistic path by leaving the
+                            // state as is and assume it will just work. If this assumption fails
+                            // we will try to reset the state when trying to queue a frame.
+                            backend
+                                .drm
+                                .activate(false)
+                                .expect("failed to activate drm backend");
+                            if let Some(lease_global) = backend.leasing_global.as_mut() {
+                                lease_global.resume::<SabiniwmState>();
+                            }
+                            for surface in backend.surfaces.values_mut() {
+                                if let Err(err) = surface.compositor.reset_state() {
+                                    warn!("Failed to reset drm surface state: {}", err);
+                                }
+                            }
+                            loop_handle
+                                .insert_idle(move |state| state.as_udev_mut().render(node, None));
+                        }
+                    }
+                }
+            })
+            .unwrap();
+
+        Ok(UdevData {
+            dmabuf_state: None,
+            session,
+            primary_gpu,
+            gpus,
+            backends: HashMap::new(),
+            pointer_image: crate::cursor::Cursor::load(),
+            pointer_images: Vec::new(),
+            pointer_element: PointerElement::default(),
+            debug_flags: DebugFlags::empty(),
+            keyboards: Vec::new(),
+        })
+    }
+
+    pub(crate) fn run(mut state: SabiniwmState, mut event_loop: EventLoop<'static, SabiniwmState>) {
+        let _ = event_loop.run(Some(Duration::from_millis(16)), &mut state, |state| {
+            state.inner.space.refresh();
+            state.inner.popups.cleanup();
+            state.inner.display_handle.flush_clients().unwrap();
+        });
+    }
+
     pub fn set_debug_flags(&mut self, flags: DebugFlags) {
         if self.debug_flags != flags {
             self.debug_flags = flags;
@@ -153,6 +304,121 @@ impl crate::backend::DmabufHandlerDelegate for UdevData {
 }
 
 impl Backend for UdevData {
+    fn init(&mut self, inner: &mut InnerState) {
+        /*
+         * Initialize the udev backend
+         */
+        let udev_backend = match UdevBackend::new(&inner.seat_name) {
+            Ok(ret) => ret,
+            Err(err) => {
+                error!(error = ?err, "Failed to initialize udev backend");
+                return;
+            }
+        };
+
+        for (device_id, path) in udev_backend.device_list() {
+            if let Err(err) = DrmNode::from_dev_id(device_id)
+                .map_err(DeviceAddError::DrmNode)
+                .and_then(|node| {
+                    let mut as_udev_mut = SabiniwmStateWithConcreteBackend {
+                        backend_data: self,
+                        inner,
+                    };
+                    as_udev_mut.device_added(node, path)
+                })
+            {
+                error!("Skipping device {device_id}: {err}");
+            }
+        }
+
+        inner.shm_state.update_formats(
+            self.gpus
+                .single_renderer(&self.primary_gpu)
+                .unwrap()
+                .shm_formats(),
+        );
+
+        #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
+        let mut renderer = self.gpus.single_renderer(&self.primary_gpu).unwrap();
+
+        #[cfg(feature = "egl")]
+        {
+            info!(
+                ?self.primary_gpu,
+                "Trying to initialize EGL Hardware Acceleration",
+            );
+            match renderer.bind_wl_display(&inner.display_handle) {
+                Ok(_) => info!("EGL hardware-acceleration enabled"),
+                Err(err) => info!(?err, "Failed to initialize EGL hardware-acceleration"),
+            }
+        }
+
+        // init dmabuf support with format list from our primary gpu
+        let dmabuf_formats = renderer.dmabuf_formats().collect::<Vec<_>>();
+        let default_feedback =
+            DmabufFeedbackBuilder::new(self.primary_gpu.dev_id(), dmabuf_formats)
+                .build()
+                .unwrap();
+        let mut dmabuf_state = DmabufState::new();
+        let global = dmabuf_state.create_global_with_default_feedback::<SabiniwmState>(
+            &inner.display_handle,
+            &default_feedback,
+        );
+        self.dmabuf_state = Some((dmabuf_state, global));
+
+        let gpus = &mut self.gpus;
+        self.backends.values_mut().for_each(|backend_data| {
+            // Update the per drm surface dmabuf feedback
+            backend_data.surfaces.values_mut().for_each(|surface_data| {
+                surface_data.dmabuf_feedback = surface_data.dmabuf_feedback.take().or_else(|| {
+                    get_surface_dmabuf_feedback(
+                        self.primary_gpu,
+                        surface_data.render_node,
+                        gpus,
+                        &surface_data.compositor,
+                    )
+                });
+            });
+        });
+
+        inner
+            .loop_handle
+            .insert_source(udev_backend, move |event, _, state| match event {
+                UdevEvent::Added { device_id, path } => {
+                    if let Err(err) = DrmNode::from_dev_id(device_id)
+                        .map_err(DeviceAddError::DrmNode)
+                        .and_then(|node| state.as_udev_mut().device_added(node, &path))
+                    {
+                        error!("Skipping device {device_id}: {err}");
+                    }
+                }
+                UdevEvent::Changed { device_id } => {
+                    if let Ok(node) = DrmNode::from_dev_id(device_id) {
+                        state.as_udev_mut().device_changed(node)
+                    }
+                }
+                UdevEvent::Removed { device_id } => {
+                    if let Ok(node) = DrmNode::from_dev_id(device_id) {
+                        state.as_udev_mut().device_removed(node)
+                    }
+                }
+            })
+            .unwrap();
+
+        /*
+         * Start XWayland if supported
+         */
+        if let Err(e) = inner.xwayland.start(
+            inner.loop_handle.clone(),
+            None,
+            std::iter::empty::<(OsString, OsString)>(),
+            true,
+            |_| {},
+        ) {
+            error!("Failed to start XWayland: {}", e);
+        }
+    }
+
     fn has_relative_motion(&self) -> bool {
         true
     }
@@ -176,290 +442,6 @@ impl Backend for UdevData {
             keyboard.led_update(led_state.into());
         }
     }
-}
-
-pub fn run_udev(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) {
-    let mut event_loop = EventLoop::try_new().unwrap();
-    let display = Display::new().unwrap();
-    let mut display_handle = display.handle();
-
-    /*
-     * Initialize session
-     */
-    let (session, notifier) = match LibSeatSession::new() {
-        Ok(ret) => ret,
-        Err(err) => {
-            error!("Could not initialize a session: {}", err);
-            return;
-        }
-    };
-
-    /*
-     * Initialize the compositor
-     */
-    let primary_gpu = if let Ok(var) = std::env::var("ANVIL_DRM_DEVICE") {
-        DrmNode::from_path(var).expect("Invalid drm device path")
-    } else {
-        primary_gpu(session.seat())
-            .unwrap()
-            .and_then(|x| {
-                DrmNode::from_path(x)
-                    .ok()?
-                    .node_with_type(NodeType::Render)?
-                    .ok()
-            })
-            .unwrap_or_else(|| {
-                all_gpus(session.seat())
-                    .unwrap()
-                    .into_iter()
-                    .find_map(|x| DrmNode::from_path(x).ok())
-                    .expect("No GPU!")
-            })
-    };
-    info!("Using {} as primary gpu.", primary_gpu);
-
-    let gpus =
-        GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
-
-    let session_cloned = session.clone();
-    let data = Box::new(UdevData {
-        dmabuf_state: None,
-        session,
-        primary_gpu,
-        gpus,
-        backends: HashMap::new(),
-        pointer_image: crate::cursor::Cursor::load(),
-        pointer_images: Vec::new(),
-        pointer_element: PointerElement::default(),
-        debug_flags: DebugFlags::empty(),
-        keyboards: Vec::new(),
-    });
-    let mut state = SabiniwmState::init(
-        workspace_tags,
-        keymap,
-        display,
-        event_loop.handle(),
-        data,
-        true,
-    );
-
-    /*
-     * Initialize the udev backend
-     */
-    let udev_backend = match UdevBackend::new(&state.inner.seat_name) {
-        Ok(ret) => ret,
-        Err(err) => {
-            error!(error = ?err, "Failed to initialize udev backend");
-            return;
-        }
-    };
-
-    /*
-     * Initialize libinput backend
-     */
-    let mut libinput_context =
-        Libinput::new_with_udev::<LibinputSessionInterface<LibSeatSession>>(session_cloned.into());
-    libinput_context
-        .udev_assign_seat(&state.inner.seat_name)
-        .unwrap();
-    let libinput_backend = LibinputInputBackend::new(libinput_context.clone());
-
-    /*
-     * Bind all our objects that get driven by the event loop
-     */
-    event_loop
-        .handle()
-        .insert_source(libinput_backend, move |mut event, _, state| {
-            if let InputEvent::DeviceAdded { device } = &mut event {
-                if device.has_capability(DeviceCapability::Keyboard) {
-                    if let Some(led_state) = state
-                        .inner
-                        .seat
-                        .get_keyboard()
-                        .map(|keyboard| keyboard.led_state())
-                    {
-                        device.led_update(led_state.into());
-                    }
-                    state.backend_data_udev_mut().keyboards.push(device.clone());
-                }
-            } else if let InputEvent::DeviceRemoved { ref device } = event {
-                if device.has_capability(DeviceCapability::Keyboard) {
-                    state
-                        .backend_data_udev_mut()
-                        .keyboards
-                        .retain(|item| item != device);
-                }
-            }
-
-            state.process_input_event(event);
-        })
-        .unwrap();
-
-    let handle = event_loop.handle();
-    event_loop
-        .handle()
-        .insert_source(notifier, move |event, &mut (), state| {
-            match event {
-                SessionEvent::PauseSession => {
-                    libinput_context.suspend();
-                    info!("pausing session");
-
-                    for backend in state.backend_data_udev_mut().backends.values_mut() {
-                        backend.drm.pause();
-                        backend.active_leases.clear();
-                        if let Some(lease_global) = backend.leasing_global.as_mut() {
-                            lease_global.suspend();
-                        }
-                    }
-                }
-                SessionEvent::ActivateSession => {
-                    info!("resuming session");
-
-                    if let Err(err) = libinput_context.resume() {
-                        error!("Failed to resume libinput context: {:?}", err);
-                    }
-                    for (node, backend) in state
-                        .backend_data_udev_mut()
-                        .backends
-                        .iter_mut()
-                        .map(|(handle, backend)| (*handle, backend))
-                    {
-                        // if we do not care about flicking (caused by modesetting) we could just
-                        // pass true for disable connectors here. this would make sure our drm
-                        // device is in a known state (all connectors and planes disabled).
-                        // but for demonstration we choose a more optimistic path by leaving the
-                        // state as is and assume it will just work. If this assumption fails
-                        // we will try to reset the state when trying to queue a frame.
-                        backend
-                            .drm
-                            .activate(false)
-                            .expect("failed to activate drm backend");
-                        if let Some(lease_global) = backend.leasing_global.as_mut() {
-                            lease_global.resume::<SabiniwmState>();
-                        }
-                        for surface in backend.surfaces.values_mut() {
-                            if let Err(err) = surface.compositor.reset_state() {
-                                warn!("Failed to reset drm surface state: {}", err);
-                            }
-                        }
-                        handle.insert_idle(move |state| state.as_udev_mut().render(node, None));
-                    }
-                }
-            }
-        })
-        .unwrap();
-
-    for (device_id, path) in udev_backend.device_list() {
-        if let Err(err) = DrmNode::from_dev_id(device_id)
-            .map_err(DeviceAddError::DrmNode)
-            .and_then(|node| state.as_udev_mut().device_added(node, path))
-        {
-            error!("Skipping device {device_id}: {err}");
-        }
-    }
-
-    state.inner.shm_state.update_formats(
-        state
-            .backend_data
-            .downcast_mut::<UdevData>()
-            .unwrap()
-            .gpus
-            .single_renderer(&primary_gpu)
-            .unwrap()
-            .shm_formats(),
-    );
-
-    #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
-    let mut renderer = state
-        .backend_data_udev_mut()
-        .gpus
-        .single_renderer(&primary_gpu)
-        .unwrap();
-
-    #[cfg(feature = "egl")]
-    {
-        info!(
-            ?primary_gpu,
-            "Trying to initialize EGL Hardware Acceleration",
-        );
-        match renderer.bind_wl_display(&display_handle) {
-            Ok(_) => info!("EGL hardware-acceleration enabled"),
-            Err(err) => info!(?err, "Failed to initialize EGL hardware-acceleration"),
-        }
-    }
-
-    // init dmabuf support with format list from our primary gpu
-    let dmabuf_formats = renderer.dmabuf_formats().collect::<Vec<_>>();
-    let default_feedback = DmabufFeedbackBuilder::new(primary_gpu.dev_id(), dmabuf_formats)
-        .build()
-        .unwrap();
-    let mut dmabuf_state = DmabufState::new();
-    let global = dmabuf_state
-        .create_global_with_default_feedback::<SabiniwmState>(&display_handle, &default_feedback);
-    state.backend_data_udev_mut().dmabuf_state = Some((dmabuf_state, global));
-
-    let backend_data = state.backend_data_udev_mut();
-    let gpus = &mut backend_data.gpus;
-    backend_data.backends.values_mut().for_each(|backend_data| {
-        // Update the per drm surface dmabuf feedback
-        backend_data.surfaces.values_mut().for_each(|surface_data| {
-            surface_data.dmabuf_feedback = surface_data.dmabuf_feedback.take().or_else(|| {
-                get_surface_dmabuf_feedback(
-                    primary_gpu,
-                    surface_data.render_node,
-                    gpus,
-                    &surface_data.compositor,
-                )
-            });
-        });
-    });
-
-    event_loop
-        .handle()
-        .insert_source(udev_backend, move |event, _, state| match event {
-            UdevEvent::Added { device_id, path } => {
-                if let Err(err) = DrmNode::from_dev_id(device_id)
-                    .map_err(DeviceAddError::DrmNode)
-                    .and_then(|node| state.as_udev_mut().device_added(node, &path))
-                {
-                    error!("Skipping device {device_id}: {err}");
-                }
-            }
-            UdevEvent::Changed { device_id } => {
-                if let Ok(node) = DrmNode::from_dev_id(device_id) {
-                    state.as_udev_mut().device_changed(node)
-                }
-            }
-            UdevEvent::Removed { device_id } => {
-                if let Ok(node) = DrmNode::from_dev_id(device_id) {
-                    state.as_udev_mut().device_removed(node)
-                }
-            }
-        })
-        .unwrap();
-
-    /*
-     * Start XWayland if supported
-     */
-    if let Err(e) = state.inner.xwayland.start(
-        state.inner.loop_handle.clone(),
-        None,
-        std::iter::empty::<(OsString, OsString)>(),
-        true,
-        |_| {},
-    ) {
-        error!("Failed to start XWayland: {}", e);
-    }
-
-    /*
-     * And run our loop
-     */
-
-    let _ = event_loop.run(Some(Duration::from_millis(16)), &mut state, |state| {
-        state.inner.space.refresh();
-        state.inner.popups.cleanup();
-        display_handle.flush_clients().unwrap();
-    });
 }
 
 impl DrmLeaseHandler for SabiniwmState {

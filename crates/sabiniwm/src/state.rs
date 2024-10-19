@@ -1,4 +1,6 @@
 use crate::action::Action;
+use crate::backend::udev::UdevData;
+use crate::backend::winit::WinitData;
 use crate::backend::Backend;
 use crate::cursor::Cursor;
 use crate::input::{KeySeq, Keymap};
@@ -18,7 +20,7 @@ use smithay::desktop::{PopupManager, Space};
 use smithay::input::pointer::{CursorImageStatus, PointerHandle};
 use smithay::input::{Seat, SeatState};
 use smithay::reexports::calloop::generic::Generic;
-use smithay::reexports::calloop::{Interest, LoopHandle, Mode, PostAction};
+use smithay::reexports::calloop::{EventLoop, Interest, LoopHandle, Mode, PostAction};
 use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason};
 use smithay::reexports::wayland_server::{Display, DisplayHandle};
 use smithay::utils::{Clock, Monotonic, Point, Rectangle, Size};
@@ -116,10 +118,46 @@ where
 }
 
 impl SabiniwmState {
-    pub(crate) fn init(
+    pub fn run(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) -> anyhow::Result<()> {
+        let event_loop = EventLoop::try_new().unwrap();
+
+        let use_udev = matches!(
+            std::env::var("DISPLAY"),
+            Err(std::env::VarError::NotPresent)
+        ) && matches!(
+            std::env::var("WAYLAND_DISPLAY"),
+            Err(std::env::VarError::NotPresent)
+        );
+
+        let backend_data: Box<dyn Backend> = if use_udev {
+            Box::new(UdevData::new(event_loop.handle().clone())?)
+        } else {
+            Box::new(WinitData::new(event_loop.handle().clone())?)
+        };
+
+        let mut state = Self::new(
+            workspace_tags,
+            keymap,
+            event_loop.handle(),
+            backend_data,
+            true,
+        );
+
+        state.backend_data.init(&mut state.inner);
+
+        // TODO: Unify them if possible.
+        if use_udev {
+            UdevData::run(state, event_loop);
+        } else {
+            WinitData::run(state, event_loop);
+        }
+
+        Ok(())
+    }
+
+    fn new(
         workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
-        display: Display<SabiniwmState>,
         loop_handle: LoopHandle<'static, SabiniwmState>,
         backend_data: Box<dyn Backend>,
         listen_on_socket: bool,
@@ -127,6 +165,7 @@ impl SabiniwmState {
         // TODO: Remove this variable.
         assert!(listen_on_socket);
 
+        let display = Display::new().unwrap();
         let dh = display.handle();
 
         let clock = Clock::new();

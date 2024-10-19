@@ -2,17 +2,13 @@
 #[macro_use]
 extern crate maplit;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use big_s::S;
 use sabiniwm::action::{self, Action, ActionFnI};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
 use sabiniwm::view::predefined::LayoutMessageSelect;
 use sabiniwm::view::stackset::WorkspaceTag;
-
-enum Backend {
-    Udev,
-    Winit,
-}
+use sabiniwm::SabiniwmState;
 
 fn tracing_init() -> Result<()> {
     use time::macros::format_description;
@@ -73,31 +69,7 @@ fn main() -> Result<()> {
         kbd("H-k") => (action::ActionWindowKill {}).into_action(),
     });
 
-    let arg = ::std::env::args().nth(1);
-    let backend = match arg.as_ref().map(|s| &s[..]) {
-        Some("--tty-udev") => Backend::Udev,
-        Some("--winit") => Backend::Winit,
-        Some(other) => {
-            return Err(anyhow!("Unknown backend: {}", other));
-        }
-        None => {
-            if matches!(
-                std::env::var("DISPLAY"),
-                Err(std::env::VarError::NotPresent)
-            ) && matches!(
-                std::env::var("WAYLAND_DISPLAY"),
-                Err(std::env::VarError::NotPresent)
-            ) {
-                Backend::Udev
-            } else {
-                Backend::Winit
-            }
-        }
-    };
-    match backend {
-        Backend::Udev => sabiniwm::backend::udev::run_udev(workspace_tags, keymap),
-        Backend::Winit => sabiniwm::backend::winit::run_winit(workspace_tags, keymap),
-    }
+    SabiniwmState::run(workspace_tags, keymap)?;
 
     Ok(())
 }
