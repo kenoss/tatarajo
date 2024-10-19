@@ -92,8 +92,8 @@ struct UdevOutputId {
     crtc: crtc::Handle,
 }
 
-pub struct UdevData {
-    pub session: LibSeatSession,
+pub(crate) struct UdevData {
+    session: LibSeatSession,
     dmabuf_state: Option<(DmabufState, DmabufGlobal)>,
     primary_gpu: DrmNode,
     gpus: GpuManager<GbmGlesBackend<GlesRenderer, DrmDeviceFd>>,
@@ -106,7 +106,7 @@ pub struct UdevData {
 }
 
 impl UdevData {
-    pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> anyhow::Result<Self> {
+    pub fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> anyhow::Result<Self> {
         /*
          * Initialize session
          */
@@ -252,28 +252,12 @@ impl UdevData {
         })
     }
 
-    pub(crate) fn run(mut state: SabiniwmState, mut event_loop: EventLoop<'static, SabiniwmState>) {
+    pub fn run(mut state: SabiniwmState, mut event_loop: EventLoop<'static, SabiniwmState>) {
         let _ = event_loop.run(Some(Duration::from_millis(16)), &mut state, |state| {
             state.inner.space.refresh();
             state.inner.popups.cleanup();
             state.inner.display_handle.flush_clients().unwrap();
         });
-    }
-
-    pub fn set_debug_flags(&mut self, flags: DebugFlags) {
-        if self.debug_flags != flags {
-            self.debug_flags = flags;
-
-            for (_, backend) in self.backends.iter_mut() {
-                for (_, surface) in backend.surfaces.iter_mut() {
-                    surface.compositor.set_debug_flags(flags);
-                }
-            }
-        }
-    }
-
-    pub fn debug_flags(&self) -> DebugFlags {
-        self.debug_flags
     }
 }
 
@@ -516,10 +500,10 @@ impl DrmLeaseHandler for SabiniwmState {
 
 delegate_drm_lease!(SabiniwmState);
 
-pub type RenderSurface =
+type RenderSurface =
     GbmBufferedSurface<GbmAllocator<DrmDeviceFd>, Option<OutputPresentationFeedback>>;
 
-pub type GbmDrmCompositor = DrmCompositor<
+type GbmDrmCompositor = DrmCompositor<
     GbmAllocator<DrmDeviceFd>,
     GbmDevice<DrmDeviceFd>,
     Option<OutputPresentationFeedback>,
@@ -666,20 +650,6 @@ impl SurfaceComposition {
                     ) => err.into(),
                     _ => unreachable!(),
                 }),
-        }
-    }
-
-    fn set_debug_flags(&mut self, flags: DebugFlags) {
-        match self {
-            SurfaceComposition::Surface {
-                surface,
-                debug_flags,
-                ..
-            } => {
-                *debug_flags = flags;
-                surface.reset_buffers();
-            }
-            SurfaceComposition::Compositor(c) => c.set_debug_flags(flags),
         }
     }
 }

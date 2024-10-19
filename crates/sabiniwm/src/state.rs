@@ -69,44 +69,44 @@ pub struct SabiniwmState {
 }
 
 pub(crate) struct InnerState {
-    pub(crate) display_handle: DisplayHandle,
-    pub(crate) running: Arc<AtomicBool>,
-    pub(crate) loop_handle: LoopHandle<'static, SabiniwmState>,
+    pub display_handle: DisplayHandle,
+    pub running: Arc<AtomicBool>,
+    pub loop_handle: LoopHandle<'static, SabiniwmState>,
 
     // desktop
-    pub(crate) space: Space<Window>,
-    pub(crate) popups: PopupManager,
+    pub space: Space<Window>,
+    pub popups: PopupManager,
 
     // smithay state
-    pub(crate) compositor_state: CompositorState,
-    pub(crate) data_device_state: DataDeviceState,
-    pub(crate) layer_shell_state: WlrLayerShellState,
-    pub(crate) primary_selection_state: PrimarySelectionState,
-    pub(crate) data_control_state: DataControlState,
-    pub(crate) seat_state: SeatState<SabiniwmState>,
-    pub(crate) keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
-    pub(crate) shm_state: ShmState,
-    pub(crate) xdg_activation_state: XdgActivationState,
-    pub(crate) xdg_shell_state: XdgShellState,
-    pub(crate) xdg_foreign_state: XdgForeignState,
+    pub compositor_state: CompositorState,
+    pub data_device_state: DataDeviceState,
+    pub layer_shell_state: WlrLayerShellState,
+    pub primary_selection_state: PrimarySelectionState,
+    pub data_control_state: DataControlState,
+    pub seat_state: SeatState<SabiniwmState>,
+    pub keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
+    pub shm_state: ShmState,
+    pub xdg_activation_state: XdgActivationState,
+    pub xdg_shell_state: XdgShellState,
+    pub xdg_foreign_state: XdgForeignState,
 
-    pub(crate) dnd_icon: Option<wayland_server::protocol::wl_surface::WlSurface>,
+    pub dnd_icon: Option<wayland_server::protocol::wl_surface::WlSurface>,
 
     // input-related fields
-    pub(crate) cursor_status: Arc<Mutex<CursorImageStatus>>,
-    pub(crate) seat_name: String,
-    pub(crate) seat: Seat<SabiniwmState>,
-    pub(crate) clock: Clock<Monotonic>,
-    pub(crate) pointer: PointerHandle<SabiniwmState>,
+    pub cursor_status: Arc<Mutex<CursorImageStatus>>,
+    pub seat_name: String,
+    pub seat: Seat<SabiniwmState>,
+    pub clock: Clock<Monotonic>,
+    pub pointer: PointerHandle<SabiniwmState>,
 
-    pub(crate) xwayland: XWayland,
-    pub(crate) xwm: Option<X11Wm>,
-    pub(crate) xdisplay: Option<u32>,
+    pub xwayland: XWayland,
+    pub xwm: Option<X11Wm>,
+    pub xdisplay: Option<u32>,
 
-    pub(crate) keymap: Keymap<Action>,
-    pub(crate) keyseq: KeySeq,
-    pub(crate) view: View,
-    pub(crate) focus_update_decider: FocusUpdateDecider,
+    pub keymap: Keymap<Action>,
+    pub keyseq: KeySeq,
+    pub view: View,
+    pub focus_update_decider: FocusUpdateDecider,
 }
 
 pub(crate) struct SabiniwmStateWithConcreteBackend<'a, B>
@@ -327,12 +327,12 @@ impl SabiniwmState {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct SurfaceDmabufFeedback<'a> {
+pub(crate) struct SurfaceDmabufFeedback<'a> {
     pub render_feedback: &'a DmabufFeedback,
     pub scanout_feedback: &'a DmabufFeedback,
 }
 
-pub fn post_repaint(
+pub(crate) fn post_repaint(
     output: &smithay::output::Output,
     render_element_states: &RenderElementStates,
     space: &Space<crate::view::window::Window>,
@@ -418,7 +418,7 @@ pub fn post_repaint(
     }
 }
 
-pub fn take_presentation_feedback(
+pub(crate) fn take_presentation_feedback(
     output: &smithay::output::Output,
     space: &Space<crate::view::window::Window>,
     render_element_states: &RenderElementStates,

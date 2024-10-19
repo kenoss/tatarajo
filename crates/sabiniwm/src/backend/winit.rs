@@ -25,9 +25,9 @@ use std::sync::atomic::Ordering;
 use std::sync::Mutex;
 use std::time::Duration;
 
-pub const OUTPUT_NAME: &str = "winit";
+const OUTPUT_NAME: &str = "winit";
 
-pub struct WinitData {
+pub(crate) struct WinitData {
     backend: WinitGraphicsBackend<GlesRenderer>,
     output: smithay::output::Output,
     damage_tracker: OutputDamageTracker,
