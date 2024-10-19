@@ -1,7 +1,7 @@
 use crate::action::Action;
-use crate::backend::udev::UdevData;
-use crate::backend::winit::WinitData;
-use crate::backend::Backend;
+use crate::backend::udev::UdevBackend;
+use crate::backend::winit::WinitBackend;
+use crate::backend::BackendI;
 use crate::cursor::Cursor;
 use crate::input::{KeySeq, Keymap};
 use crate::input_event::FocusUpdateDecider;
@@ -64,7 +64,7 @@ impl ClientData for ClientState {
 }
 
 pub struct SabiniwmState {
-    pub(crate) backend_data: Box<dyn Backend>,
+    pub(crate) backend: Box<dyn BackendI>,
     pub(crate) inner: InnerState,
 }
 
@@ -109,11 +109,11 @@ pub(crate) struct InnerState {
     pub focus_update_decider: FocusUpdateDecider,
 }
 
-pub(crate) struct SabiniwmStateWithConcreteBackend<'a, B>
+pub(crate) struct SabiniwmStateWithConcreteBackend<'a, Backend>
 where
-    B: Backend,
+    Backend: BackendI,
 {
-    pub backend_data: &'a mut B,
+    pub backend: &'a mut Backend,
     pub inner: &'a mut InnerState,
 }
 
@@ -129,21 +129,21 @@ impl SabiniwmState {
             Err(std::env::VarError::NotPresent)
         );
 
-        let backend_data: Box<dyn Backend> = if use_udev {
-            Box::new(UdevData::new(event_loop.handle().clone())?)
+        let backend: Box<dyn BackendI> = if use_udev {
+            Box::new(UdevBackend::new(event_loop.handle().clone())?)
         } else {
-            Box::new(WinitData::new(event_loop.handle().clone())?)
+            Box::new(WinitBackend::new(event_loop.handle().clone())?)
         };
 
-        let mut state = Self::new(workspace_tags, keymap, event_loop.handle(), backend_data);
+        let mut state = Self::new(workspace_tags, keymap, event_loop.handle(), backend);
 
-        state.backend_data.init(&mut state.inner);
+        state.backend.init(&mut state.inner);
 
         // TODO: Unify them if possible.
         if use_udev {
-            UdevData::run(state, event_loop);
+            UdevBackend::run(state, event_loop);
         } else {
-            WinitData::run(state, event_loop);
+            WinitBackend::run(state, event_loop);
         }
 
         Ok(())
@@ -153,7 +153,7 @@ impl SabiniwmState {
         workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
         loop_handle: LoopHandle<'static, SabiniwmState>,
-        backend_data: Box<dyn Backend>,
+        backend: Box<dyn BackendI>,
     ) -> SabiniwmState {
         let display = Display::new().unwrap();
         let dh = display.handle();
@@ -205,11 +205,11 @@ impl SabiniwmState {
         TextInputManagerState::new::<Self>(&dh);
         InputMethodManagerState::new::<Self, _>(&dh, |_client| true);
         VirtualKeyboardManagerState::new::<Self, _>(&dh, |_client| true);
-        if backend_data.has_relative_motion() {
+        if backend.has_relative_motion() {
             RelativePointerManagerState::new::<Self>(&dh);
         }
         PointerConstraintsState::new::<Self>(&dh);
-        if backend_data.has_gesture() {
+        if backend.has_gesture() {
             PointerGesturesState::new::<Self>(&dh);
         }
         TabletManagerState::new::<Self>(&dh);
@@ -220,7 +220,7 @@ impl SabiniwmState {
         });
 
         // init input
-        let seat_name = backend_data.seat_name();
+        let seat_name = backend.seat_name();
         let mut seat = seat_state.new_wl_seat(&dh, seat_name.clone());
 
         let cursor_status = Arc::new(Mutex::new(CursorImageStatus::default_named()));
@@ -289,7 +289,7 @@ impl SabiniwmState {
         let view = View::new(rect, workspace_tags);
 
         SabiniwmState {
-            backend_data,
+            backend,
             inner: InnerState {
                 display_handle: dh,
                 running: Arc::new(AtomicBool::new(true)),

@@ -79,7 +79,7 @@ impl CompositorHandler for SabiniwmState {
         X11Wm::commit_hook::<SabiniwmState>(surface);
 
         on_commit_buffer_handler::<Self>(surface);
-        self.backend_data.early_import(surface);
+        self.backend.early_import(surface);
 
         if !is_sync_subsurface(surface) {
             let mut root = surface.clone();

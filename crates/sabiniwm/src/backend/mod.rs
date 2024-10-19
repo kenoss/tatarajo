@@ -12,7 +12,7 @@ pub(crate) trait DmabufHandlerDelegate: smithay::wayland::buffer::BufferHandler 
     ) -> bool;
 }
 
-pub(crate) trait Backend: downcast::Any + DmabufHandlerDelegate {
+pub(crate) trait BackendI: downcast::Any + DmabufHandlerDelegate {
     fn init(&mut self, inner: &mut crate::state::InnerState);
     fn has_relative_motion(&self) -> bool;
     fn has_gesture(&self) -> bool;
@@ -21,4 +21,4 @@ pub(crate) trait Backend: downcast::Any + DmabufHandlerDelegate {
     fn update_led_state(&mut self, led_state: smithay::input::keyboard::LedState);
 }
 
-downcast::downcast!(dyn Backend);
+downcast::downcast!(dyn BackendI);

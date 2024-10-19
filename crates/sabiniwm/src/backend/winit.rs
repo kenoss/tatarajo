@@ -1,4 +1,4 @@
-use crate::backend::Backend;
+use crate::backend::BackendI;
 use crate::pointer::PointerElement;
 use crate::render::{render_output, CustomRenderElement};
 use crate::state::{post_repaint, take_presentation_feedback, InnerState, SabiniwmState};
@@ -27,7 +27,7 @@ use std::time::Duration;
 
 const OUTPUT_NAME: &str = "winit";
 
-pub(crate) struct WinitData {
+pub(crate) struct WinitBackend {
     backend: WinitGraphicsBackend<GlesRenderer>,
     output: smithay::output::Output,
     damage_tracker: OutputDamageTracker,
@@ -37,21 +37,21 @@ pub(crate) struct WinitData {
     full_redraw: u8,
 }
 
-macro_rules! backend_data_winit_mut {
+macro_rules! backend_winit_mut {
     ($state:ident) => {
         $state
-            .backend_data
+            .backend
             .as_mut()
-            .downcast_mut::<WinitData>()
+            .downcast_mut::<WinitBackend>()
             .unwrap()
     };
 }
 
-impl smithay::wayland::buffer::BufferHandler for WinitData {
+impl smithay::wayland::buffer::BufferHandler for WinitBackend {
     fn buffer_destroyed(&mut self, _buffer: &wayland_server::protocol::wl_buffer::WlBuffer) {}
 }
 
-impl crate::backend::DmabufHandlerDelegate for WinitData {
+impl crate::backend::DmabufHandlerDelegate for WinitBackend {
     fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
         &mut self.dmabuf_state
     }
@@ -65,7 +65,7 @@ impl crate::backend::DmabufHandlerDelegate for WinitData {
     }
 }
 
-impl WinitData {
+impl WinitBackend {
     pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> anyhow::Result<Self> {
         #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
         let (backend, winit) = match winit::init::<GlesRenderer>() {
@@ -127,7 +127,7 @@ impl WinitData {
             })
             .expect("Failed to init winit source");
 
-        Ok(WinitData {
+        Ok(WinitBackend {
             backend,
             output,
             damage_tracker,
@@ -144,8 +144,7 @@ impl WinitData {
         let _ = event_loop.run(Some(Duration::from_millis(16)), &mut state, |state| {
             // drawing logic
 
-            let backend_data = backend_data_winit_mut!(state);
-            let backend = &mut backend_data.backend;
+            let backend = backend_winit_mut!(state);
 
             let mut cursor_guard = state.inner.cursor_status.lock().unwrap();
 
@@ -162,14 +161,14 @@ impl WinitData {
 
             pointer_element.set_status(cursor_guard.clone());
 
-            let full_redraw = &mut backend_data.full_redraw;
+            let full_redraw = &mut backend.full_redraw;
             *full_redraw = full_redraw.saturating_sub(1);
             let space = &mut state.inner.space;
-            let damage_tracker = &mut backend_data.damage_tracker;
+            let damage_tracker = &mut backend.damage_tracker;
 
             let dnd_icon = state.inner.dnd_icon.as_ref();
 
-            let scale = Scale::from(backend_data.output.current_scale().fractional_scale());
+            let scale = Scale::from(backend.output.current_scale().fractional_scale());
             let cursor_hotspot = if let CursorImageStatus::Surface(ref surface) = *cursor_guard {
                 compositor::with_states(surface, |states| {
                     states
@@ -186,14 +185,14 @@ impl WinitData {
             let cursor_pos = state.inner.pointer.current_location() - cursor_hotspot.to_f64();
             let cursor_pos_scaled = cursor_pos.to_physical(scale).to_i32_round();
 
-            let render_res = backend.bind().and_then(|_| {
+            let render_res = backend.backend.bind().and_then(|_| {
                 let age = if *full_redraw > 0 {
                     0
                 } else {
-                    backend.buffer_age().unwrap_or(0)
+                    backend.backend.buffer_age().unwrap_or(0)
                 };
 
-                let renderer = backend.renderer();
+                let renderer = backend.backend.renderer();
 
                 let mut elements = Vec::<CustomRenderElement<GlesRenderer>>::new();
 
@@ -219,7 +218,7 @@ impl WinitData {
 
                 render_output(
                     renderer,
-                    &backend_data.output,
+                    &backend.output,
                     space,
                     elements,
                     damage_tracker,
@@ -235,17 +234,17 @@ impl WinitData {
                 Ok(render_output_result) => {
                     let has_rendered = render_output_result.damage.is_some();
                     if let Some(damage) = render_output_result.damage {
-                        if let Err(err) = backend.submit(Some(&*damage)) {
+                        if let Err(err) = backend.backend.submit(Some(&*damage)) {
                             warn!("Failed to submit buffer: {}", err);
                         }
                     }
 
-                    backend.window().set_cursor_visible(cursor_visible);
+                    backend.backend.window().set_cursor_visible(cursor_visible);
 
                     // Send frame events so that client start drawing their next frame
                     let time = state.inner.clock.now();
                     post_repaint(
-                        &backend_data.output,
+                        &backend.output,
                         &render_output_result.states,
                         &state.inner.space,
                         None,
@@ -254,13 +253,13 @@ impl WinitData {
 
                     if has_rendered {
                         let mut output_presentation_feedback = take_presentation_feedback(
-                            &backend_data.output,
+                            &backend.output,
                             &state.inner.space,
                             &render_output_result.states,
                         );
                         output_presentation_feedback.presented(
                             time,
-                            backend_data
+                            backend
                                 .output
                                 .current_mode()
                                 .map(|mode| Duration::from_secs_f64(1_000f64 / mode.refresh as f64))
@@ -285,7 +284,7 @@ impl WinitData {
     }
 }
 
-impl Backend for WinitData {
+impl BackendI for WinitBackend {
     fn init(&mut self, inner: &mut InnerState) {
         #[cfg(feature = "egl")]
         if self

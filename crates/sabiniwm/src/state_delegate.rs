@@ -159,7 +159,7 @@ impl SeatHandler for SabiniwmState {
     }
 
     fn led_state_changed(&mut self, _seat: &Seat<Self>, led_state: LedState) {
-        self.backend_data.update_led_state(led_state)
+        self.backend.update_led_state(led_state)
     }
 }
 
@@ -440,7 +440,7 @@ smithay::delegate_xdg_foreign!(SabiniwmState);
 
 impl smithay::wayland::dmabuf::DmabufHandler for SabiniwmState {
     fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
-        self.backend_data.dmabuf_state()
+        self.backend.dmabuf_state()
     }
 
     fn dmabuf_imported(
@@ -449,7 +449,7 @@ impl smithay::wayland::dmabuf::DmabufHandler for SabiniwmState {
         dmabuf: smithay::backend::allocator::dmabuf::Dmabuf,
         notifier: smithay::wayland::dmabuf::ImportNotifier,
     ) {
-        if self.backend_data.dmabuf_imported(global, dmabuf) {
+        if self.backend.dmabuf_imported(global, dmabuf) {
             let _ = notifier.successful::<SabiniwmState>();
         } else {
             notifier.failed();
