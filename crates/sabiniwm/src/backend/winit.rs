@@ -300,14 +300,14 @@ impl BackendI for WinitBackend {
         let render_node =
             EGLDevice::device_for_display(self.backend.renderer().egl_context().display())
                 .and_then(|device| device.try_get_render_node());
-
         self.dmabuf_feedback = match render_node {
             Ok(Some(node)) => {
-                let dmabuf_formats = self.backend.renderer().dmabuf_formats().collect::<Vec<_>>();
-                let dmabuf_default_feedback =
-                    DmabufFeedbackBuilder::new(node.dev_id(), dmabuf_formats)
-                        .build()
-                        .unwrap();
+                let dmabuf_default_feedback = DmabufFeedbackBuilder::new(
+                    node.dev_id(),
+                    self.backend.renderer().dmabuf_formats(),
+                )
+                .build()
+                .unwrap();
                 Some(dmabuf_default_feedback)
             }
             Ok(None) => {
@@ -319,28 +319,26 @@ impl BackendI for WinitBackend {
                 None
             }
         };
-
-        // if we failed to build dmabuf feedback we fall back to dmabuf v3
-        // Note: egl on Mesa requires either v4 or wl_drm (initialized with bind_wl_display)
-        if let Some(dmabuf_feedback) = &self.dmabuf_feedback {
-            let dmabuf_global = self
-                .dmabuf_state
+        let dmabuf_global = if let Some(dmabuf_feedback) = &self.dmabuf_feedback {
+            self.dmabuf_state
                 .create_global_with_default_feedback::<SabiniwmState>(
                     &inner.display_handle,
                     dmabuf_feedback,
-                );
-            self.dmabuf_global.set(dmabuf_global).unwrap();
+                )
         } else {
-            let dmabuf_formats = self.backend.renderer().dmabuf_formats().collect::<Vec<_>>();
-            let dmabuf_global = self
-                .dmabuf_state
-                .create_global::<SabiniwmState>(&inner.display_handle, dmabuf_formats);
-            self.dmabuf_global.set(dmabuf_global).unwrap();
+            // If we failed to build dmabuf feedback, we fall back to dmabuf v3.
+            // Note: egl on Mesa requires either v4 or wl_drm (initialized with bind_wl_display).
+            self.dmabuf_state.create_global::<SabiniwmState>(
+                &inner.display_handle,
+                self.backend.renderer().dmabuf_formats().collect(),
+            )
         };
+        self.dmabuf_global.set(dmabuf_global).unwrap();
 
         inner
             .shm_state
             .update_formats(self.backend.renderer().shm_formats());
+
         inner.space.map_output(&self.output, (0, 0));
 
         if let Err(e) = inner.xwayland.start(
