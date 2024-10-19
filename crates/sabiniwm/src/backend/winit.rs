@@ -248,7 +248,7 @@ impl WinitBackend {
                         &render_output_result.states,
                         &state.inner.space,
                         None,
-                        time,
+                        time.into(),
                     );
 
                     if has_rendered {

@@ -1631,7 +1631,7 @@ fn render_surface<'a>(
                 render_feedback: &feedback.render_feedback,
                 scanout_feedback: &feedback.scanout_feedback,
             }),
-        clock.now(),
+        clock.now().into(),
     );
 
     if res.rendered {

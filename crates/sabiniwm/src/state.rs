@@ -338,9 +338,8 @@ pub(crate) fn post_repaint(
     render_element_states: &RenderElementStates,
     space: &Space<crate::view::window::Window>,
     dmabuf_feedback: Option<SurfaceDmabufFeedback<'_>>,
-    time: impl Into<Duration>,
+    time: Duration,
 ) {
-    let time = time.into();
     let throttle = Some(Duration::from_secs(1));
 
     space.elements().for_each(|window| {
