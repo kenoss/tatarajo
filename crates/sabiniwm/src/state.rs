@@ -135,13 +135,7 @@ impl SabiniwmState {
             Box::new(WinitData::new(event_loop.handle().clone())?)
         };
 
-        let mut state = Self::new(
-            workspace_tags,
-            keymap,
-            event_loop.handle(),
-            backend_data,
-            true,
-        );
+        let mut state = Self::new(workspace_tags, keymap, event_loop.handle(), backend_data);
 
         state.backend_data.init(&mut state.inner);
 
@@ -160,39 +154,28 @@ impl SabiniwmState {
         keymap: Keymap<Action>,
         loop_handle: LoopHandle<'static, SabiniwmState>,
         backend_data: Box<dyn Backend>,
-        listen_on_socket: bool,
     ) -> SabiniwmState {
-        // TODO: Remove this variable.
-        assert!(listen_on_socket);
-
         let display = Display::new().unwrap();
         let dh = display.handle();
 
         let clock = Clock::new();
 
         // init wayland clients
-        let socket_name = if listen_on_socket {
-            let source = ListeningSocketSource::new_auto().unwrap();
-            let socket_name = source.socket_name().to_string_lossy().into_owned();
-            loop_handle
-                .insert_source(source, |client_stream, _, state| {
-                    if let Err(err) = state
-                        .inner
-                        .display_handle
-                        .insert_client(client_stream, Arc::new(ClientState::default()))
-                    {
-                        warn!("Error adding wayland client: {}", err);
-                    };
-                })
-                .expect("Failed to init wayland socket source");
-            info!(name = socket_name, "Listening on wayland socket");
-            Some(socket_name)
-        } else {
-            None
-        };
-        if let Some(socket_name) = &socket_name {
-            std::env::set_var("WAYLAND_DISPLAY", socket_name);
-        }
+        let source = ListeningSocketSource::new_auto().unwrap();
+        let socket_name = source.socket_name().to_string_lossy().into_owned();
+        loop_handle
+            .insert_source(source, |client_stream, _, state| {
+                if let Err(err) = state
+                    .inner
+                    .display_handle
+                    .insert_client(client_stream, Arc::new(ClientState::default()))
+                {
+                    warn!("Error adding wayland client: {}", err);
+                };
+            })
+            .expect("Failed to init wayland socket source");
+        std::env::set_var("WAYLAND_DISPLAY", &socket_name);
+        info!(?socket_name, "Listening on wayland socket");
 
         loop_handle
             .insert_source(
