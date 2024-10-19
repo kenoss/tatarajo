@@ -21,7 +21,6 @@ use smithay::wayland::compositor;
 use smithay::wayland::dmabuf::{DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufState};
 use std::cell::OnceCell;
 use std::ffi::OsString;
-use std::sync::atomic::Ordering;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -253,8 +252,7 @@ impl WinitBackend {
                 }
                 Err(SwapBuffersError::ContextLost(err)) => {
                     error!("Critical Rendering Error: {}", err);
-                    // TODO: Use `LoopSignal`.
-                    state.inner.running.store(false, Ordering::SeqCst);
+                    state.inner.loop_signal.stop();
                 }
                 Err(err) => warn!("Rendering error: {}", err),
             }

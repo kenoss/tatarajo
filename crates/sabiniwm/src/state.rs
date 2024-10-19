@@ -20,7 +20,7 @@ use smithay::desktop::{PopupManager, Space};
 use smithay::input::pointer::{CursorImageStatus, PointerHandle};
 use smithay::input::{Seat, SeatState};
 use smithay::reexports::calloop::generic::Generic;
-use smithay::reexports::calloop::{EventLoop, Interest, LoopHandle, Mode, PostAction};
+use smithay::reexports::calloop::{EventLoop, Interest, LoopHandle, LoopSignal, Mode, PostAction};
 use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason};
 use smithay::reexports::wayland_server::{Display, DisplayHandle};
 use smithay::utils::{Clock, Monotonic, Point, Rectangle, Size};
@@ -47,7 +47,6 @@ use smithay::wayland::xdg_activation::XdgActivationState;
 use smithay::wayland::xdg_foreign::XdgForeignState;
 use smithay::wayland::xwayland_keyboard_grab::XWaylandKeyboardGrabState;
 use smithay::xwayland::{X11Wm, XWayland, XWaylandEvent};
-use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -71,8 +70,8 @@ pub struct SabiniwmState {
 
 pub(crate) struct InnerState {
     pub display_handle: DisplayHandle,
-    pub running: Arc<AtomicBool>,
     pub loop_handle: LoopHandle<'static, SabiniwmState>,
+    pub loop_signal: LoopSignal,
 
     // desktop
     pub space: Space<Window>,
@@ -136,7 +135,13 @@ impl SabiniwmState {
             Box::new(WinitBackend::new(event_loop.handle().clone())?)
         };
 
-        let mut state = Self::new(workspace_tags, keymap, event_loop.handle(), backend);
+        let mut state = Self::new(
+            workspace_tags,
+            keymap,
+            event_loop.handle(),
+            event_loop.get_signal(),
+            backend,
+        );
 
         state.backend.init(&mut state.inner);
 
@@ -154,6 +159,7 @@ impl SabiniwmState {
         workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
         loop_handle: LoopHandle<'static, SabiniwmState>,
+        loop_signal: LoopSignal,
         backend: Box<dyn BackendI>,
     ) -> SabiniwmState {
         let display = Display::new().unwrap();
@@ -293,8 +299,8 @@ impl SabiniwmState {
             backend,
             inner: InnerState {
                 display_handle: dh,
-                running: Arc::new(AtomicBool::new(true)),
                 loop_handle,
+                loop_signal,
                 space: Space::default(),
                 popups: PopupManager::default(),
                 compositor_state,
