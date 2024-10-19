@@ -47,24 +47,6 @@ macro_rules! backend_winit_mut {
     };
 }
 
-impl smithay::wayland::buffer::BufferHandler for WinitBackend {
-    fn buffer_destroyed(&mut self, _buffer: &wayland_server::protocol::wl_buffer::WlBuffer) {}
-}
-
-impl crate::backend::DmabufHandlerDelegate for WinitBackend {
-    fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
-        &mut self.dmabuf_state
-    }
-
-    fn dmabuf_imported(
-        &mut self,
-        _global: &smithay::wayland::dmabuf::DmabufGlobal,
-        dmabuf: smithay::backend::allocator::dmabuf::Dmabuf,
-    ) -> bool {
-        self.backend.renderer().import_dmabuf(&dmabuf, None).is_ok()
-    }
-}
-
 impl WinitBackend {
     pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> anyhow::Result<Self> {
         #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
@@ -281,6 +263,24 @@ impl WinitBackend {
             state.inner.popups.cleanup();
             state.inner.display_handle.flush_clients().unwrap();
         });
+    }
+}
+
+impl smithay::wayland::buffer::BufferHandler for WinitBackend {
+    fn buffer_destroyed(&mut self, _buffer: &wayland_server::protocol::wl_buffer::WlBuffer) {}
+}
+
+impl crate::backend::DmabufHandlerDelegate for WinitBackend {
+    fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
+        &mut self.dmabuf_state
+    }
+
+    fn dmabuf_imported(
+        &mut self,
+        _global: &smithay::wayland::dmabuf::DmabufGlobal,
+        dmabuf: smithay::backend::allocator::dmabuf::Dmabuf,
+    ) -> bool {
+        self.backend.renderer().import_dmabuf(&dmabuf, None).is_ok()
     }
 }
 
