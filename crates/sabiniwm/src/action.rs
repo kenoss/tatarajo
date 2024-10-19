@@ -88,6 +88,15 @@ impl SabiniwmState {
 }
 
 #[derive(Debug, Clone)]
+pub struct ActionQuitSabiniwm;
+
+impl ActionFnI for ActionQuitSabiniwm {
+    fn exec(&self, state: &mut SabiniwmState) {
+        state.inner.loop_signal.stop();
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum ActionMoveFocus {
     Next,
     Prev,
