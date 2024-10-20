@@ -169,8 +169,6 @@ impl SabiniwmState {
         let display = Display::new().unwrap();
         let display_handle = display.handle();
 
-        let clock = Clock::new();
-
         // init wayland clients
         let source = ListeningSocketSource::new_auto().unwrap();
         let socket_name = source.socket_name().to_string_lossy().into_owned();
@@ -335,7 +333,7 @@ impl SabiniwmState {
                 seat_name,
                 seat,
                 pointer,
-                clock,
+                clock: Clock::new(),
                 xwayland,
                 xwm: None,
                 xdisplay: None,
