@@ -256,43 +256,40 @@ impl SabiniwmState {
             XWaylandKeyboardGrabState::new::<Self>(&dh);
 
             let (xwayland, channel) = XWayland::new(&dh);
-            let dh = dh.clone();
-            let ret = loop_handle.insert_source(channel, move |event, _, state| match event {
-                XWaylandEvent::Ready {
-                    connection,
-                    client,
-                    client_fd: _,
-                    display,
-                } => {
-                    let mut wm = X11Wm::start_wm(
-                        state.inner.loop_handle.clone(),
-                        dh.clone(),
+
+            loop_handle
+                .insert_source(channel, move |event, _, state| match event {
+                    XWaylandEvent::Ready {
                         connection,
                         client,
-                    )
-                    .expect("Failed to attach X11 Window Manager");
-                    let cursor = Cursor::load();
-                    let image = cursor.get_image(1, Duration::ZERO);
-                    wm.set_cursor(
-                        &image.pixels_rgba,
-                        Size::from((image.width as u16, image.height as u16)),
-                        Point::from((image.xhot as u16, image.yhot as u16)),
-                    )
-                    .expect("Failed to set xwayland default cursor");
-                    std::env::set_var("DISPLAY", format!(":{}", display));
-                    state.inner.xwm = Some(wm);
-                    state.inner.xdisplay = Some(display);
-                }
-                XWaylandEvent::Exited => {
-                    let _ = state.inner.xwm.take();
-                }
-            });
-            if let Err(e) = ret {
-                error!(
-                    "Failed to insert the XWaylandSource into the event loop: {}",
-                    e
-                );
-            }
+                        client_fd: _,
+                        display,
+                    } => {
+                        let mut wm = X11Wm::start_wm(
+                            state.inner.loop_handle.clone(),
+                            state.inner.display_handle.clone(),
+                            connection,
+                            client,
+                        )
+                        .expect("Failed to attach X11 Window Manager");
+                        let cursor = Cursor::load();
+                        let image = cursor.get_image(1, Duration::ZERO);
+                        wm.set_cursor(
+                            &image.pixels_rgba,
+                            Size::from((image.width as u16, image.height as u16)),
+                            Point::from((image.xhot as u16, image.yhot as u16)),
+                        )
+                        .expect("Failed to set xwayland default cursor");
+                        std::env::set_var("DISPLAY", format!(":{}", display));
+                        state.inner.xwm = Some(wm);
+                        state.inner.xdisplay = Some(display);
+                    }
+                    XWaylandEvent::Exited => {
+                        let _ = state.inner.xwm.take();
+                    }
+                })
+                .map_err(|e| eyre::eyre!("{}", e))
+                .context("inserting `XWaylandSource` to `EventLoop`")?;
 
             xwayland
                 .start(
