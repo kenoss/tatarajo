@@ -167,7 +167,7 @@ impl SabiniwmState {
         backend: Box<dyn BackendI>,
     ) -> eyre::Result<SabiniwmState> {
         let display = Display::new().unwrap();
-        let dh = display.handle();
+        let display_handle = display.handle();
 
         let clock = Clock::new();
 
@@ -202,29 +202,32 @@ impl SabiniwmState {
             .expect("Failed to init wayland server source");
 
         // init globals
-        let compositor_state = CompositorState::new::<Self>(&dh);
-        let data_device_state = DataDeviceState::new::<Self>(&dh);
-        let layer_shell_state = WlrLayerShellState::new::<Self>(&dh);
-        let primary_selection_state = PrimarySelectionState::new::<Self>(&dh);
-        let data_control_state =
-            DataControlState::new::<Self, _>(&dh, Some(&primary_selection_state), |_| true);
+        let compositor_state = CompositorState::new::<Self>(&display_handle);
+        let data_device_state = DataDeviceState::new::<Self>(&display_handle);
+        let layer_shell_state = WlrLayerShellState::new::<Self>(&display_handle);
+        let primary_selection_state = PrimarySelectionState::new::<Self>(&display_handle);
+        let data_control_state = DataControlState::new::<Self, _>(
+            &display_handle,
+            Some(&primary_selection_state),
+            |_| true,
+        );
         let mut seat_state = SeatState::new();
-        let shm_state = ShmState::new::<Self>(&dh, vec![]);
-        let xdg_activation_state = XdgActivationState::new::<Self>(&dh);
-        let xdg_shell_state = XdgShellState::new::<Self>(&dh);
-        let xdg_foreign_state = XdgForeignState::new::<Self>(&dh);
-        TextInputManagerState::new::<Self>(&dh);
-        InputMethodManagerState::new::<Self, _>(&dh, |_client| true);
-        VirtualKeyboardManagerState::new::<Self, _>(&dh, |_client| true);
+        let shm_state = ShmState::new::<Self>(&display_handle, vec![]);
+        let xdg_activation_state = XdgActivationState::new::<Self>(&display_handle);
+        let xdg_shell_state = XdgShellState::new::<Self>(&display_handle);
+        let xdg_foreign_state = XdgForeignState::new::<Self>(&display_handle);
+        TextInputManagerState::new::<Self>(&display_handle);
+        InputMethodManagerState::new::<Self, _>(&display_handle, |_client| true);
+        VirtualKeyboardManagerState::new::<Self, _>(&display_handle, |_client| true);
         if backend.has_relative_motion() {
-            RelativePointerManagerState::new::<Self>(&dh);
+            RelativePointerManagerState::new::<Self>(&display_handle);
         }
-        PointerConstraintsState::new::<Self>(&dh);
+        PointerConstraintsState::new::<Self>(&display_handle);
         if backend.has_gesture() {
-            PointerGesturesState::new::<Self>(&dh);
+            PointerGesturesState::new::<Self>(&display_handle);
         }
-        TabletManagerState::new::<Self>(&dh);
-        SecurityContextState::new::<Self, _>(&dh, |client| {
+        TabletManagerState::new::<Self>(&display_handle);
+        SecurityContextState::new::<Self, _>(&display_handle, |client| {
             client
                 .get_data::<ClientState>()
                 .map_or(true, |client_state| client_state.security_context.is_none())
@@ -232,7 +235,7 @@ impl SabiniwmState {
 
         // init input
         let seat_name = backend.seat_name();
-        let mut seat = seat_state.new_wl_seat(&dh, seat_name.clone());
+        let mut seat = seat_state.new_wl_seat(&display_handle, seat_name.clone());
 
         let cursor_status = Arc::new(Mutex::new(CursorImageStatus::default_named()));
         let pointer = seat.add_pointer();
@@ -250,12 +253,13 @@ impl SabiniwmState {
                 *cursor_status2.lock().unwrap() = new_status;
             });
 
-        let keyboard_shortcuts_inhibit_state = KeyboardShortcutsInhibitState::new::<Self>(&dh);
+        let keyboard_shortcuts_inhibit_state =
+            KeyboardShortcutsInhibitState::new::<Self>(&display_handle);
 
         let xwayland = {
-            XWaylandKeyboardGrabState::new::<Self>(&dh);
+            XWaylandKeyboardGrabState::new::<Self>(&display_handle);
 
-            let (xwayland, channel) = XWayland::new(&dh);
+            let (xwayland, channel) = XWayland::new(&display_handle);
 
             loop_handle
                 .insert_source(channel, move |event, _, state| match event {
@@ -310,7 +314,7 @@ impl SabiniwmState {
         Ok(SabiniwmState {
             backend,
             inner: InnerState {
-                display_handle: dh,
+                display_handle,
                 loop_handle,
                 loop_signal,
                 space: Space::default(),
