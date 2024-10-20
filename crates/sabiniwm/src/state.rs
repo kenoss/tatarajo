@@ -8,6 +8,7 @@ use crate::input_event::FocusUpdateDecider;
 use crate::view::stackset::WorkspaceTag;
 use crate::view::view::View;
 use crate::view::window::Window;
+use eyre::Context;
 use smithay::backend::renderer::element::utils::select_dmabuf_feedback;
 use smithay::backend::renderer::element::{
     default_primary_scanout_output_compare, RenderElementStates,
@@ -47,6 +48,7 @@ use smithay::wayland::xdg_activation::XdgActivationState;
 use smithay::wayland::xdg_foreign::XdgForeignState;
 use smithay::wayland::xwayland_keyboard_grab::XWaylandKeyboardGrabState;
 use smithay::xwayland::{X11Wm, XWayland, XWaylandEvent};
+use std::ffi::OsString;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -99,6 +101,8 @@ pub(crate) struct InnerState {
     pub clock: Clock<Monotonic>,
     pub pointer: PointerHandle<SabiniwmState>,
 
+    // Holds not to `drop()`, which invokes `XWayland::shutdown()`.
+    #[allow(unused)]
     pub xwayland: XWayland,
     pub xwm: Option<X11Wm>,
     pub xdisplay: Option<u32>,
@@ -141,7 +145,7 @@ impl SabiniwmState {
             event_loop.handle(),
             event_loop.get_signal(),
             backend,
-        );
+        )?;
 
         state.backend.init(&mut state.inner);
 
@@ -161,7 +165,7 @@ impl SabiniwmState {
         loop_handle: LoopHandle<'static, SabiniwmState>,
         loop_signal: LoopSignal,
         backend: Box<dyn BackendI>,
-    ) -> SabiniwmState {
+    ) -> eyre::Result<SabiniwmState> {
         let display = Display::new().unwrap();
         let dh = display.handle();
 
@@ -289,13 +293,24 @@ impl SabiniwmState {
                     e
                 );
             }
+
+            xwayland
+                .start(
+                    loop_handle.clone(),
+                    None,
+                    std::iter::empty::<(OsString, OsString)>(),
+                    true,
+                    |_| {},
+                )
+                .context("XWayland::start()")?;
+
             xwayland
         };
 
         let rect = Rectangle::from_loc_and_size((0, 0), (1280, 720));
         let view = View::new(rect, workspace_tags);
 
-        SabiniwmState {
+        Ok(SabiniwmState {
             backend,
             inner: InnerState {
                 display_handle: dh,
@@ -329,7 +344,7 @@ impl SabiniwmState {
                 view,
                 focus_update_decider: FocusUpdateDecider::new(),
             },
-        }
+        })
     }
 }
 

@@ -60,7 +60,6 @@ use smithay_drm_extras::drm_scanner::{DrmScanEvent, DrmScanner};
 use smithay_drm_extras::edid::EdidInfo;
 use std::collections::hash_map::HashMap;
 use std::collections::HashSet;
-use std::ffi::OsString;
 use std::path::Path;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -388,19 +387,6 @@ impl BackendI for UdevBackend {
                 }
             })
             .unwrap();
-
-        /*
-         * Start XWayland if supported
-         */
-        if let Err(e) = inner.xwayland.start(
-            inner.loop_handle.clone(),
-            None,
-            std::iter::empty::<(OsString, OsString)>(),
-            true,
-            |_| {},
-        ) {
-            error!("Failed to start XWayland: {}", e);
-        }
     }
 
     fn has_relative_motion(&self) -> bool {

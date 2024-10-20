@@ -20,7 +20,6 @@ use smithay::utils::{IsAlive, Scale, Transform};
 use smithay::wayland::compositor;
 use smithay::wayland::dmabuf::{DmabufFeedback, DmabufFeedbackBuilder, DmabufGlobal, DmabufState};
 use std::cell::OnceCell;
-use std::ffi::OsString;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -337,16 +336,6 @@ impl BackendI for WinitBackend {
             .update_formats(self.backend.renderer().shm_formats());
 
         inner.space.map_output(&self.output, (0, 0));
-
-        if let Err(e) = inner.xwayland.start(
-            inner.loop_handle.clone(),
-            None,
-            std::iter::empty::<(OsString, OsString)>(),
-            true,
-            |_| {},
-        ) {
-            error!("Failed to start XWayland: {}", e);
-        }
     }
 
     fn has_relative_motion(&self) -> bool {
