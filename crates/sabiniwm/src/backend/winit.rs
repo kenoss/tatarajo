@@ -2,6 +2,7 @@ use crate::backend::BackendI;
 use crate::pointer::PointerElement;
 use crate::render::{render_output, CustomRenderElement};
 use crate::state::{post_repaint, take_presentation_feedback, InnerState, SabiniwmState};
+use eyre::Context;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
 use smithay::backend::renderer::element::AsRenderElements;
@@ -47,41 +48,12 @@ macro_rules! backend_winit_mut {
 
 impl WinitBackend {
     pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> eyre::Result<Self> {
-        #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
-        let (backend, winit) = match winit::init::<GlesRenderer>() {
-            Ok(ret) => ret,
-            Err(err) => {
-                error!("Failed to initialize Winit backend: {}", err);
-                return Err(eyre::eyre!("Failed to initialize Winit backend: {}", err));
-            }
-        };
-        let size = backend.window_size();
-
-        let mode = Mode {
-            size,
-            refresh: 60_000,
-        };
-        let output = smithay::output::Output::new(
-            OUTPUT_NAME.to_string(),
-            PhysicalProperties {
-                size: (0, 0).into(),
-                subpixel: Subpixel::Unknown,
-                make: "Smithay".into(),
-                model: "Winit".into(),
-            },
-        );
-        output.change_current_state(
-            Some(mode),
-            Some(Transform::Flipped180),
-            None,
-            Some((0, 0).into()),
-        );
-        output.set_preferred(mode);
-
-        let damage_tracker = OutputDamageTracker::from_output(&output);
+        let (backend, winit_event_loop) = winit::init::<GlesRenderer>()
+            .map_err(|e| eyre::eyre!("{}", e))
+            .context("initializing winit backend")?;
 
         loop_handle
-            .insert_source(winit, move |event, _, state| match event {
+            .insert_source(winit_event_loop, move |event, _, state| match event {
                 WinitEvent::CloseRequested => {
                     state.inner.loop_signal.stop();
                 }
@@ -105,7 +77,32 @@ impl WinitBackend {
                 }
                 WinitEvent::Focus(_) | WinitEvent::Redraw => {}
             })
-            .expect("Failed to init winit source");
+            .map_err(|e| eyre::eyre!("{}", e))
+            .context("inserting `WinitEventLoop` to `EventLoop`")?;
+
+        let size = backend.window_size();
+        let mode = Mode {
+            size,
+            refresh: 60_000,
+        };
+        let output = smithay::output::Output::new(
+            OUTPUT_NAME.to_string(),
+            PhysicalProperties {
+                size: (0, 0).into(),
+                subpixel: Subpixel::Unknown,
+                make: "Smithay".into(),
+                model: "Winit".into(),
+            },
+        );
+        output.change_current_state(
+            Some(mode),
+            Some(Transform::Flipped180),
+            None,
+            Some((0, 0).into()),
+        );
+        output.set_preferred(mode);
+
+        let damage_tracker = OutputDamageTracker::from_output(&output);
 
         Ok(WinitBackend {
             backend,
