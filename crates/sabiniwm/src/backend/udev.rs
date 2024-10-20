@@ -106,7 +106,7 @@ pub(crate) struct UdevBackend {
 }
 
 impl UdevBackend {
-    pub fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> anyhow::Result<Self> {
+    pub fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> eyre::Result<Self> {
         /*
          * Initialize session
          */
@@ -114,7 +114,7 @@ impl UdevBackend {
             Ok(ret) => ret,
             Err(err) => {
                 error!("Could not initialize a session: {}", err);
-                return Err(anyhow::anyhow!("Could not initialize a session: {}", err));
+                return Err(eyre::eyre!("Could not initialize a session: {}", err));
             }
         };
 

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use anyhow::{anyhow, Result};
+use eyre::{eyre, Result};
 use itertools::Itertools;
 use smithay::input::keyboard::{KeysymHandle, XkbContextHandler};
 use std::collections::{HashMap, HashSet};
@@ -133,29 +133,25 @@ impl KeySeqSerde {
         let mut cs = s.split('-').collect_vec();
 
         let Some(key) = cs.pop() else {
-            return Err(anyhow!("must not length zero: {}", s));
+            return Err(eyre!("must not length zero: {}", s));
         };
         let keysym = xkb::keysym_from_name(key, xkb::KEYSYM_NO_FLAGS);
         // FYI, xkb::Keysym::NoSymbol doesn't exist.
         if keysym == xkb::keysyms::KEY_NoSymbol.into() {
-            return Err(anyhow!("No such keysym: {} in {}", key, s));
+            return Err(eyre!("No such keysym: {} in {}", key, s));
         }
 
         let mut modmask = ModMask::default();
         let mut seen = HashSet::new();
         for c in cs {
             if !seen.insert(c) {
-                return Err(anyhow!(
-                    "prefix must appear at most one time: {} in {}",
-                    c,
-                    s
-                ));
+                return Err(eyre!("prefix must appear at most one time: {} in {}", c, s));
             }
 
             if let Some(&m) = self.map.get(c) {
                 modmask |= m;
             } else {
-                return Err(anyhow!("invaild prefix: {} in {}", c, s));
+                return Err(eyre!("invaild prefix: {} in {}", c, s));
             }
         }
 

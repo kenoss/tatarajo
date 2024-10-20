@@ -4,12 +4,12 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.81"
 big_s = "1.0.2"
 bitflags = "2.2.1"
 derive_more = { version = "1.0.0", features = ["from"] }
 downcast = "0.11.0"
 dyn-clone = "1.0.17"
+eyre = "0.6.12"
 itertools = "0.12.1"
 maplit = "1.0.2"
 smithay-drm-extras = { git = "https://github.com/Smithay/smithay", rev = "8e49b9b", optional = true }

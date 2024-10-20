@@ -2,8 +2,8 @@
 #[macro_use]
 extern crate maplit;
 
-use anyhow::Result;
 use big_s::S;
+use eyre::Result;
 use sabiniwm::action::{self, Action, ActionFnI};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
 use sabiniwm::view::predefined::LayoutMessageSelect;
@@ -38,6 +38,7 @@ fn tracing_init() -> Result<()> {
 
 fn main() -> Result<()> {
     tracing_init()?;
+    color_eyre::install()?;
 
     let workspace_tags = (0..=9).map(|i| WorkspaceTag(format!("{}", i))).collect();
 

@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.81"
 big_s = "1.0.2"
+color-eyre = "0.6.3"
+eyre = "0.6.12"
 maplit = "1.0.2"
 sabiniwm = { path = "../sabiniwm" }
 time = { version = "0.3.36", features = ["macros", "local-offset"] }

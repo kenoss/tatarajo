@@ -47,16 +47,13 @@ macro_rules! backend_winit_mut {
 }
 
 impl WinitBackend {
-    pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> anyhow::Result<Self> {
+    pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> eyre::Result<Self> {
         #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
         let (backend, winit) = match winit::init::<GlesRenderer>() {
             Ok(ret) => ret,
             Err(err) => {
                 error!("Failed to initialize Winit backend: {}", err);
-                return Err(anyhow::anyhow!(
-                    "Failed to initialize Winit backend: {}",
-                    err
-                ));
+                return Err(eyre::eyre!("Failed to initialize Winit backend: {}", err));
             }
         };
         let size = backend.window_size();

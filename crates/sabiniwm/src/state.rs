@@ -118,7 +118,7 @@ where
 }
 
 impl SabiniwmState {
-    pub fn run(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) -> anyhow::Result<()> {
+    pub fn run(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) -> eyre::Result<()> {
         let event_loop = EventLoop::try_new().unwrap();
 
         let use_udev = matches!(
