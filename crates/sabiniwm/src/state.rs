@@ -187,11 +187,11 @@ impl SabiniwmState {
                 .context("inserting `Display` to `EventLoop`")?;
         }
 
-        // init wayland clients
-        let source = ListeningSocketSource::new_auto().unwrap();
-        let socket_name = source.socket_name().to_string_lossy().into_owned();
+        // Initialize `WAYLAND_DISPLAY` socket to listen Wayland clients.
+        let socket_source = ListeningSocketSource::new_auto()?;
+        let socket_name = socket_source.socket_name().to_string_lossy().into_owned();
         loop_handle
-            .insert_source(source, |client_stream, _, state| {
+            .insert_source(socket_source, |client_stream, _, state| {
                 if let Err(err) = state
                     .inner
                     .display_handle
@@ -200,9 +200,13 @@ impl SabiniwmState {
                     warn!("Error adding wayland client: {}", err);
                 };
             })
-            .expect("Failed to init wayland socket source");
+            .map_err(|e| eyre::eyre!("{}", e))
+            .context("inserting `ListeningSocketSource` to `EventLoop`")?;
         std::env::set_var("WAYLAND_DISPLAY", &socket_name);
-        info!(?socket_name, "Listening on wayland socket");
+        info!(
+            "Start listening on Wayland socket: WAYLAND_DISPLAY = {}",
+            socket_name
+        );
 
         // init globals
         let compositor_state = CompositorState::new::<Self>(&display_handle);
