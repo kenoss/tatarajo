@@ -86,6 +86,9 @@ impl WinitBackend {
 
         loop_handle
             .insert_source(winit, move |event, _, state| match event {
+                WinitEvent::CloseRequested => {
+                    state.inner.loop_signal.stop();
+                }
                 WinitEvent::Input(event) => {
                     state.process_input_event(event);
                 }
@@ -104,7 +107,7 @@ impl WinitBackend {
                         .view
                         .resize_output(size.to_logical(1), &mut state.inner.space);
                 }
-                WinitEvent::CloseRequested | WinitEvent::Focus(_) | WinitEvent::Redraw => {}
+                WinitEvent::Focus(_) | WinitEvent::Redraw => {}
             })
             .expect("Failed to init winit source");
 
