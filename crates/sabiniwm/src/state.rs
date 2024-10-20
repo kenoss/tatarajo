@@ -20,8 +20,7 @@ use smithay::desktop::utils::{
 use smithay::desktop::{PopupManager, Space};
 use smithay::input::pointer::{CursorImageStatus, PointerHandle};
 use smithay::input::{Seat, SeatState};
-use smithay::reexports::calloop::generic::Generic;
-use smithay::reexports::calloop::{EventLoop, Interest, LoopHandle, LoopSignal, Mode, PostAction};
+use smithay::reexports::calloop::{EventLoop, LoopHandle, LoopSignal};
 use smithay::reexports::wayland_server::backend::{ClientData, ClientId, DisconnectReason};
 use smithay::reexports::wayland_server::{Display, DisplayHandle};
 use smithay::utils::{Clock, Monotonic, Point, Rectangle, Size};
@@ -169,6 +168,25 @@ impl SabiniwmState {
         let display = Display::new().unwrap();
         let display_handle = display.handle();
 
+        {
+            use smithay::reexports::calloop::generic::Generic;
+            use smithay::reexports::calloop::{Interest, Mode, PostAction};
+
+            loop_handle
+                .insert_source(
+                    Generic::new(display, Interest::READ, Mode::Level),
+                    |_, display, state| {
+                        // Safety: we don't drop the display
+                        unsafe {
+                            display.get_mut().dispatch_clients(state).unwrap();
+                        }
+                        Ok(PostAction::Continue)
+                    },
+                )
+                .map_err(|e| eyre::eyre!("{}", e))
+                .context("inserting `Display` to `EventLoop`")?;
+        }
+
         // init wayland clients
         let source = ListeningSocketSource::new_auto().unwrap();
         let socket_name = source.socket_name().to_string_lossy().into_owned();
@@ -185,19 +203,6 @@ impl SabiniwmState {
             .expect("Failed to init wayland socket source");
         std::env::set_var("WAYLAND_DISPLAY", &socket_name);
         info!(?socket_name, "Listening on wayland socket");
-
-        loop_handle
-            .insert_source(
-                Generic::new(display, Interest::READ, Mode::Level),
-                |_, display, state| {
-                    // Safety: we don't drop the display
-                    unsafe {
-                        display.get_mut().dispatch_clients(state).unwrap();
-                    }
-                    Ok(PostAction::Continue)
-                },
-            )
-            .expect("Failed to init wayland server source");
 
         // init globals
         let compositor_state = CompositorState::new::<Self>(&display_handle);
