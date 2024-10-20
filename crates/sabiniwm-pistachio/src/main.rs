@@ -3,14 +3,13 @@
 extern crate maplit;
 
 use big_s::S;
-use eyre::Result;
 use sabiniwm::action::{self, Action, ActionFnI};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
 use sabiniwm::view::predefined::LayoutMessageSelect;
 use sabiniwm::view::stackset::WorkspaceTag;
 use sabiniwm::SabiniwmState;
 
-fn tracing_init() -> Result<()> {
+fn tracing_init() -> eyre::Result<()> {
     use time::macros::format_description;
     use time::UtcOffset;
     use tracing_subscriber::fmt::time::OffsetTime;
@@ -36,7 +35,7 @@ fn tracing_init() -> Result<()> {
     Ok(())
 }
 
-fn main() -> Result<()> {
+fn main() -> eyre::Result<()> {
     tracing_init()?;
     color_eyre::install()?;
 

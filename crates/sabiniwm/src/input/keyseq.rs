@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use eyre::{eyre, Result};
+use eyre::eyre;
 use itertools::Itertools;
 use smithay::input::keyboard::{KeysymHandle, XkbContextHandler};
 use std::collections::{HashMap, HashSet};
@@ -122,14 +122,14 @@ impl KeySeqSerde {
         Self { map }
     }
 
-    pub fn kbd(&self, s: &str) -> Result<KeySeq> {
+    pub fn kbd(&self, s: &str) -> eyre::Result<KeySeq> {
         s.split(' ')
             .map(|x| self.kbd_aux(x))
-            .collect::<Result<Vec<_>>>()
+            .collect::<eyre::Result<Vec<_>>>()
             .map(KeySeq)
     }
 
-    fn kbd_aux(&self, s: &str) -> Result<Key> {
+    fn kbd_aux(&self, s: &str) -> eyre::Result<Key> {
         let mut cs = s.split('-').collect_vec();
 
         let Some(key) = cs.pop() else {
