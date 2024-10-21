@@ -350,9 +350,9 @@ impl BackendI for UdevBackend {
         self.dmabuf_state = Some((dmabuf_state, global));
 
         let gpus = &mut self.gpus;
-        self.backends.values_mut().for_each(|backend| {
+        for backend in self.backends.values_mut() {
             // Update the per drm surface dmabuf feedback
-            backend.surfaces.values_mut().for_each(|surface_data| {
+            for surface_data in backend.surfaces.values_mut() {
                 surface_data.dmabuf_feedback = surface_data.dmabuf_feedback.take().or_else(|| {
                     get_surface_dmabuf_feedback(
                         self.primary_gpu,
@@ -361,8 +361,8 @@ impl BackendI for UdevBackend {
                         &surface_data.compositor,
                     )
                 });
-            });
-        });
+            }
+        }
 
         inner
             .loop_handle

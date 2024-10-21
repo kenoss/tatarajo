@@ -371,7 +371,7 @@ pub(crate) fn post_repaint(
 ) {
     let throttle = Some(Duration::from_secs(1));
 
-    space.elements().for_each(|window| {
+    for window in space.elements() {
         window.smithay_window().with_surfaces(|surface, states| {
             let primary_scanout_output = update_surface_primary_scanout_output(
                 surface,
@@ -410,7 +410,8 @@ pub(crate) fn post_repaint(
                 );
             }
         }
-    });
+    }
+
     let map = smithay::desktop::layer_map_for_output(output);
     for layer_surface in map.layers() {
         layer_surface.with_surfaces(|surface, states| {
@@ -454,7 +455,7 @@ pub(crate) fn take_presentation_feedback(
 ) -> OutputPresentationFeedback {
     let mut output_presentation_feedback = OutputPresentationFeedback::new(output);
 
-    space.elements().for_each(|window| {
+    for window in space.elements() {
         if space.outputs_for_element(window).contains(output) {
             window.smithay_window().take_presentation_feedback(
                 &mut output_presentation_feedback,
@@ -464,7 +465,8 @@ pub(crate) fn take_presentation_feedback(
                 },
             );
         }
-    });
+    }
+
     let map = smithay::desktop::layer_map_for_output(output);
     for layer_surface in map.layers() {
         layer_surface.take_presentation_feedback(
