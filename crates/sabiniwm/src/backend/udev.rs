@@ -253,6 +253,11 @@ impl UdevBackend {
 
     pub fn run(mut state: SabiniwmState, mut event_loop: EventLoop<'static, SabiniwmState>) {
         let _ = event_loop.run(Some(Duration::from_millis(16)), &mut state, |state| {
+            let should_reflect = state.inner.view.refresh(&mut state.inner.space);
+            if should_reflect {
+                state.reflect_focus_from_stackset(None);
+            }
+
             state.inner.space.refresh();
             state.inner.popups.cleanup();
             state.inner.display_handle.flush_clients().unwrap();

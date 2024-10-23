@@ -257,6 +257,11 @@ impl WinitBackend {
                 }
             }
 
+            let should_reflect = state.inner.view.refresh(&mut state.inner.space);
+            if should_reflect {
+                state.reflect_focus_from_stackset(None);
+            }
+
             state.inner.space.refresh();
             state.inner.popups.cleanup();
             state.inner.display_handle.flush_clients().unwrap();
