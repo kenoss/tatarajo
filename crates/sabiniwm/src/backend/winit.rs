@@ -120,137 +120,141 @@ impl WinitBackend {
 
         let _ = event_loop.run(Some(Duration::from_millis(16)), &mut state, |state| {
             // drawing logic
+            {
+                let backend = backend_winit_mut!(state);
 
-            let backend = backend_winit_mut!(state);
+                let mut cursor_guard = state.inner.cursor_status.lock().unwrap();
 
-            let mut cursor_guard = state.inner.cursor_status.lock().unwrap();
-
-            // draw the cursor as relevant
-            // reset the cursor if the surface is no longer alive
-            let mut reset = false;
-            if let CursorImageStatus::Surface(ref surface) = *cursor_guard {
-                reset = !surface.alive();
-            }
-            if reset {
-                *cursor_guard = CursorImageStatus::default_named();
-            }
-            let cursor_visible = !matches!(*cursor_guard, CursorImageStatus::Surface(_));
-
-            pointer_element.set_status(cursor_guard.clone());
-
-            let full_redraw = &mut backend.full_redraw;
-            *full_redraw = full_redraw.saturating_sub(1);
-            let space = &mut state.inner.space;
-            let damage_tracker = &mut backend.damage_tracker;
-
-            let dnd_icon = state.inner.dnd_icon.as_ref();
-
-            let scale = Scale::from(backend.output.current_scale().fractional_scale());
-            let cursor_hotspot = if let CursorImageStatus::Surface(ref surface) = *cursor_guard {
-                compositor::with_states(surface, |states| {
-                    states
-                        .data_map
-                        .get::<Mutex<CursorImageAttributes>>()
-                        .unwrap()
-                        .lock()
-                        .unwrap()
-                        .hotspot
-                })
-            } else {
-                (0, 0).into()
-            };
-            let cursor_pos = state.inner.pointer.current_location() - cursor_hotspot.to_f64();
-            let cursor_pos_scaled = cursor_pos.to_physical(scale).to_i32_round();
-
-            let render_res = backend.backend.bind().and_then(|_| {
-                let age = if *full_redraw > 0 {
-                    0
-                } else {
-                    backend.backend.buffer_age().unwrap_or(0)
-                };
-
-                let renderer = backend.backend.renderer();
-
-                let mut elements = Vec::<CustomRenderElement<GlesRenderer>>::new();
-
-                elements.extend(pointer_element.render_elements(
-                    renderer,
-                    cursor_pos_scaled,
-                    scale,
-                    1.0,
-                ));
-
-                // draw the dnd icon if any
-                if let Some(surface) = dnd_icon {
-                    if surface.alive() {
-                        elements.extend(AsRenderElements::<GlesRenderer>::render_elements(
-                            &smithay::desktop::space::SurfaceTree::from_surface(surface),
-                            renderer,
-                            cursor_pos_scaled,
-                            scale,
-                            1.0,
-                        ));
-                    }
+                // draw the cursor as relevant
+                // reset the cursor if the surface is no longer alive
+                let mut reset = false;
+                if let CursorImageStatus::Surface(ref surface) = *cursor_guard {
+                    reset = !surface.alive();
                 }
+                if reset {
+                    *cursor_guard = CursorImageStatus::default_named();
+                }
+                let cursor_visible = !matches!(*cursor_guard, CursorImageStatus::Surface(_));
 
-                render_output(
-                    renderer,
-                    &backend.output,
-                    space,
-                    elements,
-                    damage_tracker,
-                    age,
-                )
-                .map_err(|err| match err {
-                    OutputDamageTrackerError::Rendering(err) => err.into(),
-                    _ => unreachable!(),
-                })
-            });
+                pointer_element.set_status(cursor_guard.clone());
 
-            match render_res {
-                Ok(render_output_result) => {
-                    let has_rendered = render_output_result.damage.is_some();
-                    if let Some(damage) = render_output_result.damage {
-                        if let Err(err) = backend.backend.submit(Some(&*damage)) {
-                            warn!("Failed to submit buffer: {}", err);
+                let full_redraw = &mut backend.full_redraw;
+                *full_redraw = full_redraw.saturating_sub(1);
+                let space = &mut state.inner.space;
+                let damage_tracker = &mut backend.damage_tracker;
+
+                let dnd_icon = state.inner.dnd_icon.as_ref();
+
+                let scale = Scale::from(backend.output.current_scale().fractional_scale());
+                let cursor_hotspot = if let CursorImageStatus::Surface(ref surface) = *cursor_guard
+                {
+                    compositor::with_states(surface, |states| {
+                        states
+                            .data_map
+                            .get::<Mutex<CursorImageAttributes>>()
+                            .unwrap()
+                            .lock()
+                            .unwrap()
+                            .hotspot
+                    })
+                } else {
+                    (0, 0).into()
+                };
+                let cursor_pos = state.inner.pointer.current_location() - cursor_hotspot.to_f64();
+                let cursor_pos_scaled = cursor_pos.to_physical(scale).to_i32_round();
+
+                let render_res = backend.backend.bind().and_then(|_| {
+                    let age = if *full_redraw > 0 {
+                        0
+                    } else {
+                        backend.backend.buffer_age().unwrap_or(0)
+                    };
+
+                    let renderer = backend.backend.renderer();
+
+                    let mut elements = Vec::<CustomRenderElement<GlesRenderer>>::new();
+
+                    elements.extend(pointer_element.render_elements(
+                        renderer,
+                        cursor_pos_scaled,
+                        scale,
+                        1.0,
+                    ));
+
+                    // draw the dnd icon if any
+                    if let Some(surface) = dnd_icon {
+                        if surface.alive() {
+                            elements.extend(AsRenderElements::<GlesRenderer>::render_elements(
+                                &smithay::desktop::space::SurfaceTree::from_surface(surface),
+                                renderer,
+                                cursor_pos_scaled,
+                                scale,
+                                1.0,
+                            ));
                         }
                     }
 
-                    backend.backend.window().set_cursor_visible(cursor_visible);
-
-                    // Send frame events so that client start drawing their next frame
-                    let time = state.inner.clock.now();
-                    post_repaint(
+                    render_output(
+                        renderer,
                         &backend.output,
-                        &render_output_result.states,
-                        &state.inner.space,
-                        None,
-                        time.into(),
-                    );
+                        space,
+                        elements,
+                        damage_tracker,
+                        age,
+                    )
+                    .map_err(|err| match err {
+                        OutputDamageTrackerError::Rendering(err) => err.into(),
+                        _ => unreachable!(),
+                    })
+                });
 
-                    if has_rendered {
-                        let mut output_presentation_feedback = take_presentation_feedback(
+                match render_res {
+                    Ok(render_output_result) => {
+                        let has_rendered = render_output_result.damage.is_some();
+                        if let Some(damage) = render_output_result.damage {
+                            if let Err(err) = backend.backend.submit(Some(&*damage)) {
+                                warn!("Failed to submit buffer: {}", err);
+                            }
+                        }
+
+                        backend.backend.window().set_cursor_visible(cursor_visible);
+
+                        // Send frame events so that client start drawing their next frame
+                        let time = state.inner.clock.now();
+                        post_repaint(
                             &backend.output,
-                            &state.inner.space,
                             &render_output_result.states,
+                            &state.inner.space,
+                            None,
+                            time.into(),
                         );
-                        output_presentation_feedback.presented(
-                            time,
-                            backend
-                                .output
-                                .current_mode()
-                                .map(|mode| Duration::from_secs_f64(1_000f64 / mode.refresh as f64))
-                                .unwrap_or_default(),
-                            0,
-                            wp_presentation_feedback::Kind::Vsync,
-                        )
+
+                        if has_rendered {
+                            let mut output_presentation_feedback = take_presentation_feedback(
+                                &backend.output,
+                                &state.inner.space,
+                                &render_output_result.states,
+                            );
+                            output_presentation_feedback.presented(
+                                time,
+                                backend
+                                    .output
+                                    .current_mode()
+                                    .map(|mode| {
+                                        Duration::from_secs_f64(1_000f64 / mode.refresh as f64)
+                                    })
+                                    .unwrap_or_default(),
+                                0,
+                                wp_presentation_feedback::Kind::Vsync,
+                            )
+                        }
                     }
+                    Err(SwapBuffersError::ContextLost(err)) => {
+                        error!("Critical Rendering Error: {}", err);
+                        state.inner.loop_signal.stop();
+                    }
+                    Err(err) => warn!("Rendering error: {}", err),
                 }
-                Err(SwapBuffersError::ContextLost(err)) => {
-                    error!("Critical Rendering Error: {}", err);
-                    state.inner.loop_signal.stop();
-                }
-                Err(err) => warn!("Rendering error: {}", err),
             }
 
             state.inner.space.refresh();
