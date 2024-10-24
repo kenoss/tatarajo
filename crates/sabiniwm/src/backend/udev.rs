@@ -120,7 +120,7 @@ impl UdevBackend {
         /*
          * Initialize the compositor
          */
-        let primary_gpu = if let Ok(var) = std::env::var("ANVIL_DRM_DEVICE") {
+        let primary_gpu = if let Ok(var) = std::env::var("SABINIWM_DRM_DEVICE") {
             DrmNode::from_path(var).expect("Invalid drm device path")
         } else {
             primary_gpu(session.seat())
@@ -962,13 +962,13 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 GbmBufferFlags::RENDERING | GbmBufferFlags::SCANOUT,
             );
 
-            let color_formats = if std::env::var("ANVIL_DISABLE_10BIT").is_ok() {
+            let color_formats = if std::env::var("SABINIWM_DISABLE_10BIT").is_ok() {
                 SUPPORTED_FORMATS_8BIT_ONLY
             } else {
                 SUPPORTED_FORMATS
             };
 
-            let compositor = if std::env::var("ANVIL_DISABLE_DRM_COMPOSITOR").is_ok() {
+            let compositor = if std::env::var("SABINIWM_DISABLE_DRM_COMPOSITOR").is_ok() {
                 let gbm_surface = match GbmBufferedSurface::new(
                     surface,
                     allocator,
