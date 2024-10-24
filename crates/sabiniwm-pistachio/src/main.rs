@@ -23,12 +23,29 @@ fn tracing_init() -> eyre::Result<()> {
                 offset,
                 format_description!("[hour]:[minute]:[second].[subsecond digits:3]"),
             );
-            tracing_subscriber::fmt()
+
+            let use_udev = matches!(
+                std::env::var("DISPLAY"),
+                Err(std::env::VarError::NotPresent)
+            ) && matches!(
+                std::env::var("WAYLAND_DISPLAY"),
+                Err(std::env::VarError::NotPresent)
+            );
+
+            let fmt = tracing_subscriber::fmt()
                 .with_env_filter(EnvFilter::from_default_env())
                 .with_timer(timer)
                 .with_line_number(true)
-                .with_ansi(true)
-                .init();
+                .with_ansi(true);
+
+            if use_udev {
+                let log_file =
+                    std::io::LineWriter::new(std::fs::File::create("/tmp/sabiniwm.log")?);
+
+                fmt.with_writer(std::sync::Mutex::new(log_file)).init();
+            } else {
+                fmt.init();
+            }
         }
     }
 
