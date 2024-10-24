@@ -37,7 +37,7 @@ use smithay::delegate_drm_lease;
 use smithay::desktop::space::{Space, SurfaceTree};
 use smithay::desktop::utils::OutputPresentationFeedback;
 use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
-use smithay::output::{Mode as WlMode, PhysicalProperties};
+use smithay::output::{Mode, PhysicalProperties};
 use smithay::reexports::calloop::timer::{TimeoutAction, Timer};
 use smithay::reexports::calloop::{EventLoop, LoopHandle, RegistrationToken};
 use smithay::reexports::drm::control::{connector, crtc, Device, ModeTypeFlags};
@@ -913,7 +913,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 .unwrap_or(0);
 
             let drm_mode = connector.modes()[mode_id];
-            let wl_mode = WlMode::from(drm_mode);
+            let wl_mode = Mode::from(drm_mode);
 
             let surface = match device
                 .drm
