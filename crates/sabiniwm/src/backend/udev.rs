@@ -927,11 +927,10 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             };
 
             let (phys_w, phys_h) = connector.size().unwrap_or((0, 0));
-            let size = (phys_w as i32, phys_h as i32);
             let output = smithay::output::Output::new(
                 output_name,
                 PhysicalProperties {
-                    size: size.into(),
+                    size: (phys_w as i32, phys_h as i32).into(),
                     subpixel: connector.subpixel().into(),
                     make,
                     model,
@@ -953,9 +952,10 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 device_id: node,
             });
 
-            self.inner
-                .view
-                .resize_output(size.into(), &mut self.inner.space);
+            self.inner.view.resize_output(
+                output.current_mode().unwrap().size.to_logical(1),
+                &mut self.inner.space,
+            );
 
             let allocator = GbmAllocator::new(
                 device.gbm.clone(),
