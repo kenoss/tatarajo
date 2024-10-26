@@ -1083,9 +1083,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         connector: connector::Info,
         crtc: crtc::Handle,
     ) {
-        let device = if let Some(device) = self.backend.backends.get_mut(&node) {
-            device
-        } else {
+        let Some(device) = self.backend.backends.get_mut(&node) else {
             return;
         };
 
@@ -1120,9 +1118,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
     }
 
     fn device_changed(&mut self, node: DrmNode) {
-        let device = if let Some(device) = self.backend.backends.get_mut(&node) {
-            device
-        } else {
+        let Some(device) = self.backend.backends.get_mut(&node) else {
             return;
         };
 
@@ -1144,9 +1140,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
 
     fn device_removed(&mut self, node: DrmNode) {
         let crtcs = {
-            let device = if let Some(device) = self.backend.backends.get_mut(&node) {
-                device
-            } else {
+            let Some(device) = self.backend.backends.get_mut(&node) else {
                 return;
             };
 
@@ -1189,20 +1183,14 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         crtc: crtc::Handle,
         metadata: &mut Option<DrmEventMetadata>,
     ) {
-        let device_backend = match self.backend.backends.get_mut(&dev_id) {
-            Some(backend) => backend,
-            None => {
-                error!("Trying to finish frame on non-existent backend {}", dev_id);
-                return;
-            }
+        let Some(backend) = self.backend.backends.get_mut(&dev_id) else {
+            error!("Trying to finish frame on non-existent backend {}", dev_id);
+            return;
         };
 
-        let surface = match device_backend.surfaces.get_mut(&crtc) {
-            Some(surface) => surface,
-            None => {
-                error!("Trying to finish frame on non-existent crtc {:?}", crtc);
-                return;
-            }
+        let Some(surface) = backend.surfaces.get_mut(&crtc) else {
+            error!("Trying to finish frame on non-existent crtc {:?}", crtc);
+            return;
         };
 
         let output = if let Some(output) = self.inner.space.outputs().find(|o| {
@@ -1350,18 +1338,15 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
 
     // If crtc is `Some()`, render it, else render all crtcs
     fn render(&mut self, node: DrmNode, crtc: Option<crtc::Handle>) {
-        let device_backend = match self.backend.backends.get_mut(&node) {
-            Some(backend) => backend,
-            None => {
-                error!("Trying to render on non-existent backend {}", node);
-                return;
-            }
+        let Some(backend) = self.backend.backends.get_mut(&node) else {
+            error!("Trying to render on non-existent backend {}", node);
+            return;
         };
 
         if let Some(crtc) = crtc {
             self.render_surface(node, crtc);
         } else {
-            let crtcs: Vec<_> = device_backend.surfaces.keys().copied().collect();
+            let crtcs: Vec<_> = backend.surfaces.keys().copied().collect();
             for crtc in crtcs {
                 self.render_surface(node, crtc);
             }
@@ -1369,15 +1354,11 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
     }
 
     fn render_surface(&mut self, node: DrmNode, crtc: crtc::Handle) {
-        let device = if let Some(device) = self.backend.backends.get_mut(&node) {
-            device
-        } else {
+        let Some(device) = self.backend.backends.get_mut(&node) else {
             return;
         };
 
-        let surface = if let Some(surface) = device.surfaces.get_mut(&crtc) {
-            surface
-        } else {
+        let Some(surface) = device.surfaces.get_mut(&crtc) else {
             return;
         };
 
@@ -1515,15 +1496,11 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         crtc: crtc::Handle,
         evt_handle: LoopHandle<'static, SabiniwmState>,
     ) {
-        let device = if let Some(device) = self.backend.backends.get_mut(&node) {
-            device
-        } else {
+        let Some(device) = self.backend.backends.get_mut(&node) else {
             return;
         };
 
-        let surface = if let Some(surface) = device.surfaces.get_mut(&crtc) {
-            surface
-        } else {
+        let Some(surface) = device.surfaces.get_mut(&crtc) else {
             return;
         };
 
