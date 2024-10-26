@@ -89,7 +89,7 @@ type UdevRenderer<'a> = MultiRenderer<
 
 #[derive(Debug, PartialEq)]
 struct UdevOutputId {
-    device_id: DrmNode,
+    primary_node: DrmNode,
     crtc: crtc::Handle,
 }
 
@@ -686,7 +686,7 @@ struct DrmSurfaceDmabufFeedback {
 
 struct SurfaceData {
     dh: DisplayHandle,
-    device_id: DrmNode,
+    primary_node: DrmNode,
     render_node: DrmNode,
     global: Option<GlobalId>,
     compositor: SurfaceComposition,
@@ -991,8 +991,8 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 self.inner.space.map_output(&output, position);
 
                 output.user_data().insert_if_missing(|| UdevOutputId {
+                    primary_node: node,
                     crtc,
-                    device_id: node,
                 });
 
                 self.inner.view.resize_output(
@@ -1071,7 +1071,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
 
                 let surface = SurfaceData {
                     dh: self.inner.display_handle.clone(),
-                    device_id: node,
+                    primary_node: node,
                     render_node: device.render_node,
                     global: Some(global),
                     compositor,
@@ -1125,7 +1125,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 .find(|o| {
                     o.user_data()
                         .get::<UdevOutputId>()
-                        .map(|id| id.device_id == node && id.crtc == crtc)
+                        .map(|id| id.primary_node == node && id.crtc == crtc)
                         .unwrap_or(false)
                 })
                 .cloned();
@@ -1221,7 +1221,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         let output = if let Some(output) = self.inner.space.outputs().find(|o| {
             o.user_data().get::<UdevOutputId>()
                 == Some(&UdevOutputId {
-                    device_id: surface.device_id,
+                    primary_node: surface.primary_node,
                     crtc,
                 })
         }) {
@@ -1433,7 +1433,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         let output = if let Some(output) = self.inner.space.outputs().find(|o| {
             o.user_data().get::<UdevOutputId>()
                 == Some(&UdevOutputId {
-                    device_id: surface.device_id,
+                    primary_node: surface.primary_node,
                     crtc,
                 })
         }) {
