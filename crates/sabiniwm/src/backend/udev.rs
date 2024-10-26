@@ -505,6 +505,13 @@ impl DrmLeaseHandler for SabiniwmState {
 
 delegate_drm_lease!(SabiniwmState);
 
+#[derive(Debug, Default, serde::Deserialize)]
+pub(crate) enum SurfaceCompositionPolicy {
+    UseGbmBufferedSurface,
+    #[default]
+    UseDrmCompositor,
+}
+
 type RenderSurface =
     GbmBufferedSurface<GbmAllocator<DrmDeviceFd>, Option<OutputPresentationFeedback>>;
 
@@ -990,69 +997,72 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 SUPPORTED_FORMATS
             };
 
-            let compositor = if self.inner.envvar.sabiniwm.disable_drm_compositor {
-                let gbm_surface = match GbmBufferedSurface::new(
-                    surface,
-                    allocator,
-                    color_formats,
-                    render_formats,
-                ) {
-                    Ok(renderer) => renderer,
-                    Err(err) => {
-                        warn!("Failed to create rendering surface: {}", err);
-                        return;
+            let compositor = match &self.inner.envvar.sabiniwm.surface_composition_policy {
+                SurfaceCompositionPolicy::UseGbmBufferedSurface => {
+                    let gbm_surface = match GbmBufferedSurface::new(
+                        surface,
+                        allocator,
+                        color_formats,
+                        render_formats,
+                    ) {
+                        Ok(renderer) => renderer,
+                        Err(err) => {
+                            warn!("Failed to create rendering surface: {}", err);
+                            return;
+                        }
+                    };
+                    SurfaceComposition::Surface {
+                        surface: gbm_surface,
+                        damage_tracker: OutputDamageTracker::from_output(&output),
+                        debug_flags: self.backend.debug_flags,
                     }
-                };
-                SurfaceComposition::Surface {
-                    surface: gbm_surface,
-                    damage_tracker: OutputDamageTracker::from_output(&output),
-                    debug_flags: self.backend.debug_flags,
                 }
-            } else {
-                let driver = match device.drm.get_driver() {
-                    Ok(driver) => driver,
-                    Err(err) => {
-                        warn!("Failed to query drm driver: {}", err);
-                        return;
-                    }
-                };
+                SurfaceCompositionPolicy::UseDrmCompositor => {
+                    let driver = match device.drm.get_driver() {
+                        Ok(driver) => driver,
+                        Err(err) => {
+                            warn!("Failed to query drm driver: {}", err);
+                            return;
+                        }
+                    };
 
-                let mut planes = surface.planes().clone();
+                    let mut planes = surface.planes().clone();
 
-                // Using an overlay plane on a nvidia card breaks
-                if driver
-                    .name()
-                    .to_string_lossy()
-                    .to_lowercase()
-                    .contains("nvidia")
-                    || driver
-                        .description()
+                    // Using an overlay plane on a nvidia card breaks
+                    if driver
+                        .name()
                         .to_string_lossy()
                         .to_lowercase()
                         .contains("nvidia")
-                {
-                    planes.overlay = vec![];
-                }
-
-                let mut compositor = match DrmCompositor::new(
-                    &output,
-                    surface,
-                    Some(planes),
-                    allocator,
-                    device.gbm.clone(),
-                    color_formats,
-                    render_formats,
-                    device.drm.cursor_size(),
-                    Some(device.gbm.clone()),
-                ) {
-                    Ok(compositor) => compositor,
-                    Err(err) => {
-                        warn!("Failed to create drm compositor: {}", err);
-                        return;
+                        || driver
+                            .description()
+                            .to_string_lossy()
+                            .to_lowercase()
+                            .contains("nvidia")
+                    {
+                        planes.overlay = vec![];
                     }
-                };
-                compositor.set_debug_flags(self.backend.debug_flags);
-                SurfaceComposition::Compositor(compositor)
+
+                    let mut compositor = match DrmCompositor::new(
+                        &output,
+                        surface,
+                        Some(planes),
+                        allocator,
+                        device.gbm.clone(),
+                        color_formats,
+                        render_formats,
+                        device.drm.cursor_size(),
+                        Some(device.gbm.clone()),
+                    ) {
+                        Ok(compositor) => compositor,
+                        Err(err) => {
+                            warn!("Failed to create drm compositor: {}", err);
+                            return;
+                        }
+                    };
+                    compositor.set_debug_flags(self.backend.debug_flags);
+                    SurfaceComposition::Compositor(compositor)
+                }
             };
 
             let dmabuf_feedback = get_surface_dmabuf_feedback(

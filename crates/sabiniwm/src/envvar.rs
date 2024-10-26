@@ -1,3 +1,4 @@
+use crate::backend::udev::SurfaceCompositionPolicy;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -23,8 +24,8 @@ pub(crate) struct EnvVarSabiniwm {
     pub drm_device_node: Option<PathBuf>,
     #[serde(default = "default_bool::<false>")]
     pub disable_10bit: bool,
-    #[serde(default = "default_bool::<false>")]
-    pub disable_drm_compositor: bool,
+    #[serde(default = "Default::default")]
+    pub surface_composition_policy: SurfaceCompositionPolicy,
 }
 
 // https://github.com/serde-rs/serde/issues/1030
