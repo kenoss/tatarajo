@@ -6,6 +6,7 @@ use crate::state::{
     post_repaint, take_presentation_feedback, InnerState, SabiniwmState,
     SabiniwmStateWithConcreteBackend, SurfaceDmabufFeedback,
 };
+use eyre::WrapErr;
 use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::allocator::gbm::{GbmAllocator, GbmBufferFlags, GbmDevice};
 use smithay::backend::allocator::Fourcc;
@@ -32,7 +33,7 @@ use smithay::backend::renderer::{
 };
 use smithay::backend::session::libseat::{self, LibSeatSession};
 use smithay::backend::session::{Event as SessionEvent, Session};
-use smithay::backend::udev::{all_gpus, primary_gpu, UdevEvent};
+use smithay::backend::udev::UdevEvent;
 use smithay::backend::SwapBuffersError;
 use smithay::delegate_drm_lease;
 use smithay::desktop::space::{Space, SurfaceTree};
@@ -124,26 +125,40 @@ impl UdevBackend {
         /*
          * Initialize the compositor
          */
-        let selected_render_node = if let Some(path) = &envvar.sabiniwm.drm_device {
-            DrmNode::from_path(path).expect("Invalid drm device path")
+        let device_node_path = if let Some(path) = &envvar.sabiniwm.drm_device_node {
+            path.clone()
         } else {
-            primary_gpu(session.seat())
-                .unwrap()
-                .and_then(|x| {
-                    DrmNode::from_path(x)
-                        .ok()?
-                        .node_with_type(NodeType::Render)?
-                        .ok()
-                })
-                .unwrap_or_else(|| {
-                    all_gpus(session.seat())
-                        .unwrap()
-                        .into_iter()
-                        .find_map(|x| DrmNode::from_path(x).ok())
-                        .expect("No GPU!")
-                })
+            smithay::backend::udev::primary_gpu(session.seat())
+                .wrap_err("get primary GPU")?
+                .ok_or_else(|| eyre::eyre!("GPU not found"))?
         };
-        info!("Using {} as render node.", selected_render_node);
+        let device_node = DrmNode::from_path(device_node_path.clone()).wrap_err_with(|| {
+            format!(
+                "open DRM device node: path = {}",
+                device_node_path.display()
+            )
+        })?;
+        let selected_render_node = if device_node.ty() == NodeType::Render {
+            device_node
+        } else {
+            device_node
+                .node_with_type(NodeType::Render)
+                .ok_or_else(|| {
+                    eyre::eyre!(
+                        "no corresponding render node for: path = {}",
+                        device_node.dev_path().unwrap().display()
+                    )
+                })?
+                .wrap_err_with(|| {
+                    format!(
+                        "get render node for: path = {}",
+                        device_node.dev_path().unwrap().display()
+                    )
+                })?
+        };
+        if let Some(path) = selected_render_node.dev_path() {
+            info!("Using {} as render node.", path.display());
+        }
 
         let gpus =
             GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
@@ -331,7 +346,10 @@ impl BackendI for UdevBackend {
         );
 
         #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
-        let mut renderer = self.gpus.single_renderer(&self.selected_render_node).unwrap();
+        let mut renderer = self
+            .gpus
+            .single_renderer(&self.selected_render_node)
+            .unwrap();
 
         #[cfg(feature = "egl")]
         {

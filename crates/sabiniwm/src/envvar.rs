@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 #[derive(Debug)]
 pub(crate) struct EnvVar {
     /// Environment variables Without prefix.
@@ -14,7 +16,11 @@ pub(crate) struct EnvVarGeneric {
 
 #[derive(Debug, serde::Deserialize)]
 pub(crate) struct EnvVarSabiniwm {
-    pub drm_device: Option<String>,
+    /// Prevent auto detection and use designated DRM device node.
+    ///
+    /// Both primary node (e.g. /dev/dri/card0) and render node (e.g. /dev/dri/renderD128) are
+    /// available. Sabiniwm infers corresponding primary/render nodes.
+    pub drm_device_node: Option<PathBuf>,
     #[serde(default = "default_bool::<false>")]
     pub disable_10bit: bool,
     #[serde(default = "default_bool::<false>")]
