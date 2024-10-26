@@ -37,9 +37,10 @@ features = [
 rstest = "0.18.2"
 
 [features]
-default = ["egl", "winit", "udev", "xwayland"]
+default = ["egl", "udev_deps", "winit", "xwayland"]
 egl = ["smithay/use_system_lib", "smithay/backend_egl"]
-udev = [
+# Only enables additional feature flags and doesn't affect to code.
+udev_deps = [
   "smithay-drm-extras",
   "smithay/backend_libinput",
   "smithay/backend_udev",

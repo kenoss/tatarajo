@@ -1,10 +1,4 @@
 #![warn(rust_2018_idioms)]
-// If no backend is enabled, a large portion of the codebase is unused.
-// So silence this useless warning for the CI.
-#![cfg_attr(
-    not(any(feature = "winit", feature = "udev")),
-    allow(dead_code, unused_imports)
-)]
 
 #[allow(unused_imports)]
 #[macro_use]
