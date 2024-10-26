@@ -395,22 +395,35 @@ impl BackendI for UdevBackend {
             .loop_handle
             .insert_source(udev_backend, move |event, _, state| match event {
                 UdevEvent::Added { device_id, path } => {
-                    if let Err(err) = DrmNode::from_dev_id(device_id)
-                        .map_err(DeviceAddError::DrmNode)
-                        .and_then(|node| state.as_udev_mut().device_added(node, &path))
-                    {
-                        error!("Skipping device {device_id}: {err}");
+                    let mut aux = || {
+                        let node =
+                            DrmNode::from_dev_id(device_id).map_err(DeviceAddError::DrmNode)?;
+                        assert_eq!(node.ty(), NodeType::Primary);
+
+                        state.as_udev_mut().device_added(node, &path)
+                    };
+                    match aux() {
+                        Ok(()) => {}
+                        Err(e) => {
+                            error!("Skipping to add device: device_id = {device_id}, error = {e}");
+                        }
                     }
                 }
                 UdevEvent::Changed { device_id } => {
-                    if let Ok(node) = DrmNode::from_dev_id(device_id) {
-                        state.as_udev_mut().device_changed(node)
-                    }
+                    let Ok(node) = DrmNode::from_dev_id(device_id) else {
+                        return;
+                    };
+                    assert_eq!(node.ty(), NodeType::Primary);
+
+                    state.as_udev_mut().device_changed(node);
                 }
                 UdevEvent::Removed { device_id } => {
-                    if let Ok(node) = DrmNode::from_dev_id(device_id) {
-                        state.as_udev_mut().device_removed(node)
-                    }
+                    let Ok(node) = DrmNode::from_dev_id(device_id) else {
+                        return;
+                    };
+                    assert_eq!(node.ty(), NodeType::Primary);
+
+                    state.as_udev_mut().device_removed(node);
                 }
             })
             .unwrap();
@@ -796,6 +809,8 @@ impl SabiniwmState {
 
 impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
     fn device_added(&mut self, node: DrmNode, path: &Path) -> Result<(), DeviceAddError> {
+        assert_eq!(node.ty(), NodeType::Primary);
+
         // Try to open the device
         let fd = self
             .backend
@@ -873,6 +888,8 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         connector: connector::Info,
         crtc: crtc::Handle,
     ) {
+        assert_eq!(node.ty(), NodeType::Primary);
+
         let mut aux = || -> eyre::Result<()> {
             let device = self.backend.backends.get_mut(&node).ok_or_else(|| {
                 eyre::eyre!(
@@ -1083,6 +1100,8 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         connector: connector::Info,
         crtc: crtc::Handle,
     ) {
+        assert_eq!(node.ty(), NodeType::Primary);
+
         let Some(device) = self.backend.backends.get_mut(&node) else {
             return;
         };
@@ -1118,6 +1137,8 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
     }
 
     fn device_changed(&mut self, node: DrmNode) {
+        assert_eq!(node.ty(), NodeType::Primary);
+
         let Some(device) = self.backend.backends.get_mut(&node) else {
             return;
         };
@@ -1139,6 +1160,8 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
     }
 
     fn device_removed(&mut self, node: DrmNode) {
+        assert_eq!(node.ty(), NodeType::Primary);
+
         let crtcs = {
             let Some(device) = self.backend.backends.get_mut(&node) else {
                 return;
@@ -1183,6 +1206,8 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         crtc: crtc::Handle,
         metadata: &mut Option<DrmEventMetadata>,
     ) {
+        assert_eq!(node.ty(), NodeType::Primary);
+
         let Some(backend) = self.backend.backends.get_mut(&node) else {
             error!("Trying to finish frame on non-existent backend {}", node);
             return;
