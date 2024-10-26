@@ -146,19 +146,20 @@ impl UdevBackend {
                 .ok_or_else(|| {
                     eyre::eyre!(
                         "no corresponding render node for: path = {}",
-                        device_node.dev_path().unwrap().display()
+                        dev_path_or_na(&device_node)
                     )
                 })?
                 .wrap_err_with(|| {
                     format!(
                         "get render node for: path = {}",
-                        device_node.dev_path().unwrap().display()
+                        dev_path_or_na(&device_node)
                     )
                 })?
         };
-        if let Some(path) = selected_render_node.dev_path() {
-            info!("Using {} as render node.", path.display());
-        }
+        info!(
+            "Using {} as render node.",
+            dev_path_or_na(&selected_render_node)
+        );
 
         let gpus =
             GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
