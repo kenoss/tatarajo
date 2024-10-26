@@ -1179,12 +1179,12 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
 
     fn frame_finish(
         &mut self,
-        dev_id: DrmNode,
+        node: DrmNode,
         crtc: crtc::Handle,
         metadata: &mut Option<DrmEventMetadata>,
     ) {
-        let Some(backend) = self.backend.backends.get_mut(&dev_id) else {
-            error!("Trying to finish frame on non-existent backend {}", dev_id);
+        let Some(backend) = self.backend.backends.get_mut(&node) else {
+            error!("Trying to finish frame on non-existent backend {}", node);
             return;
         };
 
@@ -1329,7 +1329,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             self.inner
                 .loop_handle
                 .insert_source(timer, move |_, _, state| {
-                    state.as_udev_mut().render(dev_id, Some(crtc));
+                    state.as_udev_mut().render(node, Some(crtc));
                     TimeoutAction::Drop
                 })
                 .expect("failed to schedule frame timer");
