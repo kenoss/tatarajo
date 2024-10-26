@@ -95,7 +95,7 @@ struct UdevOutputId {
 pub(crate) struct UdevBackend {
     session: LibSeatSession,
     dmabuf_state: Option<(DmabufState, DmabufGlobal)>,
-    primary_gpu: DrmNode,
+    selected_render_node: DrmNode,
     gpus: GpuManager<GbmGlesBackend<GlesRenderer, DrmDeviceFd>>,
     backends: HashMap<DrmNode, BackendData>,
     pointer_images: Vec<(xcursor::parser::Image, MemoryRenderBuffer)>,
@@ -124,7 +124,7 @@ impl UdevBackend {
         /*
          * Initialize the compositor
          */
-        let primary_gpu = if let Some(path) = &envvar.sabiniwm.drm_device {
+        let selected_render_node = if let Some(path) = &envvar.sabiniwm.drm_device {
             DrmNode::from_path(path).expect("Invalid drm device path")
         } else {
             primary_gpu(session.seat())
@@ -143,7 +143,7 @@ impl UdevBackend {
                         .expect("No GPU!")
                 })
         };
-        info!("Using {} as primary gpu.", primary_gpu);
+        info!("Using {} as render node.", selected_render_node);
 
         let gpus =
             GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
@@ -244,7 +244,7 @@ impl UdevBackend {
         Ok(UdevBackend {
             dmabuf_state: None,
             session,
-            primary_gpu,
+            selected_render_node,
             gpus,
             backends: HashMap::new(),
             pointer_image: crate::cursor::Cursor::load(),
@@ -285,11 +285,11 @@ impl crate::backend::DmabufHandlerDelegate for UdevBackend {
     ) -> bool {
         let ret = self
             .gpus
-            .single_renderer(&self.primary_gpu)
+            .single_renderer(&self.selected_render_node)
             .and_then(|mut renderer| renderer.import_dmabuf(&dmabuf, None))
             .is_ok();
         if ret {
-            dmabuf.set_node(self.primary_gpu);
+            dmabuf.set_node(self.selected_render_node);
         }
         ret
     }
@@ -325,18 +325,18 @@ impl BackendI for UdevBackend {
 
         inner.shm_state.update_formats(
             self.gpus
-                .single_renderer(&self.primary_gpu)
+                .single_renderer(&self.selected_render_node)
                 .unwrap()
                 .shm_formats(),
         );
 
         #[cfg_attr(not(feature = "egl"), allow(unused_mut))]
-        let mut renderer = self.gpus.single_renderer(&self.primary_gpu).unwrap();
+        let mut renderer = self.gpus.single_renderer(&self.selected_render_node).unwrap();
 
         #[cfg(feature = "egl")]
         {
             info!(
-                ?self.primary_gpu,
+                ?self.selected_render_node,
                 "Trying to initialize EGL Hardware Acceleration",
             );
             match renderer.bind_wl_display(&inner.display_handle) {
@@ -345,10 +345,10 @@ impl BackendI for UdevBackend {
             }
         }
 
-        // init dmabuf support with format list from our primary gpu
+        // init dmabuf support with format list from selected render node
         let dmabuf_formats = renderer.dmabuf_formats().collect::<Vec<_>>();
         let default_feedback =
-            DmabufFeedbackBuilder::new(self.primary_gpu.dev_id(), dmabuf_formats)
+            DmabufFeedbackBuilder::new(self.selected_render_node.dev_id(), dmabuf_formats)
                 .build()
                 .unwrap();
         let mut dmabuf_state = DmabufState::new();
@@ -364,7 +364,7 @@ impl BackendI for UdevBackend {
             for surface_data in backend.surfaces.values_mut() {
                 surface_data.dmabuf_feedback = surface_data.dmabuf_feedback.take().or_else(|| {
                     get_surface_dmabuf_feedback(
-                        self.primary_gpu,
+                        self.selected_render_node,
                         surface_data.render_node,
                         gpus,
                         &surface_data.compositor,
@@ -411,7 +411,7 @@ impl BackendI for UdevBackend {
     }
 
     fn early_import(&mut self, surface: &wayland_server::protocol::wl_surface::WlSurface) {
-        if let Err(err) = self.gpus.early_import(self.primary_gpu, surface) {
+        if let Err(err) = self.gpus.early_import(self.selected_render_node, surface) {
             warn!("Early buffer import failed: {}", err);
         }
     }
@@ -690,13 +690,13 @@ enum DeviceAddError {
 }
 
 fn get_surface_dmabuf_feedback(
-    primary_gpu: DrmNode,
+    selected_render_node: DrmNode,
     render_node: DrmNode,
     gpus: &mut GpuManager<GbmGlesBackend<GlesRenderer, DrmDeviceFd>>,
     composition: &SurfaceComposition,
 ) -> Option<DrmSurfaceDmabufFeedback> {
     let primary_formats = gpus
-        .single_renderer(&primary_gpu)
+        .single_renderer(&selected_render_node)
         .ok()?
         .dmabuf_formats()
         .collect::<HashSet<_>>();
@@ -729,7 +729,7 @@ fn get_surface_dmabuf_feedback(
         .copied()
         .collect::<Vec<_>>();
 
-    let builder = DmabufFeedbackBuilder::new(primary_gpu.dev_id(), primary_formats);
+    let builder = DmabufFeedbackBuilder::new(selected_render_node.dev_id(), primary_formats);
     let render_feedback = builder
         .clone()
         .add_preference_tranche(render_node.dev_id(), None, render_formats.clone())
@@ -1038,7 +1038,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             };
 
             let dmabuf_feedback = get_surface_dmabuf_feedback(
-                self.backend.primary_gpu,
+                self.backend.selected_render_node,
                 device.render_node,
                 &mut self.backend.gpus,
                 &compositor,
@@ -1305,7 +1305,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             let repaint_delay =
                 Duration::from_millis(((1_000_000f32 / output_refresh as f32) * 0.6f32) as u64);
 
-            let timer = if self.backend.primary_gpu != surface.render_node {
+            let timer = if self.backend.selected_render_node != surface.render_node {
                 // However, if we need to do a copy, that might not be enough.
                 // (And without actual comparision to previous frames we cannot really know.)
                 // So lets ignore that in those cases to avoid thrashing performance.
@@ -1372,14 +1372,14 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             .get_image(1 /*scale*/, self.inner.clock.now().into());
 
         let render_node = surface.render_node;
-        let primary_gpu = self.backend.primary_gpu;
-        let mut renderer = if primary_gpu == render_node {
+        let selected_render_node = self.backend.selected_render_node;
+        let mut renderer = if selected_render_node == render_node {
             self.backend.gpus.single_renderer(&render_node)
         } else {
             let format = surface.compositor.format();
             self.backend
                 .gpus
-                .renderer(&primary_gpu, &render_node, format)
+                .renderer(&selected_render_node, &render_node, format)
         }
         .unwrap();
 
