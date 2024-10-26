@@ -873,217 +873,207 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         connector: connector::Info,
         crtc: crtc::Handle,
     ) {
-        let device = if let Some(device) = self.backend.backends.get_mut(&node) {
-            device
-        } else {
-            return;
-        };
+        let mut aux = || -> eyre::Result<()> {
+            let device = self.backend.backends.get_mut(&node).ok_or_else(|| {
+                eyre::eyre!(
+                    "BackendData not found for: path = {}",
+                    dev_path_or_na(&node)
+                )
+            })?;
 
-        let mut renderer = self
-            .backend
-            .gpus
-            .single_renderer(&device.render_node)
-            .unwrap();
-        let render_formats = renderer
-            .as_mut()
-            .egl_context()
-            .dmabuf_render_formats()
-            .clone();
+            let mut renderer = self
+                .backend
+                .gpus
+                .single_renderer(&device.render_node)
+                .unwrap();
+            let render_formats = renderer
+                .as_mut()
+                .egl_context()
+                .dmabuf_render_formats()
+                .clone();
 
-        let output_name = format!(
-            "{}-{}",
-            connector.interface().as_str(),
-            connector.interface_id()
-        );
-        info!(?crtc, "Trying to setup connector {}", output_name,);
-
-        let non_desktop = device
-            .drm
-            .get_properties(connector.handle())
-            .ok()
-            .and_then(|props| {
-                let (info, value) = props
-                    .into_iter()
-                    .filter_map(|(handle, value)| {
-                        let info = device.drm.get_property(handle).ok()?;
-
-                        Some((info, value))
-                    })
-                    .find(|(info, _)| info.name().to_str() == Ok("non-desktop"))?;
-
-                info.value_type().convert_value(value).as_boolean()
-            })
-            .unwrap_or(false);
-
-        let (make, model) = EdidInfo::for_connector(&device.drm, connector.handle())
-            .map(|info| (info.manufacturer, info.model))
-            .unwrap_or_else(|| ("Unknown".into(), "Unknown".into()));
-
-        if non_desktop {
-            info!(
-                "Connector {} is non-desktop, setting up for leasing",
-                output_name
+            let output_name = format!(
+                "{}-{}",
+                connector.interface().as_str(),
+                connector.interface_id()
             );
-            device
-                .non_desktop_connectors
-                .push((connector.handle(), crtc));
-            if let Some(lease_state) = device.leasing_global.as_mut() {
-                lease_state.add_connector::<SabiniwmState>(
-                    connector.handle(),
-                    output_name,
-                    format!("{} {}", make, model),
-                );
-            }
-        } else {
-            let mode_id = connector
-                .modes()
-                .iter()
-                .position(|mode| mode.mode_type().contains(ModeTypeFlags::PREFERRED))
-                .unwrap_or(0);
+            info!(?crtc, "Trying to setup connector {}", output_name);
 
-            let drm_mode = connector.modes()[mode_id];
-            let wl_mode = Mode::from(drm_mode);
-
-            let surface = match device
+            let non_desktop = device
                 .drm
-                .create_surface(crtc, drm_mode, &[connector.handle()])
-            {
-                Ok(surface) => surface,
-                Err(err) => {
-                    warn!("Failed to create drm surface: {}", err);
-                    return;
+                .get_properties(connector.handle())
+                .ok()
+                .and_then(|props| {
+                    let (info, value) = props
+                        .into_iter()
+                        .filter_map(|(handle, value)| {
+                            let info = device.drm.get_property(handle).ok()?;
+
+                            Some((info, value))
+                        })
+                        .find(|(info, _)| info.name().to_str() == Ok("non-desktop"))?;
+
+                    info.value_type().convert_value(value).as_boolean()
+                })
+                .unwrap_or(false);
+
+            let (make, model) = EdidInfo::for_connector(&device.drm, connector.handle())
+                .map(|info| (info.manufacturer, info.model))
+                .unwrap_or_else(|| ("Unknown".into(), "Unknown".into()));
+
+            if non_desktop {
+                info!(
+                    "Connector {} is non-desktop, setting up for leasing",
+                    output_name
+                );
+                device
+                    .non_desktop_connectors
+                    .push((connector.handle(), crtc));
+                if let Some(lease_state) = device.leasing_global.as_mut() {
+                    lease_state.add_connector::<SabiniwmState>(
+                        connector.handle(),
+                        output_name,
+                        format!("{} {}", make, model),
+                    );
                 }
-            };
-
-            let (phys_w, phys_h) = connector.size().unwrap_or((0, 0));
-            let output = smithay::output::Output::new(
-                output_name,
-                PhysicalProperties {
-                    size: (phys_w as i32, phys_h as i32).into(),
-                    subpixel: connector.subpixel().into(),
-                    make,
-                    model,
-                },
-            );
-            let global = output.create_global::<SabiniwmState>(&self.inner.display_handle.clone());
-
-            let x = self.inner.space.outputs().fold(0, |acc, o| {
-                acc + self.inner.space.output_geometry(o).unwrap().size.w
-            });
-            let position = (x, 0).into();
-
-            output.set_preferred(wl_mode);
-            output.change_current_state(Some(wl_mode), None, None, Some(position));
-            self.inner.space.map_output(&output, position);
-
-            output.user_data().insert_if_missing(|| UdevOutputId {
-                crtc,
-                device_id: node,
-            });
-
-            self.inner.view.resize_output(
-                output.current_mode().unwrap().size.to_logical(1),
-                &mut self.inner.space,
-            );
-
-            let allocator = GbmAllocator::new(
-                device.gbm.clone(),
-                GbmBufferFlags::RENDERING | GbmBufferFlags::SCANOUT,
-            );
-
-            let color_formats = if self.inner.envvar.sabiniwm.disable_10bit {
-                SUPPORTED_FORMATS_8BIT_ONLY
             } else {
-                SUPPORTED_FORMATS
-            };
+                let mode_id = connector
+                    .modes()
+                    .iter()
+                    .position(|mode| mode.mode_type().contains(ModeTypeFlags::PREFERRED))
+                    .unwrap_or(0);
 
-            let compositor = match &self.inner.envvar.sabiniwm.surface_composition_policy {
-                SurfaceCompositionPolicy::UseGbmBufferedSurface => {
-                    let gbm_surface = match GbmBufferedSurface::new(
-                        surface,
-                        allocator,
-                        color_formats,
-                        render_formats,
-                    ) {
-                        Ok(renderer) => renderer,
-                        Err(err) => {
-                            warn!("Failed to create rendering surface: {}", err);
-                            return;
+                let drm_mode = connector.modes()[mode_id];
+                let wl_mode = Mode::from(drm_mode);
+
+                let surface = device
+                    .drm
+                    .create_surface(crtc, drm_mode, &[connector.handle()])
+                    .wrap_err("create drm surface")?;
+
+                let (phys_w, phys_h) = connector.size().unwrap_or((0, 0));
+                let output = smithay::output::Output::new(
+                    output_name,
+                    PhysicalProperties {
+                        size: (phys_w as i32, phys_h as i32).into(),
+                        subpixel: connector.subpixel().into(),
+                        make,
+                        model,
+                    },
+                );
+                let global =
+                    output.create_global::<SabiniwmState>(&self.inner.display_handle.clone());
+
+                let x = self.inner.space.outputs().fold(0, |acc, o| {
+                    acc + self.inner.space.output_geometry(o).unwrap().size.w
+                });
+                let position = (x, 0).into();
+
+                output.set_preferred(wl_mode);
+                output.change_current_state(Some(wl_mode), None, None, Some(position));
+                self.inner.space.map_output(&output, position);
+
+                output.user_data().insert_if_missing(|| UdevOutputId {
+                    crtc,
+                    device_id: node,
+                });
+
+                self.inner.view.resize_output(
+                    output.current_mode().unwrap().size.to_logical(1),
+                    &mut self.inner.space,
+                );
+
+                let allocator = GbmAllocator::new(
+                    device.gbm.clone(),
+                    GbmBufferFlags::RENDERING | GbmBufferFlags::SCANOUT,
+                );
+
+                let color_formats = if self.inner.envvar.sabiniwm.disable_10bit {
+                    SUPPORTED_FORMATS_8BIT_ONLY
+                } else {
+                    SUPPORTED_FORMATS
+                };
+
+                let compositor = match &self.inner.envvar.sabiniwm.surface_composition_policy {
+                    SurfaceCompositionPolicy::UseGbmBufferedSurface => {
+                        let gbm_surface = GbmBufferedSurface::new(
+                            surface,
+                            allocator,
+                            color_formats,
+                            render_formats,
+                        )
+                        .wrap_err("create rendering surface")?;
+                        SurfaceComposition::Surface {
+                            surface: gbm_surface,
+                            damage_tracker: OutputDamageTracker::from_output(&output),
+                            debug_flags: self.backend.debug_flags,
                         }
-                    };
-                    SurfaceComposition::Surface {
-                        surface: gbm_surface,
-                        damage_tracker: OutputDamageTracker::from_output(&output),
-                        debug_flags: self.backend.debug_flags,
                     }
-                }
-                SurfaceCompositionPolicy::UseDrmCompositor => {
-                    let driver = match device.drm.get_driver() {
-                        Ok(driver) => driver,
-                        Err(err) => {
-                            warn!("Failed to query drm driver: {}", err);
-                            return;
-                        }
-                    };
+                    SurfaceCompositionPolicy::UseDrmCompositor => {
+                        let driver = device.drm.get_driver().wrap_err("query drm driver")?;
+                        let mut planes = surface.planes().clone();
 
-                    let mut planes = surface.planes().clone();
-
-                    // Using an overlay plane on a nvidia card breaks
-                    if driver
-                        .name()
-                        .to_string_lossy()
-                        .to_lowercase()
-                        .contains("nvidia")
-                        || driver
-                            .description()
+                        // Using an overlay plane on a nvidia card breaks
+                        if driver
+                            .name()
                             .to_string_lossy()
                             .to_lowercase()
                             .contains("nvidia")
-                    {
-                        planes.overlay = vec![];
-                    }
-
-                    let mut compositor = match DrmCompositor::new(
-                        &output,
-                        surface,
-                        Some(planes),
-                        allocator,
-                        device.gbm.clone(),
-                        color_formats,
-                        render_formats,
-                        device.drm.cursor_size(),
-                        Some(device.gbm.clone()),
-                    ) {
-                        Ok(compositor) => compositor,
-                        Err(err) => {
-                            warn!("Failed to create drm compositor: {}", err);
-                            return;
+                            || driver
+                                .description()
+                                .to_string_lossy()
+                                .to_lowercase()
+                                .contains("nvidia")
+                        {
+                            planes.overlay = vec![];
                         }
-                    };
-                    compositor.set_debug_flags(self.backend.debug_flags);
-                    SurfaceComposition::Compositor(compositor)
-                }
-            };
 
-            let dmabuf_feedback = get_surface_dmabuf_feedback(
-                self.backend.selected_render_node,
-                device.render_node,
-                &mut self.backend.gpus,
-                &compositor,
-            );
+                        let mut compositor = DrmCompositor::new(
+                            &output,
+                            surface,
+                            Some(planes),
+                            allocator,
+                            device.gbm.clone(),
+                            color_formats,
+                            render_formats,
+                            device.drm.cursor_size(),
+                            Some(device.gbm.clone()),
+                        )
+                        .wrap_err("DrmCompositor::new()")?;
+                        compositor.set_debug_flags(self.backend.debug_flags);
+                        SurfaceComposition::Compositor(compositor)
+                    }
+                };
 
-            let surface = SurfaceData {
-                dh: self.inner.display_handle.clone(),
-                device_id: node,
-                render_node: device.render_node,
-                global: Some(global),
-                compositor,
-                dmabuf_feedback,
-            };
+                let dmabuf_feedback = get_surface_dmabuf_feedback(
+                    self.backend.selected_render_node,
+                    device.render_node,
+                    &mut self.backend.gpus,
+                    &compositor,
+                );
 
-            device.surfaces.insert(crtc, surface);
+                let surface = SurfaceData {
+                    dh: self.inner.display_handle.clone(),
+                    device_id: node,
+                    render_node: device.render_node,
+                    global: Some(global),
+                    compositor,
+                    dmabuf_feedback,
+                };
 
-            self.schedule_initial_render(node, crtc, self.inner.loop_handle.clone());
+                device.surfaces.insert(crtc, surface);
+
+                self.schedule_initial_render(node, crtc, self.inner.loop_handle.clone());
+            }
+
+            Ok(())
+        };
+
+        match aux() {
+            Ok(()) => {}
+            Err(e) => {
+                error!("{:?}", e);
+            }
         }
     }
 
@@ -1679,4 +1669,12 @@ fn initial_render(
     surface.compositor.reset_buffers();
 
     Ok(())
+}
+
+/// Gets path of DRM node. Returns "N/A" if it's unavailable.
+fn dev_path_or_na(node: &DrmNode) -> String {
+    match node.dev_path() {
+        Some(path) => format!("{}", path.display()),
+        None => "N/A".to_string(),
+    }
 }
