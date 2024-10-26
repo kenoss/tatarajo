@@ -2,7 +2,7 @@ use crate::backend::BackendI;
 use crate::pointer::PointerElement;
 use crate::render::{render_output, CustomRenderElement};
 use crate::state::{post_repaint, take_presentation_feedback, InnerState, SabiniwmState};
-use eyre::Context;
+use eyre::WrapErr;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
 use smithay::backend::renderer::element::AsRenderElements;
@@ -50,7 +50,7 @@ impl WinitBackend {
     pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> eyre::Result<Self> {
         let (backend, winit_event_loop) = winit::init::<GlesRenderer>()
             .map_err(|e| eyre::eyre!("{}", e))
-            .context("initializing winit backend")?;
+            .wrap_err("initializing winit backend")?;
 
         loop_handle
             .insert_source(winit_event_loop, move |event, _, state| match event {
@@ -78,7 +78,7 @@ impl WinitBackend {
                 WinitEvent::Focus(_) | WinitEvent::Redraw => {}
             })
             .map_err(|e| eyre::eyre!("{}", e))
-            .context("inserting `WinitEventLoop` to `EventLoop`")?;
+            .wrap_err("inserting `WinitEventLoop` to `EventLoop`")?;
 
         let size = backend.window_size();
         let mode = Mode {

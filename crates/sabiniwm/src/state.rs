@@ -8,7 +8,7 @@ use crate::input_event::FocusUpdateDecider;
 use crate::view::stackset::WorkspaceTag;
 use crate::view::view::View;
 use crate::view::window::Window;
-use eyre::Context;
+use eyre::WrapErr;
 use smithay::backend::renderer::element::utils::select_dmabuf_feedback;
 use smithay::backend::renderer::element::{
     default_primary_scanout_output_compare, RenderElementStates,
@@ -184,7 +184,7 @@ impl SabiniwmState {
                     },
                 )
                 .map_err(|e| eyre::eyre!("{}", e))
-                .context("inserting `Display` to `EventLoop`")?;
+                .wrap_err("inserting `Display` to `EventLoop`")?;
         }
 
         // Initialize `WAYLAND_DISPLAY` socket to listen Wayland clients.
@@ -201,7 +201,7 @@ impl SabiniwmState {
                 };
             })
             .map_err(|e| eyre::eyre!("{}", e))
-            .context("inserting `ListeningSocketSource` to `EventLoop`")?;
+            .wrap_err("inserting `ListeningSocketSource` to `EventLoop`")?;
         std::env::set_var("WAYLAND_DISPLAY", &socket_name);
         info!(
             "Start listening on Wayland socket: WAYLAND_DISPLAY = {}",
@@ -300,7 +300,7 @@ impl SabiniwmState {
                     }
                 })
                 .map_err(|e| eyre::eyre!("{}", e))
-                .context("inserting `XWaylandSource` to `EventLoop`")?;
+                .wrap_err("inserting `XWaylandSource` to `EventLoop`")?;
 
             xwayland
                 .start(
@@ -310,7 +310,7 @@ impl SabiniwmState {
                     true,
                     |_| {},
                 )
-                .context("XWayland::start()")?;
+                .wrap_err("XWayland::start()")?;
 
             xwayland
         };
