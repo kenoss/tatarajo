@@ -13,6 +13,7 @@ extern crate tracing;
 pub mod action;
 pub mod backend;
 pub mod cursor;
+mod envvar;
 mod external_trait_def;
 pub mod focus;
 pub mod input;

@@ -3,6 +3,7 @@ use crate::backend::udev::UdevBackend;
 use crate::backend::winit::WinitBackend;
 use crate::backend::BackendI;
 use crate::cursor::Cursor;
+use crate::envvar::EnvVar;
 use crate::input::{KeySeq, Keymap};
 use crate::input_event::FocusUpdateDecider;
 use crate::view::stackset::WorkspaceTag;
@@ -106,6 +107,7 @@ pub(crate) struct InnerState {
     pub xwm: Option<X11Wm>,
     pub xdisplay: Option<u32>,
 
+    pub envvar: EnvVar,
     pub keymap: Keymap<Action>,
     pub keyseq: KeySeq,
     pub view: View,
@@ -122,23 +124,20 @@ where
 
 impl SabiniwmState {
     pub fn run(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) -> eyre::Result<()> {
+        let envvar = EnvVar::load()?;
+
         let event_loop = EventLoop::try_new().unwrap();
 
-        let use_udev = matches!(
-            std::env::var("DISPLAY"),
-            Err(std::env::VarError::NotPresent)
-        ) && matches!(
-            std::env::var("WAYLAND_DISPLAY"),
-            Err(std::env::VarError::NotPresent)
-        );
+        let use_udev = envvar.generic.display.is_none() && envvar.generic.wayland_display.is_none();
 
         let backend: Box<dyn BackendI> = if use_udev {
-            Box::new(UdevBackend::new(event_loop.handle().clone())?)
+            Box::new(UdevBackend::new(&envvar, event_loop.handle().clone())?)
         } else {
             Box::new(WinitBackend::new(event_loop.handle().clone())?)
         };
 
         let mut state = Self::new(
+            envvar,
             workspace_tags,
             keymap,
             event_loop.handle(),
@@ -159,6 +158,7 @@ impl SabiniwmState {
     }
 
     fn new(
+        envvar: EnvVar,
         workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
         loop_handle: LoopHandle<'static, SabiniwmState>,
@@ -347,6 +347,7 @@ impl SabiniwmState {
                 xwm: None,
                 xdisplay: None,
 
+                envvar,
                 keymap,
                 keyseq: KeySeq::new(),
                 view,

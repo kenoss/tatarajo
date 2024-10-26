@@ -1,4 +1,5 @@
 use crate::backend::BackendI;
+use crate::envvar::EnvVar;
 use crate::pointer::{PointerElement, CLEAR_COLOR};
 use crate::render::{output_elements, CustomRenderElement};
 use crate::state::{
@@ -105,7 +106,10 @@ pub(crate) struct UdevBackend {
 }
 
 impl UdevBackend {
-    pub fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> eyre::Result<Self> {
+    pub fn new(
+        envvar: &EnvVar,
+        loop_handle: LoopHandle<'static, SabiniwmState>,
+    ) -> eyre::Result<Self> {
         /*
          * Initialize session
          */
@@ -120,8 +124,8 @@ impl UdevBackend {
         /*
          * Initialize the compositor
          */
-        let primary_gpu = if let Ok(var) = std::env::var("SABINIWM_DRM_DEVICE") {
-            DrmNode::from_path(var).expect("Invalid drm device path")
+        let primary_gpu = if let Some(path) = &envvar.sabiniwm.drm_device {
+            DrmNode::from_path(path).expect("Invalid drm device path")
         } else {
             primary_gpu(session.seat())
                 .unwrap()
@@ -962,13 +966,13 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 GbmBufferFlags::RENDERING | GbmBufferFlags::SCANOUT,
             );
 
-            let color_formats = if std::env::var("SABINIWM_DISABLE_10BIT").is_ok() {
+            let color_formats = if self.inner.envvar.sabiniwm.disable_10bit {
                 SUPPORTED_FORMATS_8BIT_ONLY
             } else {
                 SUPPORTED_FORMATS
             };
 
-            let compositor = if std::env::var("SABINIWM_DISABLE_DRM_COMPOSITOR").is_ok() {
+            let compositor = if self.inner.envvar.sabiniwm.disable_drm_compositor {
                 let gbm_surface = match GbmBufferedSurface::new(
                     surface,
                     allocator,

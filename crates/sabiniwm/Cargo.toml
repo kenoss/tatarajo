@@ -9,9 +9,11 @@ bitflags = "2.2.1"
 derive_more = { version = "1.0.0", features = ["from"] }
 downcast = "0.11.0"
 dyn-clone = "1.0.17"
+envy = "0.4.2"
 eyre = "0.6.12"
 itertools = "0.12.1"
 maplit = "1.0.2"
+serde = { version = "1.0.213", features = ["derive"] }
 smithay-drm-extras = { git = "https://github.com/Smithay/smithay", rev = "8e49b9b", optional = true }
 thin_delegate = "0.0.3"
 thiserror = "1.0.60"
