@@ -77,8 +77,7 @@ impl WinitBackend {
                 }
                 WinitEvent::Focus(_) | WinitEvent::Redraw => {}
             })
-            .map_err(|e| eyre::eyre!("{}", e))
-            .wrap_err("inserting `WinitEventLoop` to `EventLoop`")?;
+            .map_err(|e| eyre::eyre!("{}", e))?;
 
         let size = backend.window_size();
         let mode = Mode {

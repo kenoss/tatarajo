@@ -183,8 +183,7 @@ impl SabiniwmState {
                         Ok(PostAction::Continue)
                     },
                 )
-                .map_err(|e| eyre::eyre!("{}", e))
-                .wrap_err("inserting `Display` to `EventLoop`")?;
+                .map_err(|e| eyre::eyre!("{}", e))?;
         }
 
         // Initialize `WAYLAND_DISPLAY` socket to listen Wayland clients.
@@ -200,8 +199,7 @@ impl SabiniwmState {
                     warn!("Error adding wayland client: {}", err);
                 };
             })
-            .map_err(|e| eyre::eyre!("{}", e))
-            .wrap_err("inserting `ListeningSocketSource` to `EventLoop`")?;
+            .map_err(|e| eyre::eyre!("{}", e))?;
         std::env::set_var("WAYLAND_DISPLAY", &socket_name);
         info!(
             "Start listening on Wayland socket: WAYLAND_DISPLAY = {}",
@@ -299,8 +297,7 @@ impl SabiniwmState {
                         let _ = state.inner.xwm.take();
                     }
                 })
-                .map_err(|e| eyre::eyre!("{}", e))
-                .wrap_err("inserting `XWaylandSource` to `EventLoop`")?;
+                .map_err(|e| eyre::eyre!("{}", e))?;
 
             xwayland
                 .start(
