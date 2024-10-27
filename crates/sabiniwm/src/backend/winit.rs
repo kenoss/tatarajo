@@ -2,6 +2,7 @@ use crate::backend::BackendI;
 use crate::pointer::PointerElement;
 use crate::render::{render_output, CustomRenderElement};
 use crate::state::{post_repaint, take_presentation_feedback, InnerState, SabiniwmState};
+use crate::util::EventHandler;
 use eyre::WrapErr;
 use smithay::backend::egl::EGLDevice;
 use smithay::backend::renderer::damage::{Error as OutputDamageTrackerError, OutputDamageTracker};
@@ -53,29 +54,8 @@ impl WinitBackend {
             .wrap_err("initializing winit backend")?;
 
         loop_handle
-            .insert_source(winit_event_loop, move |event, _, state| match event {
-                WinitEvent::CloseRequested => {
-                    state.inner.loop_signal.stop();
-                }
-                WinitEvent::Input(event) => {
-                    state.process_input_event(event);
-                }
-                WinitEvent::Resized { size, .. } => {
-                    // We only have one output
-                    let output = state.inner.space.outputs().next().unwrap().clone();
-                    state.inner.space.map_output(&output, (0, 0));
-                    let mode = Mode {
-                        size,
-                        refresh: 60_000,
-                    };
-                    output.change_current_state(Some(mode), None, None, None);
-                    output.set_preferred(mode);
-                    state
-                        .inner
-                        .view
-                        .resize_output(size.to_logical(1), &mut state.inner.space);
-                }
-                WinitEvent::Focus(_) | WinitEvent::Redraw => {}
+            .insert_source(winit_event_loop, move |event, _, state| {
+                state.handle_event(event)
             })
             .map_err(|e| eyre::eyre!("{}", e))?;
 
@@ -357,4 +337,32 @@ impl BackendI for WinitBackend {
     }
     fn early_import(&mut self, _surface: &wl_surface::WlSurface) {}
     fn update_led_state(&mut self, _led_state: smithay::input::keyboard::LedState) {}
+}
+
+impl EventHandler<WinitEvent> for SabiniwmState {
+    fn handle_event(&mut self, event: WinitEvent) {
+        match event {
+            WinitEvent::CloseRequested => {
+                self.inner.loop_signal.stop();
+            }
+            WinitEvent::Input(event) => {
+                self.process_input_event(event);
+            }
+            WinitEvent::Resized { size, .. } => {
+                // We only have one output
+                let output = self.inner.space.outputs().next().unwrap().clone();
+                self.inner.space.map_output(&output, (0, 0));
+                let mode = Mode {
+                    size,
+                    refresh: 60_000,
+                };
+                output.change_current_state(Some(mode), None, None, None);
+                output.set_preferred(mode);
+                self.inner
+                    .view
+                    .resize_output(size.to_logical(1), &mut self.inner.space);
+            }
+            WinitEvent::Focus(_) | WinitEvent::Redraw => {}
+        }
+    }
 }

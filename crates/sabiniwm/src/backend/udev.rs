@@ -6,6 +6,7 @@ use crate::state::{
     post_repaint, take_presentation_feedback, InnerState, SabiniwmState,
     SabiniwmStateWithConcreteBackend, SurfaceDmabufFeedback,
 };
+use crate::util::EventHandler;
 use eyre::WrapErr;
 use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::allocator::gbm::{GbmAllocator, GbmBufferFlags, GbmDevice};
@@ -103,6 +104,9 @@ pub(crate) struct UdevBackend {
     pointer_element: PointerElement,
     pointer_image: crate::cursor::Cursor,
     debug_flags: DebugFlags,
+
+    // Input
+    libinput_context: Libinput,
     keyboards: Vec<smithay::reexports::input::Device>,
 }
 
@@ -172,85 +176,14 @@ impl UdevBackend {
          * Bind all our objects that get driven by the event loop
          */
         loop_handle
-            .insert_source(libinput_backend, |event, _, state| match event {
-                InputEvent::DeviceAdded { mut device } => {
-                    if device.has_capability(DeviceCapability::Keyboard) {
-                        if let Some(led_state) = state
-                            .inner
-                            .seat
-                            .get_keyboard()
-                            .map(|keyboard| keyboard.led_state())
-                        {
-                            device.led_update(led_state.into());
-                        }
-                        state.backend_udev_mut().keyboards.push(device.clone());
-                    }
-                }
-                InputEvent::DeviceRemoved { device } => {
-                    if device.has_capability(DeviceCapability::Keyboard) {
-                        state
-                            .backend_udev_mut()
-                            .keyboards
-                            .retain(|item| *item != device);
-                    }
-                }
-                _ => {
-                    state.process_input_event(event);
-                }
+            .insert_source(libinput_backend, |event, _, state| {
+                state.handle_event(event)
             })
             .map_err(|e| eyre::eyre!("{}", e))?;
 
         loop_handle
-            .insert_source(notifier, move |event, &mut (), state| {
-                match event {
-                    SessionEvent::PauseSession => {
-                        libinput_context.suspend();
-                        info!("pausing session");
-
-                        for backend in state.backend_udev_mut().backends.values_mut() {
-                            backend.drm.pause();
-                            backend.active_leases.clear();
-                            if let Some(lease_global) = backend.leasing_global.as_mut() {
-                                lease_global.suspend();
-                            }
-                        }
-                    }
-                    SessionEvent::ActivateSession => {
-                        info!("resuming session");
-
-                        if let Err(err) = libinput_context.resume() {
-                            error!("Failed to resume libinput context: {:?}", err);
-                        }
-                        let loop_handle = state.inner.loop_handle.clone();
-                        for (node, backend) in state
-                            .backend_udev_mut()
-                            .backends
-                            .iter_mut()
-                            .map(|(handle, backend)| (*handle, backend))
-                        {
-                            // if we do not care about flicking (caused by modesetting) we could just
-                            // pass true for disable connectors here. this would make sure our drm
-                            // device is in a known state (all connectors and planes disabled).
-                            // but for demonstration we choose a more optimistic path by leaving the
-                            // state as is and assume it will just work. If this assumption fails
-                            // we will try to reset the state when trying to queue a frame.
-                            backend
-                                .drm
-                                .activate(false)
-                                .expect("failed to activate drm backend");
-                            if let Some(lease_global) = backend.leasing_global.as_mut() {
-                                lease_global.resume::<SabiniwmState>();
-                            }
-                            for surface in backend.surfaces.values_mut() {
-                                if let Err(err) = surface.compositor.reset_state() {
-                                    warn!("Failed to reset drm surface state: {}", err);
-                                }
-                            }
-                            loop_handle
-                                .insert_idle(move |state| state.as_udev_mut().render(node, None));
-                        }
-                    }
-                }
+            .insert_source(notifier, move |event, _, state| {
+                state.as_udev_mut().handle_event(event)
             })
             .map_err(|e| eyre::eyre!("{}", e))?;
 
@@ -264,6 +197,7 @@ impl UdevBackend {
             pointer_images: Vec::new(),
             pointer_element: PointerElement::default(),
             debug_flags: DebugFlags::empty(),
+            libinput_context,
             keyboards: Vec::new(),
         })
     }
@@ -384,38 +318,8 @@ impl BackendI for UdevBackend {
 
         inner
             .loop_handle
-            .insert_source(udev_backend, move |event, _, state| match event {
-                UdevEvent::Added { device_id, path } => {
-                    let mut aux = || {
-                        let node =
-                            DrmNode::from_dev_id(device_id).map_err(DeviceAddError::DrmNode)?;
-                        assert_eq!(node.ty(), NodeType::Primary);
-
-                        state.as_udev_mut().device_added(node, &path)
-                    };
-                    match aux() {
-                        Ok(()) => {}
-                        Err(e) => {
-                            error!("Skipping to add device: device_id = {device_id}, error = {e}");
-                        }
-                    }
-                }
-                UdevEvent::Changed { device_id } => {
-                    let Ok(node) = DrmNode::from_dev_id(device_id) else {
-                        return;
-                    };
-                    assert_eq!(node.ty(), NodeType::Primary);
-
-                    state.as_udev_mut().device_changed(node);
-                }
-                UdevEvent::Removed { device_id } => {
-                    let Ok(node) = DrmNode::from_dev_id(device_id) else {
-                        return;
-                    };
-                    assert_eq!(node.ty(), NodeType::Primary);
-
-                    state.as_udev_mut().device_removed(node);
-                }
+            .insert_source(udev_backend, |event, _, state| {
+                state.as_udev_mut().handle_event(event)
             })
             .map_err(|e| eyre::eyre!("{}", e))?;
 
@@ -1671,5 +1575,127 @@ fn dev_path_or_na(node: &DrmNode) -> String {
     match node.dev_path() {
         Some(path) => format!("{}", path.display()),
         None => "N/A".to_string(),
+    }
+}
+
+impl EventHandler<UdevEvent> for SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
+    fn handle_event(&mut self, event: UdevEvent) {
+        match event {
+            UdevEvent::Added { device_id, path } => {
+                let mut aux = || {
+                    let node = DrmNode::from_dev_id(device_id).map_err(DeviceAddError::DrmNode)?;
+                    assert_eq!(node.ty(), NodeType::Primary);
+
+                    self.device_added(node, &path)
+                };
+                match aux() {
+                    Ok(()) => {}
+                    Err(e) => {
+                        error!("Skipping to add device: device_id = {device_id}, error = {e}");
+                    }
+                }
+            }
+            UdevEvent::Changed { device_id } => {
+                let Ok(node) = DrmNode::from_dev_id(device_id) else {
+                    return;
+                };
+                assert_eq!(node.ty(), NodeType::Primary);
+
+                self.device_changed(node);
+            }
+            UdevEvent::Removed { device_id } => {
+                let Ok(node) = DrmNode::from_dev_id(device_id) else {
+                    return;
+                };
+                assert_eq!(node.ty(), NodeType::Primary);
+
+                self.device_removed(node);
+            }
+        }
+    }
+}
+
+impl EventHandler<InputEvent<LibinputInputBackend>> for SabiniwmState {
+    fn handle_event(&mut self, event: InputEvent<LibinputInputBackend>) {
+        match event {
+            InputEvent::DeviceAdded { mut device } => {
+                if device.has_capability(DeviceCapability::Keyboard) {
+                    if let Some(led_state) = self
+                        .inner
+                        .seat
+                        .get_keyboard()
+                        .map(|keyboard| keyboard.led_state())
+                    {
+                        device.led_update(led_state.into());
+                    }
+                    self.backend_udev_mut().keyboards.push(device.clone());
+                }
+            }
+            InputEvent::DeviceRemoved { device } => {
+                if device.has_capability(DeviceCapability::Keyboard) {
+                    self.backend_udev_mut()
+                        .keyboards
+                        .retain(|item| *item != device);
+                }
+            }
+            _ => {
+                self.process_input_event(event);
+            }
+        }
+    }
+}
+
+impl EventHandler<smithay::backend::session::Event>
+    for SabiniwmStateWithConcreteBackend<'_, UdevBackend>
+{
+    fn handle_event(&mut self, event: smithay::backend::session::Event) {
+        match event {
+            SessionEvent::PauseSession => {
+                self.backend.libinput_context.suspend();
+                info!("pausing session");
+
+                for backend in self.backend.backends.values_mut() {
+                    backend.drm.pause();
+                    backend.active_leases.clear();
+                    if let Some(lease_global) = backend.leasing_global.as_mut() {
+                        lease_global.suspend();
+                    }
+                }
+            }
+            SessionEvent::ActivateSession => {
+                info!("resuming session");
+
+                if let Err(err) = self.backend.libinput_context.resume() {
+                    error!("Failed to resume libinput context: {:?}", err);
+                }
+                let loop_handle = self.inner.loop_handle.clone();
+                for (node, backend) in self
+                    .backend
+                    .backends
+                    .iter_mut()
+                    .map(|(handle, backend)| (*handle, backend))
+                {
+                    // if we do not care about flicking (caused by modesetting) we could just
+                    // pass true for disable connectors here. this would make sure our drm
+                    // device is in a known state (all connectors and planes disabled).
+                    // but for demonstration we choose a more optimistic path by leaving the
+                    // state as is and assume it will just work. If this assumption fails
+                    // we will try to reset the state when trying to queue a frame.
+                    backend
+                        .drm
+                        .activate(false)
+                        .expect("failed to activate drm backend");
+                    if let Some(lease_global) = backend.leasing_global.as_mut() {
+                        lease_global.resume::<SabiniwmState>();
+                    }
+                    for surface in backend.surfaces.values_mut() {
+                        if let Err(err) = surface.compositor.reset_state() {
+                            warn!("Failed to reset drm surface state: {}", err);
+                        }
+                    }
+                    loop_handle.insert_idle(move |state| state.as_udev_mut().render(node, None));
+                }
+            }
+        }
     }
 }

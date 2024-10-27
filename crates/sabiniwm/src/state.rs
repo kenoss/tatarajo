@@ -6,6 +6,7 @@ use crate::cursor::Cursor;
 use crate::envvar::EnvVar;
 use crate::input::{KeySeq, Keymap};
 use crate::input_event::FocusUpdateDecider;
+use crate::util::EventHandler;
 use crate::view::stackset::WorkspaceTag;
 use crate::view::view::View;
 use crate::view::window::Window;
@@ -267,36 +268,7 @@ impl SabiniwmState {
             let (xwayland, channel) = XWayland::new(&display_handle);
 
             loop_handle
-                .insert_source(channel, move |event, _, state| match event {
-                    XWaylandEvent::Ready {
-                        connection,
-                        client,
-                        client_fd: _,
-                        display,
-                    } => {
-                        let mut wm = X11Wm::start_wm(
-                            state.inner.loop_handle.clone(),
-                            state.inner.display_handle.clone(),
-                            connection,
-                            client,
-                        )
-                        .expect("Failed to attach X11 Window Manager");
-                        let cursor = Cursor::load();
-                        let image = cursor.get_image(1, Duration::ZERO);
-                        wm.set_cursor(
-                            &image.pixels_rgba,
-                            Size::from((image.width as u16, image.height as u16)),
-                            Point::from((image.xhot as u16, image.yhot as u16)),
-                        )
-                        .expect("Failed to set xwayland default cursor");
-                        std::env::set_var("DISPLAY", format!(":{}", display));
-                        state.inner.xwm = Some(wm);
-                        state.inner.xdisplay = Some(display);
-                    }
-                    XWaylandEvent::Exited => {
-                        let _ = state.inner.xwm.take();
-                    }
-                })
+                .insert_source(channel, move |event, _, state| state.handle_event(event))
                 .map_err(|e| eyre::eyre!("{}", e))?;
 
             xwayland
@@ -477,4 +449,39 @@ pub(crate) fn take_presentation_feedback(
     }
 
     output_presentation_feedback
+}
+
+impl EventHandler<XWaylandEvent> for SabiniwmState {
+    fn handle_event(&mut self, event: XWaylandEvent) {
+        match event {
+            XWaylandEvent::Ready {
+                connection,
+                client,
+                client_fd: _,
+                display,
+            } => {
+                let mut wm = X11Wm::start_wm(
+                    self.inner.loop_handle.clone(),
+                    self.inner.display_handle.clone(),
+                    connection,
+                    client,
+                )
+                .expect("Failed to attach X11 Window Manager");
+                let cursor = Cursor::load();
+                let image = cursor.get_image(1, Duration::ZERO);
+                wm.set_cursor(
+                    &image.pixels_rgba,
+                    Size::from((image.width as u16, image.height as u16)),
+                    Point::from((image.xhot as u16, image.yhot as u16)),
+                )
+                .expect("Failed to set xwayland default cursor");
+                std::env::set_var("DISPLAY", format!(":{}", display));
+                self.inner.xwm = Some(wm);
+                self.inner.xdisplay = Some(display);
+            }
+            XWaylandEvent::Exited => {
+                let _ = self.inner.xwm.take();
+            }
+        }
+    }
 }
