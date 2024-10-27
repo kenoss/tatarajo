@@ -349,9 +349,8 @@ impl EventHandler<WinitEvent> for SabiniwmState {
                 self.process_input_event(event);
             }
             WinitEvent::Resized { size, .. } => {
-                // We only have one output
-                let output = self.inner.space.outputs().next().unwrap().clone();
-                self.inner.space.map_output(&output, (0, 0));
+                let output = &mut backend_winit_mut!(self).output;
+                self.inner.space.map_output(output, (0, 0));
                 let mode = Mode {
                     size,
                     refresh: 60_000,

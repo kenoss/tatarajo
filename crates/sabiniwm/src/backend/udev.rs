@@ -1628,7 +1628,7 @@ impl EventHandler<InputEvent<LibinputInputBackend>> for SabiniwmState {
                     {
                         device.led_update(led_state.into());
                     }
-                    self.backend_udev_mut().keyboards.push(device.clone());
+                    self.backend_udev_mut().keyboards.push(device);
                 }
             }
             InputEvent::DeviceRemoved { device } => {
@@ -1669,12 +1669,7 @@ impl EventHandler<smithay::backend::session::Event>
                     error!("Failed to resume libinput context: {:?}", err);
                 }
                 let loop_handle = self.inner.loop_handle.clone();
-                for (node, backend) in self
-                    .backend
-                    .backends
-                    .iter_mut()
-                    .map(|(handle, backend)| (*handle, backend))
-                {
+                for (&node, backend) in self.backend.backends.iter_mut() {
                     // if we do not care about flicking (caused by modesetting) we could just
                     // pass true for disable connectors here. this would make sure our drm
                     // device is in a known state (all connectors and planes disabled).

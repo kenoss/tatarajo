@@ -457,8 +457,8 @@ impl EventHandler<XWaylandEvent> for SabiniwmState {
             XWaylandEvent::Ready {
                 connection,
                 client,
-                client_fd: _,
                 display,
+                ..
             } => {
                 let mut wm = X11Wm::start_wm(
                     self.inner.loop_handle.clone(),
