@@ -335,7 +335,9 @@ impl BackendI for WinitBackend {
     fn seat_name(&self) -> String {
         String::from("winit")
     }
+
     fn early_import(&mut self, _surface: &wl_surface::WlSurface) {}
+
     fn update_led_state(&mut self, _led_state: smithay::input::keyboard::LedState) {}
 }
 
