@@ -172,8 +172,8 @@ impl UdevBackend {
          * Bind all our objects that get driven by the event loop
          */
         loop_handle
-            .insert_source(libinput_backend, move |mut event, _, state| {
-                if let InputEvent::DeviceAdded { device } = &mut event {
+            .insert_source(libinput_backend, |event, _, state| match event {
+                InputEvent::DeviceAdded { mut device } => {
                     if device.has_capability(DeviceCapability::Keyboard) {
                         if let Some(led_state) = state
                             .inner
@@ -185,16 +185,18 @@ impl UdevBackend {
                         }
                         state.backend_udev_mut().keyboards.push(device.clone());
                     }
-                } else if let InputEvent::DeviceRemoved { ref device } = event {
+                }
+                InputEvent::DeviceRemoved { device } => {
                     if device.has_capability(DeviceCapability::Keyboard) {
                         state
                             .backend_udev_mut()
                             .keyboards
-                            .retain(|item| item != device);
+                            .retain(|item| *item != device);
                     }
                 }
-
-                state.process_input_event(event);
+                _ => {
+                    state.process_input_event(event);
+                }
             })
             .map_err(|e| eyre::eyre!("{}", e))?;
 
