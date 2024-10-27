@@ -307,17 +307,11 @@ impl crate::backend::DmabufHandlerDelegate for UdevBackend {
 }
 
 impl BackendI for UdevBackend {
-    fn init(&mut self, inner: &mut InnerState) {
+    fn init(&mut self, inner: &mut InnerState) -> eyre::Result<()> {
         /*
          * Initialize the udev backend
          */
-        let udev_backend = match smithay::backend::udev::UdevBackend::new(&inner.seat_name) {
-            Ok(ret) => ret,
-            Err(err) => {
-                error!(error = ?err, "Failed to initialize udev backend");
-                return;
-            }
-        };
+        let udev_backend = smithay::backend::udev::UdevBackend::new(&inner.seat_name)?;
 
         for (device_id, path) in udev_backend.device_list() {
             if let Err(err) = DrmNode::from_dev_id(device_id)
@@ -363,8 +357,7 @@ impl BackendI for UdevBackend {
         let dmabuf_formats = renderer.dmabuf_formats().collect::<Vec<_>>();
         let default_feedback =
             DmabufFeedbackBuilder::new(self.selected_render_node.dev_id(), dmabuf_formats)
-                .build()
-                .unwrap();
+                .build()?;
         let mut dmabuf_state = DmabufState::new();
         let global = dmabuf_state.create_global_with_default_feedback::<SabiniwmState>(
             &inner.display_handle,
@@ -422,7 +415,9 @@ impl BackendI for UdevBackend {
                     state.as_udev_mut().device_removed(node);
                 }
             })
-            .unwrap();
+            .map_err(|e| eyre::eyre!("{}", e))?;
+
+        Ok(())
     }
 
     fn has_relative_motion(&self) -> bool {

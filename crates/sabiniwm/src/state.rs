@@ -145,7 +145,7 @@ impl SabiniwmState {
             backend,
         )?;
 
-        state.backend.init(&mut state.inner);
+        state.backend.init(&mut state.inner)?;
 
         // TODO: Unify them if possible.
         if use_udev {

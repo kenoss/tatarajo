@@ -287,7 +287,7 @@ impl crate::backend::DmabufHandlerDelegate for WinitBackend {
 }
 
 impl BackendI for WinitBackend {
-    fn init(&mut self, inner: &mut InnerState) {
+    fn init(&mut self, inner: &mut InnerState) -> eyre::Result<()> {
         #[cfg(feature = "egl")]
         if self
             .backend
@@ -307,8 +307,7 @@ impl BackendI for WinitBackend {
                     node.dev_id(),
                     self.backend.renderer().dmabuf_formats(),
                 )
-                .build()
-                .unwrap();
+                .build()?;
                 Some(dmabuf_default_feedback)
             }
             Ok(None) => {
@@ -341,6 +340,8 @@ impl BackendI for WinitBackend {
             .update_formats(self.backend.renderer().shm_formats());
 
         inner.space.map_output(&self.output, (0, 0));
+
+        Ok(())
     }
 
     fn has_relative_motion(&self) -> bool {
