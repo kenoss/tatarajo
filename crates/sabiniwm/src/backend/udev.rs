@@ -114,13 +114,7 @@ impl UdevBackend {
         /*
          * Initialize session
          */
-        let (session, notifier) = match LibSeatSession::new() {
-            Ok(ret) => ret,
-            Err(err) => {
-                error!("Could not initialize a session: {}", err);
-                return Err(eyre::eyre!("Could not initialize a session: {}", err));
-            }
-        };
+        let (session, notifier) = LibSeatSession::new().wrap_err("initialize session")?;
 
         /*
          * Initialize the compositor
@@ -161,8 +155,7 @@ impl UdevBackend {
             dev_path_or_na(&selected_render_node)
         );
 
-        let gpus =
-            GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
+        let gpus = GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High))?;
 
         /*
          * Initialize libinput backend
@@ -170,7 +163,9 @@ impl UdevBackend {
         let mut libinput_context = Libinput::new_with_udev::<
             LibinputSessionInterface<LibSeatSession>,
         >(session.clone().into());
-        libinput_context.udev_assign_seat(&session.seat()).unwrap();
+        libinput_context
+            .udev_assign_seat(&session.seat())
+            .map_err(|e| eyre::eyre!("{:?}", e))?;
         let libinput_backend = LibinputInputBackend::new(libinput_context.clone());
 
         /*
@@ -201,7 +196,7 @@ impl UdevBackend {
 
                 state.process_input_event(event);
             })
-            .unwrap();
+            .map_err(|e| eyre::eyre!("{}", e))?;
 
         loop_handle
             .insert_source(notifier, move |event, &mut (), state| {
@@ -255,7 +250,7 @@ impl UdevBackend {
                     }
                 }
             })
-            .unwrap();
+            .map_err(|e| eyre::eyre!("{}", e))?;
 
         Ok(UdevBackend {
             dmabuf_state: None,
