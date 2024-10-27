@@ -59,11 +59,6 @@ impl WinitBackend {
             })
             .map_err(|e| eyre::eyre!("{}", e))?;
 
-        let size = backend.window_size();
-        let mode = Mode {
-            size,
-            refresh: 60_000,
-        };
         let output = smithay::output::Output::new(
             OUTPUT_NAME.to_string(),
             PhysicalProperties {
@@ -73,6 +68,10 @@ impl WinitBackend {
                 model: "Winit".into(),
             },
         );
+        let mode = Mode {
+            size: backend.window_size(),
+            refresh: 60_000,
+        };
         output.change_current_state(
             Some(mode),
             Some(Transform::Flipped180),
