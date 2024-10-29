@@ -69,6 +69,7 @@ fn main() -> eyre::Result<()> {
     let kbd = |s| keyseq_serde.kbd(s).unwrap();
     let keymap = Keymap::new(hashmap! {
         kbd("H-x H-q") => action::ActionQuitSabiniwm.into_action(),
+        kbd("H-x H-2") => action::ActionChangeVt(2).into_action(),
 
         kbd("H-x H-t") => Action::spawn("alacritty"),
 

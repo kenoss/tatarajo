@@ -349,6 +349,12 @@ impl BackendI for UdevBackend {
             keyboard.led_update(led_state.into());
         }
     }
+
+    fn change_vt(&mut self, vt: i32) {
+        if let Err(e) = self.session.change_vt(vt) {
+            warn!("changing VT failed: {e}");
+        }
+    }
 }
 
 impl DrmLeaseHandler for SabiniwmState {

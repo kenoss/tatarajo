@@ -338,6 +338,10 @@ impl BackendI for WinitBackend {
     fn early_import(&mut self, _surface: &wl_surface::WlSurface) {}
 
     fn update_led_state(&mut self, _led_state: smithay::input::keyboard::LedState) {}
+
+    fn change_vt(&mut self, _vt: i32) {
+        error!("changing VT is not supported on winit backend");
+    }
 }
 
 impl EventHandler<WinitEvent> for SabiniwmState {

@@ -18,6 +18,7 @@ pub(crate) trait BackendI: downcast::Any + DmabufHandlerDelegate {
     fn seat_name(&self) -> String;
     fn early_import(&mut self, surface: &wayland_server::protocol::wl_surface::WlSurface);
     fn update_led_state(&mut self, led_state: smithay::input::keyboard::LedState);
+    fn change_vt(&mut self, vt: i32);
 }
 
 downcast::downcast!(dyn BackendI);

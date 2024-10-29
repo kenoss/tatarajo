@@ -97,6 +97,15 @@ impl ActionFnI for ActionQuitSabiniwm {
 }
 
 #[derive(Debug, Clone)]
+pub struct ActionChangeVt(pub i32);
+
+impl ActionFnI for ActionChangeVt {
+    fn exec(&self, state: &mut SabiniwmState) {
+        state.backend.change_vt(self.0);
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum ActionMoveFocus {
     Next,
     Prev,
