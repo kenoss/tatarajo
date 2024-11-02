@@ -4,6 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+backtrace = "0.3.71"
 big_s = "1.0.2"
 bitflags = "2.2.1"
 derive_more = { version = "1.0.0", features = ["from"] }

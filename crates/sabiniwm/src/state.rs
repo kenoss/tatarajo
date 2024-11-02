@@ -166,6 +166,8 @@ impl SabiniwmState {
         loop_signal: LoopSignal,
         backend: Box<dyn BackendI>,
     ) -> eyre::Result<SabiniwmState> {
+        crate::util::panic::set_hook();
+
         let display = Display::new().unwrap();
         let display_handle = display.handle();
 

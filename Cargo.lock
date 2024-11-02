@@ -1495,6 +1495,7 @@ dependencies = [
 name = "sabiniwm"
 version = "0.0.0"
 dependencies = [
+ "backtrace",
  "big_s",
  "bitflags 2.5.0",
  "derive_more",
