@@ -1194,23 +1194,18 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 warn!("Error during rendering: {:?}", err);
                 match err {
                     SwapBuffersError::AlreadySwapped => true,
-                    // If the device has been deactivated do not reschedule, this will be done
-                    // by session resume
-                    SwapBuffersError::TemporaryFailure(err)
-                        if matches!(
-                            err.downcast_ref::<DrmError>(),
-                            Some(&DrmError::DeviceInactive)
-                        ) =>
+                    SwapBuffersError::TemporaryFailure(err) => match err.downcast_ref::<DrmError>()
                     {
-                        false
-                    }
-                    SwapBuffersError::TemporaryFailure(err) => matches!(
-                        err.downcast_ref::<DrmError>(),
-                        Some(DrmError::Access(DrmAccessError {
-                            source,
-                            ..
-                        })) if source.kind() == std::io::ErrorKind::PermissionDenied
-                    ),
+                        // If the device has been deactivated do not reschedule, this will be
+                        // done by session resume.
+                        Some(DrmError::DeviceInactive) => false,
+                        Some(DrmError::Access(DrmAccessError { source, .. }))
+                            if source.kind() == std::io::ErrorKind::PermissionDenied =>
+                        {
+                            true
+                        }
+                        _ => false,
+                    },
                     SwapBuffersError::ContextLost(err) => panic!("Rendering loop lost: {}", err),
                 }
             }
