@@ -42,7 +42,7 @@ use smithay::desktop::space::{Space, SurfaceTree};
 use smithay::desktop::utils::OutputPresentationFeedback;
 use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
 use smithay::output::{Mode, PhysicalProperties};
-use smithay::reexports::calloop::{EventLoop, LoopHandle, RegistrationToken};
+use smithay::reexports::calloop::{LoopHandle, RegistrationToken};
 use smithay::reexports::drm::control::{connector, crtc, Device, ModeTypeFlags};
 use smithay::reexports::drm::Device as _;
 use smithay::reexports::input::{DeviceCapability, Libinput};
@@ -200,19 +200,6 @@ impl UdevBackend {
             libinput_context,
             keyboards: Vec::new(),
         })
-    }
-
-    pub fn run(mut state: SabiniwmState, mut event_loop: EventLoop<'static, SabiniwmState>) {
-        let _ = event_loop.run(Some(Duration::from_millis(16)), &mut state, |state| {
-            let should_reflect = state.inner.view.refresh(&mut state.inner.space);
-            if should_reflect {
-                state.reflect_focus_from_stackset(None);
-            }
-
-            state.inner.space.refresh();
-            state.inner.popups.cleanup();
-            state.inner.display_handle.flush_clients().unwrap();
-        });
     }
 }
 

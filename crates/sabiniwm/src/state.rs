@@ -137,7 +137,7 @@ impl SabiniwmState {
             Box::new(WinitBackend::new(event_loop.handle().clone())?)
         };
 
-        let mut state = Self::new(
+        let mut this = Self::new(
             envvar,
             workspace_tags,
             keymap,
@@ -146,14 +146,9 @@ impl SabiniwmState {
             backend,
         )?;
 
-        state.backend.init(&mut state.inner)?;
+        this.backend.init(&mut this.inner)?;
 
-        // TODO: Unify them if possible.
-        if use_udev {
-            UdevBackend::run(state, event_loop);
-        } else {
-            WinitBackend::run(state, event_loop);
-        }
+        this.run_loop(event_loop);
 
         Ok(())
     }
@@ -325,6 +320,19 @@ impl SabiniwmState {
                 focus_update_decider: FocusUpdateDecider::new(),
             },
         })
+    }
+
+    fn run_loop(&mut self, mut event_loop: EventLoop<'_, SabiniwmState>) {
+        let _ = event_loop.run(Some(Duration::from_millis(16)), self, |state| {
+            let should_reflect = state.inner.view.refresh(&mut state.inner.space);
+            if should_reflect {
+                state.reflect_focus_from_stackset(None);
+            }
+
+            state.inner.space.refresh();
+            state.inner.popups.cleanup();
+            state.inner.display_handle.flush_clients().unwrap();
+        });
     }
 }
 
