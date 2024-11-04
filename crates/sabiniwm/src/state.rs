@@ -148,7 +148,7 @@ impl SabiniwmState {
 
         this.backend.init(&mut this.inner)?;
 
-        this.run_loop(event_loop);
+        this.run_loop(event_loop)?;
 
         Ok(())
     }
@@ -322,8 +322,8 @@ impl SabiniwmState {
         })
     }
 
-    fn run_loop(&mut self, mut event_loop: EventLoop<'_, SabiniwmState>) {
-        let _ = event_loop.run(Some(Duration::from_millis(16)), self, |state| {
+    fn run_loop(&mut self, mut event_loop: EventLoop<'_, SabiniwmState>) -> eyre::Result<()> {
+        event_loop.run(None, self, |state| {
             let should_reflect = state.inner.view.refresh(&mut state.inner.space);
             if should_reflect {
                 state.reflect_focus_from_stackset(None);
@@ -332,7 +332,9 @@ impl SabiniwmState {
             state.inner.space.refresh();
             state.inner.popups.cleanup();
             state.inner.display_handle.flush_clients().unwrap();
-        });
+        })?;
+
+        Ok(())
     }
 }
 
