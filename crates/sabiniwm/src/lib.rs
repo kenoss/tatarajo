@@ -20,6 +20,7 @@ pub mod input_handler;
 pub(crate) mod model;
 pub mod pointer;
 pub mod render;
+pub(crate) mod render_loop;
 pub mod shell;
 pub mod state;
 pub mod state_delegate;

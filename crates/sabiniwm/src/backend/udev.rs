@@ -2,6 +2,7 @@ use crate::backend::BackendI;
 use crate::envvar::EnvVar;
 use crate::pointer::{PointerElement, CLEAR_COLOR};
 use crate::render::{output_elements, CustomRenderElement};
+use crate::render_loop::RenderLoop;
 use crate::state::{
     post_repaint, take_presentation_feedback, InnerState, SabiniwmState,
     SabiniwmStateWithConcreteBackend, SurfaceDmabufFeedback,
@@ -41,7 +42,6 @@ use smithay::desktop::space::{Space, SurfaceTree};
 use smithay::desktop::utils::OutputPresentationFeedback;
 use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
 use smithay::output::{Mode, PhysicalProperties};
-use smithay::reexports::calloop::timer::{TimeoutAction, Timer};
 use smithay::reexports::calloop::{EventLoop, LoopHandle, RegistrationToken};
 use smithay::reexports::drm::control::{connector, crtc, Device, ModeTypeFlags};
 use smithay::reexports::drm::Device as _;
@@ -65,7 +65,7 @@ use std::collections::hash_map::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 // we cannot simply pick the first supported format of the intersection of *all* formats, because:
 // - we do not want something like Abgr4444, which looses color information, if something better is available
@@ -594,6 +594,12 @@ struct SurfaceData {
     global: Option<GlobalId>,
     compositor: SurfaceComposition,
     dmabuf_feedback: Option<DrmSurfaceDmabufFeedback>,
+    // Note that a render loop is run per CRTC. This might be not good with multiple displays.
+    // Possible solution would be running only one render loop (or one per GPU) with highest refresh
+    // rate.
+    //
+    // TODO: Investigate and support it.
+    render_loop: RenderLoop<SabiniwmState>,
 }
 
 impl Drop for SurfaceData {
@@ -735,7 +741,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             .loop_handle
             .insert_source(notifier, move |event, metadata, state| match event {
                 DrmEvent::VBlank(crtc) => {
-                    state.as_udev_mut().frame_finish(node, crtc, metadata);
+                    state.as_udev_mut().on_vblank(node, crtc, metadata);
                 }
                 DrmEvent::Error(error) => {
                     error!("{:?}", error);
@@ -972,6 +978,12 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     &compositor,
                 );
 
+                let mut render_loop =
+                    RenderLoop::new(self.inner.loop_handle.clone(), &output, move |state| {
+                        state.as_udev_mut().render(node, Some(crtc));
+                    });
+                render_loop.start();
+
                 let surface = SurfaceData {
                     dh: self.inner.display_handle.clone(),
                     primary_node: node,
@@ -979,6 +991,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     global: Some(global),
                     compositor,
                     dmabuf_feedback,
+                    render_loop,
                 };
 
                 device.surfaces.insert(crtc, surface);
@@ -1103,7 +1116,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         }
     }
 
-    fn frame_finish(
+    fn on_vblank(
         &mut self,
         node: DrmNode,
         crtc: crtc::Handle,
@@ -1134,7 +1147,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             return;
         };
 
-        let schedule_render = match surface
+        let should_schedule_render = match surface
             .compositor
             .frame_submitted()
             .map_err(Into::<SwapBuffersError>::into)
@@ -1203,64 +1216,8 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             }
         };
 
-        if schedule_render {
-            let output_refresh = match output.current_mode() {
-                Some(mode) => mode.refresh,
-                None => return,
-            };
-            // What are we trying to solve by introducing a delay here:
-            //
-            // Basically it is all about latency of client provided buffers.
-            // A client driven by frame callbacks will wait for a frame callback
-            // to repaint and submit a new buffer. As we send frame callbacks
-            // as part of the repaint in the compositor the latency would always
-            // be approx. 2 frames. By introducing a delay before we repaint in
-            // the compositor we can reduce the latency to approx. 1 frame + the
-            // remaining duration from the repaint to the next VBlank.
-            //
-            // With the delay it is also possible to further reduce latency if
-            // the client is driven by presentation feedback. As the presentation
-            // feedback is directly sent after a VBlank the client can submit a
-            // new buffer during the repaint delay that can hit the very next
-            // VBlank, thus reducing the potential latency to below one frame.
-            //
-            // Choosing a good delay is a topic on its own so we just implement
-            // a simple strategy here. We just split the duration between two
-            // VBlanks into two steps, one for the client repaint and one for the
-            // compositor repaint. Theoretically the repaint in the compositor should
-            // be faster so we give the client a bit more time to repaint. On a typical
-            // modern system the repaint in the compositor should not take more than 2ms
-            // so this should be safe for refresh rates up to at least 120 Hz. For 120 Hz
-            // this results in approx. 3.33ms time for repainting in the compositor.
-            // A too big delay could result in missing the next VBlank in the compositor.
-            //
-            // A more complete solution could work on a sliding window analyzing past repaints
-            // and do some prediction for the next repaint.
-            let repaint_delay =
-                Duration::from_millis(((1_000_000f32 / output_refresh as f32) * 0.6f32) as u64);
-
-            let timer = if self.backend.selected_render_node != surface.render_node {
-                // However, if we need to do a copy, that might not be enough.
-                // (And without actual comparision to previous frames we cannot really know.)
-                // So lets ignore that in those cases to avoid thrashing performance.
-                trace!("scheduling repaint timer immediately on {:?}", crtc);
-                Timer::immediate()
-            } else {
-                trace!(
-                    "scheduling repaint timer with delay {:?} on {:?}",
-                    repaint_delay,
-                    crtc
-                );
-                Timer::from_duration(repaint_delay)
-            };
-
-            self.inner
-                .loop_handle
-                .insert_source(timer, move |_, _, state| {
-                    state.as_udev_mut().render(node, Some(crtc));
-                    TimeoutAction::Drop
-                })
-                .expect("failed to schedule frame timer");
+        if should_schedule_render {
+            surface.render_loop.on_vblank();
         }
     }
 
@@ -1289,8 +1246,6 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         let Some(surface) = device.surfaces.get_mut(&crtc) else {
             return;
         };
-
-        let start = Instant::now();
 
         // TODO get scale from the rendersurface when supporting HiDPI
         let frame = self
@@ -1358,7 +1313,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             &mut self.inner.cursor_status.lock().unwrap(),
             &self.inner.clock,
         );
-        let reschedule = match &result {
+        let should_reschedule_render = match &result {
             Ok(has_rendered) => !has_rendered,
             Err(err) => {
                 warn!("Error during rendering: {:?}", err);
@@ -1389,33 +1344,10 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
             }
         };
 
-        if reschedule {
-            let output_refresh = match output.current_mode() {
-                Some(mode) => mode.refresh,
-                None => return,
-            };
-            // If reschedule is true we either hit a temporary failure or more likely rendering
-            // did not cause any damage on the output. In this case we just re-schedule a repaint
-            // after approx. one frame to re-test for damage.
-            let reschedule_duration =
-                Duration::from_millis((1_000_000f32 / output_refresh as f32) as u64);
-            trace!(
-                "reschedule repaint timer with delay {:?} on {:?}",
-                reschedule_duration,
-                crtc,
-            );
-            let timer = Timer::from_duration(reschedule_duration);
-            self.inner
-                .loop_handle
-                .insert_source(timer, move |_, _, state| {
-                    state.as_udev_mut().render(node, Some(crtc));
-                    TimeoutAction::Drop
-                })
-                .expect("failed to schedule frame timer");
-        } else {
-            let elapsed = start.elapsed();
-            trace!(?elapsed, "rendered surface");
-        }
+        // TODO: Check that this is reasonable for the above `Err` case.
+        surface
+            .render_loop
+            .on_render_frame(should_reschedule_render);
     }
 
     fn schedule_initial_render(
@@ -1666,6 +1598,10 @@ impl EventHandler<smithay::backend::session::Event>
                     if let Some(lease_global) = backend.leasing_global.as_mut() {
                         lease_global.suspend();
                     }
+
+                    for surface in backend.surfaces.values_mut() {
+                        surface.render_loop.stop();
+                    }
                 }
             }
             SessionEvent::ActivateSession => {
@@ -1674,8 +1610,7 @@ impl EventHandler<smithay::backend::session::Event>
                 if let Err(err) = self.backend.libinput_context.resume() {
                     error!("Failed to resume libinput context: {:?}", err);
                 }
-                let loop_handle = self.inner.loop_handle.clone();
-                for (&node, backend) in self.backend.backends.iter_mut() {
+                for backend in self.backend.backends.values_mut() {
                     // if we do not care about flicking (caused by modesetting) we could just
                     // pass true for disable connectors here. this would make sure our drm
                     // device is in a known state (all connectors and planes disabled).
@@ -1693,8 +1628,9 @@ impl EventHandler<smithay::backend::session::Event>
                         if let Err(err) = surface.compositor.reset_state() {
                             warn!("Failed to reset drm surface state: {}", err);
                         }
+
+                        surface.render_loop.start();
                     }
-                    loop_handle.insert_idle(move |state| state.as_udev_mut().render(node, None));
                 }
             }
         }
