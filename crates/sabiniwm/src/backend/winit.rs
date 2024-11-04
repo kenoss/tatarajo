@@ -43,16 +43,6 @@ pub(crate) struct WinitBackend {
     pointer_element: PointerElement,
 }
 
-macro_rules! backend_winit_mut {
-    ($state:ident) => {
-        $state
-            .backend
-            .as_mut()
-            .downcast_mut::<WinitBackend>()
-            .unwrap()
-    };
-}
-
 impl WinitBackend {
     pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> eyre::Result<Self> {
         let (backend, winit_event_loop) = winit::init::<GlesRenderer>()
@@ -216,17 +206,18 @@ impl EventHandler<WinitEvent> for SabiniwmState {
                 self.process_input_event(event);
             }
             WinitEvent::Resized { size, .. } => {
-                let output = &mut backend_winit_mut!(self).output;
-                self.inner.space.map_output(output, (0, 0));
+                let this = self.as_winit_mut();
+                let output = &mut this.backend.output;
                 let mode = Mode {
                     size,
                     refresh: 60_000,
                 };
-                output.change_current_state(Some(mode), None, None, None);
                 output.set_preferred(mode);
-                self.inner
+                output.change_current_state(Some(mode), None, None, None);
+                this.inner.space.map_output(output, (0, 0));
+                this.inner
                     .view
-                    .resize_output(size.to_logical(1), &mut self.inner.space);
+                    .resize_output(size.to_logical(1), &mut this.inner.space);
             }
             WinitEvent::Focus(_) | WinitEvent::Redraw => {}
         }

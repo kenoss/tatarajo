@@ -885,16 +885,15 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 output.set_preferred(wl_mode);
                 output.change_current_state(Some(wl_mode), None, None, Some(position));
                 self.inner.space.map_output(&output, position);
+                self.inner.view.resize_output(
+                    output.current_mode().unwrap().size.to_logical(1),
+                    &mut self.inner.space,
+                );
 
                 output.user_data().insert_if_missing(|| UdevOutputId {
                     primary_node: node,
                     crtc,
                 });
-
-                self.inner.view.resize_output(
-                    output.current_mode().unwrap().size.to_logical(1),
-                    &mut self.inner.space,
-                );
 
                 let allocator = GbmAllocator::new(
                     device.gbm.clone(),
