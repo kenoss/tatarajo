@@ -69,7 +69,7 @@ impl ClientDndGrabHandler for SabiniwmState {
 
 impl ServerDndGrabHandler for SabiniwmState {
     fn send(&mut self, _mime_type: String, _fd: OwnedFd, _seat: Seat<Self>) {
-        unreachable!("Anvil doesn't do server-side grabs");
+        unreachable!("server-side grabs are not supported");
     }
 }
 
@@ -345,7 +345,7 @@ impl FractionalScaleHandler for SabiniwmState {
         // If the surface is the root we also try to use the first output of the toplevel.
         //
         // If all the above tests do not lead to a output we just use the first output
-        // of the space (which in case of anvil will also be the output a toplevel will
+        // of the space (which in case of this compositor will also be the output a toplevel will
         // initially be placed on)
         #[allow(clippy::redundant_clone)]
         let mut root = surface.clone();
