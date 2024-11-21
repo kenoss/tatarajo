@@ -9,6 +9,16 @@ use sabiniwm::view::predefined::LayoutMessageSelect;
 use sabiniwm::view::stackset::WorkspaceTag;
 use sabiniwm::SabiniwmState;
 
+fn should_use_udev() -> bool {
+    matches!(
+        std::env::var("DISPLAY"),
+        Err(std::env::VarError::NotPresent)
+    ) && matches!(
+        std::env::var("WAYLAND_DISPLAY"),
+        Err(std::env::VarError::NotPresent)
+    )
+}
+
 fn tracing_init() -> eyre::Result<()> {
     use time::macros::format_description;
     use time::UtcOffset;
@@ -24,21 +34,13 @@ fn tracing_init() -> eyre::Result<()> {
                 format_description!("[hour]:[minute]:[second].[subsecond digits:3]"),
             );
 
-            let use_udev = matches!(
-                std::env::var("DISPLAY"),
-                Err(std::env::VarError::NotPresent)
-            ) && matches!(
-                std::env::var("WAYLAND_DISPLAY"),
-                Err(std::env::VarError::NotPresent)
-            );
-
             let fmt = tracing_subscriber::fmt()
                 .with_env_filter(EnvFilter::from_default_env())
                 .with_timer(timer)
                 .with_line_number(true)
                 .with_ansi(true);
 
-            if use_udev {
+            if should_use_udev() {
                 let log_file =
                     std::io::LineWriter::new(std::fs::File::create("/tmp/sabiniwm.log")?);
 
@@ -58,14 +60,22 @@ fn main() -> eyre::Result<()> {
 
     let workspace_tags = (0..=9).map(|i| WorkspaceTag(format!("{}", i))).collect();
 
-    let keyseq_serde = KeySeqSerde::new(hashmap! {
-        S("C") => ModMask::CONTROL,
-        S("M") => ModMask::MOD1,
-        // S("s") => ModMask::MOD4,
-        // S("H") => ModMask::MOD5,
-        // Hyper uses Mod5 in my environment. Use Mod4 for development with winit.
-        S("H") => ModMask::MOD4,
-    });
+    let meta_keys = if should_use_udev() {
+        hashmap! {
+            S("C") => ModMask::CONTROL,
+            S("M") => ModMask::MOD1,
+            S("s") => ModMask::MOD4,
+            S("H") => ModMask::MOD5,
+        }
+    } else {
+        hashmap! {
+            S("C") => ModMask::CONTROL,
+            S("M") => ModMask::MOD1,
+            // Hyper uses Mod5 in my environment. Use Mod4 for development with winit.
+            S("H") => ModMask::MOD4,
+        }
+    };
+    let keyseq_serde = KeySeqSerde::new(meta_keys);
     let kbd = |s| keyseq_serde.kbd(s).unwrap();
     let keymap = Keymap::new(hashmap! {
         kbd("H-x H-q") => action::ActionQuitSabiniwm.into_action(),
