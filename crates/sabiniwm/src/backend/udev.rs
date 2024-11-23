@@ -164,9 +164,8 @@ impl UdevBackend {
         /*
          * Initialize libinput backend
          */
-        let mut libinput_context = Libinput::new_with_udev::<
-            LibinputSessionInterface<LibSeatSession>,
-        >(session.clone().into());
+        let mut libinput_context =
+            Libinput::new_with_udev(LibinputSessionInterface::from(session.clone()));
         libinput_context
             .udev_assign_seat(&session.seat())
             .map_err(|e| eyre::eyre!("{:?}", e))?;
