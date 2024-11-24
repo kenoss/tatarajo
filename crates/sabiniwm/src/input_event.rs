@@ -13,17 +13,15 @@ use smithay::utils::{Logical, Point, Serial, SERIAL_COUNTER};
 
 impl SabiniwmState {
     pub(crate) fn process_input_event<I: InputBackend>(&mut self, event: InputEvent<I>) {
-        let should_update_focus = self.inner.focus_update_decider.should_update_focus(
-            &self.inner.seat,
-            &self.inner.space,
-            &event,
-        );
+        let serial = SERIAL_COUNTER.next_serial();
 
-        match event {
+        match &event {
+            InputEvent::DeviceAdded { .. } | InputEvent::DeviceRemoved { .. } => {
+                // Handled in backend layer.
+                unreachable!();
+            }
             InputEvent::Keyboard { event, .. } => {
-                let serial = SERIAL_COUNTER.next_serial();
-
-                let time = Event::time_msec(&event);
+                let time = Event::time_msec(event);
 
                 // Note that `Seat::get_keyboard()` locks a field. If we call `SabiniwmState::process_action()` in the `filter` (the
                 // last argument), it will deadlock (if it hits a path calling e.g. `Seat::get_keyborad()` in it).
@@ -73,20 +71,54 @@ impl SabiniwmState {
                     self.process_action(&action);
                 }
             }
-            InputEvent::PointerMotion { .. } => {}
-            InputEvent::PointerMotionAbsolute { event, .. } => {
-                let serial = SERIAL_COUNTER.next_serial();
+            InputEvent::PointerMotion { event } => {
+                use smithay::backend::input::PointerMotionEvent;
+                use smithay::input::pointer::RelativeMotionEvent;
 
+                let pointer = self.inner.seat.get_pointer().unwrap();
+
+                trace!(
+                    "InputEvent::PointerMotion: current location before = {:?}",
+                    pointer.current_location()
+                );
+
+                let output = self.inner.space.outputs().next().unwrap();
+                let output_rect = self.inner.space.output_geometry(output).unwrap().to_f64();
+                let loc = (pointer.current_location() + event.delta()).constrain(output_rect);
+                let under = self.surface_under(loc);
+
+                pointer.motion(
+                    self,
+                    under.clone(),
+                    &MotionEvent {
+                        serial,
+                        time: event.time_msec(),
+                        location: loc,
+                    },
+                );
+                pointer.relative_motion(
+                    self,
+                    under,
+                    &RelativeMotionEvent {
+                        utime: event.time(),
+                        delta: event.delta(),
+                        delta_unaccel: event.delta_unaccel(),
+                    },
+                );
+                pointer.frame(self);
+
+                trace!(
+                    "InputEvent::PointerMotion: current location after = {:?}",
+                    pointer.current_location()
+                );
+            }
+            InputEvent::PointerMotionAbsolute { event, .. } => {
                 let pointer = self.inner.seat.get_pointer().unwrap();
 
                 let output = self.inner.space.outputs().next().unwrap();
                 let output_geo = self.inner.space.output_geometry(output).unwrap();
                 let pos = event.position_transformed(output_geo.size) + output_geo.loc.to_f64();
                 let under = self.surface_under(pos);
-
-                if should_update_focus {
-                    self.update_focus(serial, pos);
-                }
 
                 pointer.motion(
                     self,
@@ -100,16 +132,10 @@ impl SabiniwmState {
                 pointer.frame(self);
             }
             InputEvent::PointerButton { event, .. } => {
-                let serial = SERIAL_COUNTER.next_serial();
-
                 let pointer = self.inner.seat.get_pointer().unwrap();
 
                 let button = event.button_code();
                 let button_state = event.state();
-
-                if should_update_focus {
-                    self.update_focus(serial, pointer.current_location());
-                }
 
                 pointer.button(
                     self,
@@ -162,6 +188,16 @@ impl SabiniwmState {
                 pointer.frame(self);
             }
             _ => {}
+        }
+
+        let should_update_focus = self.inner.focus_update_decider.should_update_focus(
+            &self.inner.seat,
+            &self.inner.space,
+            &event,
+        );
+        if should_update_focus {
+            let pointer = self.inner.seat.get_pointer().unwrap();
+            self.update_focus(serial, pointer.current_location());
         }
     }
 
@@ -231,16 +267,15 @@ impl FocusUpdateDecider {
         }
 
         match event {
-            InputEvent::PointerMotionAbsolute { event } => {
+            InputEvent::PointerMotion { .. } | InputEvent::PointerMotionAbsolute { .. } => {
                 // Requirements:
                 //
                 // - Focus should be updated when mouse enters to another window.
-                // - Focus should not be updated if a non mouse event updated focus last time, e.g. spawning a new window, and
-                //   the mouse is not sufficiently moved.
+                // - Focus should not be updated if a non mouse event updated focus last time, e.g.
+                //   spawning a new window, and the mouse is not sufficiently moved.
 
-                let output = space.outputs().next().unwrap();
-                let output_geo = space.output_geometry(output).unwrap();
-                let pos = event.position_transformed(output_geo.size) + output_geo.loc.to_f64();
+                let pointer = seat.get_pointer().unwrap();
+                let pos = pointer.current_location();
                 let under_window_id = space.element_under(pos).map(|(w, _)| w.id());
                 let d = pos - self.last_pos;
                 let distance = (d.x * d.x + d.y * d.y).sqrt();

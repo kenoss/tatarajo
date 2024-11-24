@@ -203,7 +203,14 @@ impl EventHandler<WinitEvent> for SabiniwmState {
                 self.inner.loop_signal.stop();
             }
             WinitEvent::Input(event) => {
-                self.process_input_event(event);
+                use smithay::backend::input::InputEvent;
+
+                match event {
+                    InputEvent::DeviceAdded { .. } | InputEvent::DeviceRemoved { .. } => {}
+                    _ => {
+                        self.process_input_event(event);
+                    }
+                }
             }
             WinitEvent::Resized { size, .. } => {
                 let this = self.as_winit_mut();

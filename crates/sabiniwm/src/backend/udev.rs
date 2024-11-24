@@ -45,7 +45,7 @@ use smithay::output::{Mode, PhysicalProperties};
 use smithay::reexports::calloop::{LoopHandle, RegistrationToken};
 use smithay::reexports::drm::control::{connector, crtc, Device, ModeTypeFlags};
 use smithay::reexports::drm::Device as _;
-use smithay::reexports::input::{DeviceCapability, Libinput};
+use smithay::reexports::input as libinput;
 use smithay::reexports::rustix::fs::OFlags;
 use smithay::reexports::wayland_protocols::wp::linux_dmabuf::zv1::server::zwp_linux_dmabuf_feedback_v1;
 use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
@@ -106,8 +106,8 @@ pub(crate) struct UdevBackend {
     debug_flags: DebugFlags,
 
     // Input
-    libinput_context: Libinput,
-    keyboards: Vec<smithay::reexports::input::Device>,
+    libinput_context: libinput::Libinput,
+    input_devices: HashSet<libinput::Device>,
 }
 
 impl UdevBackend {
@@ -161,24 +161,17 @@ impl UdevBackend {
 
         let gpus = GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High))?;
 
-        /*
-         * Initialize libinput backend
-         */
         let mut libinput_context =
-            Libinput::new_with_udev(LibinputSessionInterface::from(session.clone()));
-        libinput_context
-            .udev_assign_seat(&session.seat())
-            .map_err(|e| eyre::eyre!("{:?}", e))?;
+            libinput::Libinput::new_with_udev(LibinputSessionInterface::from(session.clone()));
         let libinput_backend = LibinputInputBackend::new(libinput_context.clone());
-
-        /*
-         * Bind all our objects that get driven by the event loop
-         */
         loop_handle
             .insert_source(libinput_backend, |event, _, state| {
                 state.handle_event(event)
             })
             .map_err(|e| eyre::eyre!("{}", e))?;
+        libinput_context
+            .udev_assign_seat(&session.seat())
+            .map_err(|e| eyre::eyre!("{:?}", e))?;
 
         loop_handle
             .insert_source(notifier, move |event, _, state| {
@@ -197,7 +190,7 @@ impl UdevBackend {
             pointer_element: PointerElement::default(),
             debug_flags: DebugFlags::empty(),
             libinput_context,
-            keyboards: Vec::new(),
+            input_devices: HashSet::new(),
         })
     }
 }
@@ -331,7 +324,12 @@ impl BackendI for UdevBackend {
     }
 
     fn update_led_state(&mut self, led_state: smithay::input::keyboard::LedState) {
-        for keyboard in self.keyboards.iter_mut() {
+        let keyboards = self
+            .input_devices
+            .iter()
+            .filter(|device| device.has_capability(libinput::DeviceCapability::Keyboard))
+            .cloned();
+        for mut keyboard in keyboards {
             keyboard.led_update(led_state.into());
         }
     }
@@ -1537,7 +1535,17 @@ impl EventHandler<InputEvent<LibinputInputBackend>> for SabiniwmState {
     fn handle_event(&mut self, event: InputEvent<LibinputInputBackend>) {
         match event {
             InputEvent::DeviceAdded { mut device } => {
-                if device.has_capability(DeviceCapability::Keyboard) {
+                info!("InputEvent::DeviceAdded:{:?}", LibinputDeviceInfo(&device));
+
+                if device.has_capability(libinput::DeviceCapability::Pointer) {
+                    let _ = device.config_send_events_set_mode(libinput::SendEventsMode::ENABLED);
+                }
+
+                if device.has_capability(libinput::DeviceCapability::Touch) {
+                    let _ = device.config_send_events_set_mode(libinput::SendEventsMode::ENABLED);
+                }
+
+                if device.has_capability(libinput::DeviceCapability::Keyboard) {
                     if let Some(led_state) = self
                         .inner
                         .seat
@@ -1546,20 +1554,53 @@ impl EventHandler<InputEvent<LibinputInputBackend>> for SabiniwmState {
                     {
                         device.led_update(led_state.into());
                     }
-                    self.backend_udev_mut().keyboards.push(device);
                 }
+
+                self.as_udev_mut()
+                    .backend
+                    .input_devices
+                    .insert(device.clone());
             }
             InputEvent::DeviceRemoved { device } => {
-                if device.has_capability(DeviceCapability::Keyboard) {
-                    self.backend_udev_mut()
-                        .keyboards
-                        .retain(|item| *item != device);
-                }
+                info!(
+                    "InputEvent::DeviceRemoved:{:?}",
+                    LibinputDeviceInfo(&device)
+                );
+
+                self.as_udev_mut().backend.input_devices.remove(&device);
             }
             _ => {
                 self.process_input_event(event);
             }
         }
+    }
+}
+
+struct LibinputDeviceInfo<'a>(&'a libinput::Device);
+
+impl std::fmt::Debug for LibinputDeviceInfo<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut capabilities = vec![];
+        for c in [
+            libinput::DeviceCapability::Keyboard,
+            libinput::DeviceCapability::Pointer,
+            libinput::DeviceCapability::Touch,
+            libinput::DeviceCapability::TabletTool,
+            libinput::DeviceCapability::TabletPad,
+            libinput::DeviceCapability::Gesture,
+            libinput::DeviceCapability::Switch,
+        ] {
+            if self.0.has_capability(c) {
+                capabilities.push(c);
+            }
+        }
+
+        f.debug_struct("")
+            .field("sysname", &self.0.sysname())
+            .field("name", &self.0.name())
+            .field("path", &smithay::backend::input::Device::syspath(self.0))
+            .field("capabilities", &capabilities)
+            .finish()
     }
 }
 
