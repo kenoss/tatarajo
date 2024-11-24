@@ -85,6 +85,44 @@ impl LayoutNodeI for LayoutNodeSelect {
 }
 
 #[derive(Debug, Clone)]
+pub struct LayoutMessageToggle;
+
+impl LayoutMessageI for LayoutMessageToggle {}
+
+pub struct LayoutNodeToggle {
+    node_ids: NonEmptyFocusedVec<Id<LayoutNode>>,
+}
+
+impl LayoutNodeToggle {
+    pub fn new(node_id_default: Id<LayoutNode>, node_id_toggle: Id<LayoutNode>) -> Self {
+        let node_ids = NonEmptyFocusedVec::new(vec![node_id_default, node_id_toggle], 0);
+        Self { node_ids }
+    }
+}
+
+impl LayoutNodeI for LayoutNodeToggle {
+    fn layout(&self, api: &mut ViewLayoutApi<'_>) {
+        let node_id = *self.node_ids.focus();
+        api.layout_node(node_id, *api.rect());
+    }
+
+    fn handle_message(
+        &mut self,
+        _api: &mut ViewHandleMessageApi<'_>,
+        message: &LayoutMessage,
+    ) -> std::ops::ControlFlow<()> {
+        let Some(_) = message.downcast_ref::<LayoutMessageToggle>() else {
+            return std::ops::ControlFlow::Continue(());
+        };
+
+        let i = self.node_ids.mod_plus_focused_index(1);
+        self.node_ids.set_focused_index(i);
+
+        std::ops::ControlFlow::Break(())
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct LayoutNodeMargin {
     child: Id<LayoutNode>,
     margin: Thickness,

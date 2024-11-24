@@ -2,7 +2,7 @@ use crate::util::{FocusedVec, Id, NonEmptyFocusedVec};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::{LayoutMessage, LayoutNode};
 use crate::view::predefined::{
-    LayoutFull, LayoutNodeBorder, LayoutNodeMargin, LayoutNodeSelect, LayoutTall,
+    LayoutFull, LayoutNodeBorder, LayoutNodeMargin, LayoutNodeSelect, LayoutNodeToggle, LayoutTall,
 };
 use crate::view::stackset::{StackSet, WorkspaceTag};
 use crate::view::window::{Border, Rgba, Window, WindowProps};
@@ -54,6 +54,14 @@ impl View {
             inactive_rgba: Rgba::from_rgba(0x00000000),
         };
         let node = LayoutNode::from(LayoutNodeBorder::new(node_id, border));
+        let node_id = node.id();
+        nodes.insert(node_id, RefCell::new(node));
+
+        let node = LayoutNode::from(LayoutFull {});
+        let node_id_full = node.id();
+        nodes.insert(node_id_full, RefCell::new(node));
+
+        let node = LayoutNode::from(LayoutNodeToggle::new(node_id, node_id_full));
         let node_id = node.id();
         nodes.insert(node_id, RefCell::new(node));
 

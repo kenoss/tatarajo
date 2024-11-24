@@ -5,7 +5,7 @@ extern crate maplit;
 use big_s::S;
 use sabiniwm::action::{self, Action, ActionFnI};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
-use sabiniwm::view::predefined::LayoutMessageSelect;
+use sabiniwm::view::predefined::{LayoutMessageSelect, LayoutMessageToggle};
 use sabiniwm::view::stackset::WorkspaceTag;
 use sabiniwm::SabiniwmState;
 
@@ -86,6 +86,8 @@ fn main() -> eyre::Result<()> {
         kbd("H-x H-b") => Action::spawn("firefox"),
 
         kbd("H-space") => LayoutMessageSelect::Next.into(),
+        // Toggle Full
+        kbd("H-f") => LayoutMessageToggle.into(),
 
         kbd("H-d") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
         kbd("H-h") => action::ActionMoveFocus::Prev.into_action(),
