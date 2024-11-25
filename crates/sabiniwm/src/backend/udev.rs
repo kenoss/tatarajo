@@ -45,12 +45,12 @@ use smithay::output::{Mode, PhysicalProperties};
 use smithay::reexports::calloop::{LoopHandle, RegistrationToken};
 use smithay::reexports::drm::control::{connector, crtc, Device, ModeTypeFlags};
 use smithay::reexports::drm::Device as _;
-use smithay::reexports::input as libinput;
 use smithay::reexports::rustix::fs::OFlags;
 use smithay::reexports::wayland_protocols::wp::linux_dmabuf::zv1::server::zwp_linux_dmabuf_feedback_v1;
 use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
 use smithay::reexports::wayland_server::backend::GlobalId;
 use smithay::reexports::wayland_server::DisplayHandle;
+use smithay::reexports::{drm, input as libinput};
 use smithay::utils::{
     Clock, DeviceFd, IsAlive, Logical, Monotonic, Physical, Point, Rectangle, Scale, Transform,
 };
@@ -873,30 +873,29 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 let drm_mode = connector.modes()[mode_id];
                 let wl_mode = Mode::from(drm_mode);
 
-                {
-                    let phys_size = connector.size();
-                    for (i, mode) in connector.modes().iter().enumerate() {
-                        let dpi = phys_size.map(|phys_size| {
-                            let mode_size = mode.size();
-                            let dpi_w = mode_size.0 as f64 / (phys_size.0 as f64 / 25.4);
-                            let dpi_h = mode_size.1 as f64 / (phys_size.1 as f64 / 25.4);
-                            dpi_w.max(dpi_h)
-                        });
-                        info!(
-                            "connector.modes()[{}] = {:?}, estimated DPI = {:?}",
-                            i, mode, dpi
-                        );
-                    }
-                    info!("selected mode: {:?}", drm_mode);
+                for (i, mode) in connector.modes().iter().enumerate() {
+                    let dpi = calc_estimated_dpi(&connector, mode);
+                    info!(
+                        "connector.modes()[{}] = {:?}, estimated DPI = {:?}",
+                        i, mode, dpi
+                    );
                 }
 
-                output.set_preferred(wl_mode);
-                output.change_current_state(Some(wl_mode), None, None, Some(position));
-                self.inner.space.map_output(&output, position);
-                self.inner.view.resize_output(
-                    output.current_mode().unwrap().size.to_logical(1),
-                    &mut self.inner.space,
+                let scale = calc_output_scale(&connector, &drm_mode);
+                info!(
+                    "selected: mode = {:?}, scale = {:?}, estimated_dpi = {:?}, corrected_dpi = {:?}",
+                    drm_mode,
+                    scale,
+                    calc_estimated_dpi(&connector, &drm_mode),
+                    calc_estimated_dpi(&connector, &drm_mode).map(|x| x / scale.fractional_scale())
                 );
+                output.set_preferred(wl_mode);
+                output.change_current_state(Some(wl_mode), None, Some(scale), Some(position));
+                self.inner.space.map_output(&output, position);
+                let size = self.inner.space.output_geometry(&output)
+                    .unwrap(/* Space::map_output() and Output::change_current_state() is called. */)
+                    .size;
+                self.inner.view.resize_output(size, &mut self.inner.space);
 
                 output.user_data().insert_if_missing(|| UdevOutputId {
                     primary_node: node,
@@ -1379,6 +1378,43 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 SwapBuffersError::ContextLost(err) => panic!("Rendering loop lost: {}", err),
             }
         }
+    }
+}
+
+fn calc_estimated_dpi(connector: &connector::Info, mode: &drm::control::Mode) -> Option<f64> {
+    let phys_size = connector.size();
+    phys_size.map(|phys_size| {
+        let mode_size = mode.size();
+        let dpi_w = mode_size.0 as f64 / (phys_size.0 as f64 / 25.4);
+        let dpi_h = mode_size.1 as f64 / (phys_size.1 as f64 / 25.4);
+        dpi_w.max(dpi_h)
+    })
+}
+
+// TODO: Config
+fn calc_output_scale(
+    connector: &connector::Info,
+    mode: &drm::control::Mode,
+) -> smithay::output::Scale {
+    const TARGET_DPI: f64 = 140.0;
+
+    let Some(dpi) = calc_estimated_dpi(connector, mode) else {
+        return smithay::output::Scale::Integer(1);
+    };
+
+    // If it's not HiDPI display, don't use scale.
+    if dpi <= TARGET_DPI {
+        return smithay::output::Scale::Integer(1);
+    }
+
+    let logical_from_actual = TARGET_DPI / dpi;
+    // Find an approximate value that makes the logical output size an integer.
+    // Note that many display sizes are divisible by 8.
+    let logical_from_actual = (1.0 / 8.0) * (8.0 * logical_from_actual).round();
+    let actual_from_logical = 1.0 / logical_from_actual;
+    smithay::output::Scale::Custom {
+        advertised_integer: 1,
+        fractional: actual_from_logical,
     }
 }
 
