@@ -8,6 +8,7 @@ use crate::state::{
     SabiniwmStateWithConcreteBackend, SurfaceDmabufFeedback,
 };
 use crate::util::EventHandler;
+use crate::wl_global::WlGlobal;
 use eyre::WrapErr;
 use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::allocator::gbm::{GbmAllocator, GbmBufferFlags, GbmDevice};
@@ -47,8 +48,7 @@ use smithay::reexports::drm::Device as _;
 use smithay::reexports::rustix::fs::OFlags;
 use smithay::reexports::wayland_protocols::wp::linux_dmabuf::zv1::server::zwp_linux_dmabuf_feedback_v1;
 use smithay::reexports::wayland_protocols::wp::presentation_time::server::wp_presentation_feedback;
-use smithay::reexports::wayland_server::backend::GlobalId;
-use smithay::reexports::wayland_server::DisplayHandle;
+use smithay::reexports::wayland_server::protocol::wl_output::WlOutput;
 use smithay::reexports::{drm, input as libinput};
 use smithay::utils::{
     Clock, DeviceFd, IsAlive, Logical, Monotonic, Physical, Point, Rectangle, Scale, Transform,
@@ -571,10 +571,11 @@ struct DrmSurfaceDmabufFeedback {
 }
 
 struct SurfaceData {
-    display_handle: DisplayHandle,
     primary_node: DrmNode,
     render_node: DrmNode,
-    global_id_for_output: GlobalId,
+    // Holds not to `drop()`.
+    #[allow(unused)]
+    wl_output_global: WlGlobal<SabiniwmState, WlOutput>,
     compositor: SurfaceComposition,
     dmabuf_feedback: Option<DrmSurfaceDmabufFeedback>,
     // Note that a render loop is run per CRTC. This might be not good with multiple displays.
@@ -583,13 +584,6 @@ struct SurfaceData {
     //
     // TODO: Investigate and support it.
     render_loop: RenderLoop<SabiniwmState>,
-}
-
-impl Drop for SurfaceData {
-    fn drop(&mut self) {
-        self.display_handle
-            .remove_global::<SabiniwmState>(self.global_id_for_output.clone());
-    }
 }
 
 struct BackendData {
@@ -855,8 +849,10 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                         model,
                     },
                 );
-                let global_id_for_output =
-                    output.create_global::<SabiniwmState>(&self.inner.display_handle.clone());
+                let wl_output_global = WlGlobal::<SabiniwmState, WlOutput>::new(
+                    output.create_global::<SabiniwmState>(&self.inner.display_handle.clone()),
+                    self.inner.display_handle.clone(),
+                );
 
                 let x = self.inner.space.outputs().fold(0, |acc, o| {
                     acc + self.inner.space.output_geometry(o).unwrap().size.w
@@ -977,10 +973,9 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 render_loop.start();
 
                 let surface = SurfaceData {
-                    display_handle: self.inner.display_handle.clone(),
                     primary_node: node,
                     render_node: device.render_node,
-                    global_id_for_output,
+                    wl_output_global,
                     compositor,
                     dmabuf_feedback,
                     render_loop,

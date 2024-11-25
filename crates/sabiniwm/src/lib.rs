@@ -27,5 +27,6 @@ pub mod state_delegate;
 #[allow(unused)]
 pub(crate) mod util;
 pub mod view;
+pub(crate) mod wl_global;
 
 pub use state::{ClientState, SabiniwmState};
