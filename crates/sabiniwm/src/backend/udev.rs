@@ -847,6 +847,24 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     );
                 }
             } else {
+                let (phys_w, phys_h) = connector.size().unwrap_or((0, 0));
+                let output = smithay::output::Output::new(
+                    output_name,
+                    PhysicalProperties {
+                        size: (phys_w as i32, phys_h as i32).into(),
+                        subpixel: connector.subpixel().into(),
+                        make,
+                        model,
+                    },
+                );
+                let global =
+                    output.create_global::<SabiniwmState>(&self.inner.display_handle.clone());
+
+                let x = self.inner.space.outputs().fold(0, |acc, o| {
+                    acc + self.inner.space.output_geometry(o).unwrap().size.w
+                });
+                let position = (x, 0).into();
+
                 let mode_id = connector
                     .modes()
                     .iter()
@@ -872,29 +890,6 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     info!("selected mode: {:?}", drm_mode);
                 }
 
-                let surface = device
-                    .drm
-                    .create_surface(crtc, drm_mode, &[connector.handle()])
-                    .wrap_err("create drm surface")?;
-
-                let (phys_w, phys_h) = connector.size().unwrap_or((0, 0));
-                let output = smithay::output::Output::new(
-                    output_name,
-                    PhysicalProperties {
-                        size: (phys_w as i32, phys_h as i32).into(),
-                        subpixel: connector.subpixel().into(),
-                        make,
-                        model,
-                    },
-                );
-                let global =
-                    output.create_global::<SabiniwmState>(&self.inner.display_handle.clone());
-
-                let x = self.inner.space.outputs().fold(0, |acc, o| {
-                    acc + self.inner.space.output_geometry(o).unwrap().size.w
-                });
-                let position = (x, 0).into();
-
                 output.set_preferred(wl_mode);
                 output.change_current_state(Some(wl_mode), None, None, Some(position));
                 self.inner.space.map_output(&output, position);
@@ -919,6 +914,10 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     SUPPORTED_FORMATS
                 };
 
+                let surface = device
+                    .drm
+                    .create_surface(crtc, drm_mode, &[connector.handle()])
+                    .wrap_err("create drm surface")?;
                 let compositor = match &self.inner.envvar.sabiniwm.surface_composition_policy {
                     SurfaceCompositionPolicy::UseGbmBufferedSurface => {
                         let gbm_surface = GbmBufferedSurface::new(
