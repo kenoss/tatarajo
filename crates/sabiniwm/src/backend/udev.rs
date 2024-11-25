@@ -574,7 +574,7 @@ struct SurfaceData {
     display_handle: DisplayHandle,
     primary_node: DrmNode,
     render_node: DrmNode,
-    global_id_for_output: Option<GlobalId>,
+    global_id_for_output: GlobalId,
     compositor: SurfaceComposition,
     dmabuf_feedback: Option<DrmSurfaceDmabufFeedback>,
     // Note that a render loop is run per CRTC. This might be not good with multiple displays.
@@ -587,10 +587,8 @@ struct SurfaceData {
 
 impl Drop for SurfaceData {
     fn drop(&mut self) {
-        if let Some(global_id_for_output) = self.global_id_for_output.take() {
-            self.display_handle
-                .remove_global::<SabiniwmState>(global_id_for_output);
-        }
+        self.display_handle
+            .remove_global::<SabiniwmState>(self.global_id_for_output.clone());
     }
 }
 
@@ -982,7 +980,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     display_handle: self.inner.display_handle.clone(),
                     primary_node: node,
                     render_node: device.render_node,
-                    global_id_for_output: Some(global_id_for_output),
+                    global_id_for_output,
                     compositor,
                     dmabuf_feedback,
                     render_loop,
