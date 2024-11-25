@@ -41,7 +41,6 @@ use smithay::delegate_drm_lease;
 use smithay::desktop::space::{Space, SurfaceTree};
 use smithay::desktop::utils::OutputPresentationFeedback;
 use smithay::input::pointer::{CursorImageAttributes, CursorImageStatus};
-use smithay::output::{Mode, PhysicalProperties};
 use smithay::reexports::calloop::{LoopHandle, RegistrationToken};
 use smithay::reexports::drm::control::{connector, crtc, Device, ModeTypeFlags};
 use smithay::reexports::drm::Device as _;
@@ -850,7 +849,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 let (phys_w, phys_h) = connector.size().unwrap_or((0, 0));
                 let output = smithay::output::Output::new(
                     output_name,
-                    PhysicalProperties {
+                    smithay::output::PhysicalProperties {
                         size: (phys_w as i32, phys_h as i32).into(),
                         subpixel: connector.subpixel().into(),
                         make,
@@ -865,14 +864,6 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 });
                 let position = (x, 0).into();
 
-                let mode_id = connector
-                    .modes()
-                    .iter()
-                    .position(|mode| mode.mode_type().contains(ModeTypeFlags::PREFERRED))
-                    .unwrap_or(0);
-                let drm_mode = connector.modes()[mode_id];
-                let wl_mode = Mode::from(drm_mode);
-
                 for (i, mode) in connector.modes().iter().enumerate() {
                     let dpi = calc_estimated_dpi(&connector, mode);
                     info!(
@@ -881,16 +872,21 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     );
                 }
 
-                let scale = calc_output_scale(&connector, &drm_mode);
+                let mode = *connector
+                    .modes()
+                    .iter()
+                    .find(|mode| mode.mode_type().contains(ModeTypeFlags::PREFERRED))
+                    .unwrap_or(&connector.modes()[0]);
+                let scale = calc_output_scale(&connector, &mode);
                 info!(
                     "selected: mode = {:?}, scale = {:?}, estimated_dpi = {:?}, corrected_dpi = {:?}",
-                    drm_mode,
+                    mode,
                     scale,
-                    calc_estimated_dpi(&connector, &drm_mode),
-                    calc_estimated_dpi(&connector, &drm_mode).map(|x| x / scale.fractional_scale())
+                    calc_estimated_dpi(&connector, &mode),
+                    calc_estimated_dpi(&connector, &mode).map(|x| x / scale.fractional_scale())
                 );
-                output.set_preferred(wl_mode);
-                output.change_current_state(Some(wl_mode), None, Some(scale), Some(position));
+                output.set_preferred(mode.into());
+                output.change_current_state(Some(mode.into()), None, Some(scale), Some(position));
                 self.inner.space.map_output(&output, position);
                 let size = self.inner.space.output_geometry(&output)
                     .unwrap(/* Space::map_output() and Output::change_current_state() is called. */)
@@ -915,7 +911,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
 
                 let surface = device
                     .drm
-                    .create_surface(crtc, drm_mode, &[connector.handle()])
+                    .create_surface(crtc, mode, &[connector.handle()])
                     .wrap_err("create drm surface")?;
                 let compositor = match &self.inner.envvar.sabiniwm.surface_composition_policy {
                     SurfaceCompositionPolicy::UseGbmBufferedSurface => {
