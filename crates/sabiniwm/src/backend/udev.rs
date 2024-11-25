@@ -852,9 +852,25 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     .iter()
                     .position(|mode| mode.mode_type().contains(ModeTypeFlags::PREFERRED))
                     .unwrap_or(0);
-
                 let drm_mode = connector.modes()[mode_id];
                 let wl_mode = Mode::from(drm_mode);
+
+                {
+                    let phys_size = connector.size();
+                    for (i, mode) in connector.modes().iter().enumerate() {
+                        let dpi = phys_size.map(|phys_size| {
+                            let mode_size = mode.size();
+                            let dpi_w = mode_size.0 as f64 / (phys_size.0 as f64 / 25.4);
+                            let dpi_h = mode_size.1 as f64 / (phys_size.1 as f64 / 25.4);
+                            dpi_w.max(dpi_h)
+                        });
+                        info!(
+                            "connector.modes()[{}] = {:?}, estimated DPI = {:?}",
+                            i, mode, dpi
+                        );
+                    }
+                    info!("selected mode: {:?}", drm_mode);
+                }
 
                 let surface = device
                     .drm
