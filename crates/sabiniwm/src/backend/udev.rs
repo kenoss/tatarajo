@@ -571,7 +571,7 @@ struct DrmSurfaceDmabufFeedback {
 }
 
 struct SurfaceData {
-    dh: DisplayHandle,
+    display_handle: DisplayHandle,
     primary_node: DrmNode,
     render_node: DrmNode,
     global: Option<GlobalId>,
@@ -588,7 +588,7 @@ struct SurfaceData {
 impl Drop for SurfaceData {
     fn drop(&mut self) {
         if let Some(global) = self.global.take() {
-            self.dh.remove_global::<SabiniwmState>(global);
+            self.display_handle.remove_global::<SabiniwmState>(global);
         }
     }
 }
@@ -978,7 +978,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 render_loop.start();
 
                 let surface = SurfaceData {
-                    dh: self.inner.display_handle.clone(),
+                    display_handle: self.inner.display_handle.clone(),
                     primary_node: node,
                     render_node: device.render_node,
                     global: Some(global),
