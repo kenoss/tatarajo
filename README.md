@@ -1,6 +1,6 @@
 # sabiniwm
 
-A tiling wayland compositor, influenced xmonad
+A tiling Wayland compositor, influenced xmonad
 
 ## License
 
