@@ -20,7 +20,7 @@ impl SabiniwmState {
                 // Handled in backend layer.
                 unreachable!();
             }
-            InputEvent::Keyboard { event, .. } => {
+            InputEvent::Keyboard { event } => {
                 let time = Event::time_msec(event);
 
                 // Note that `Seat::get_keyboard()` locks a field. If we call `SabiniwmState::process_action()` in the `filter` (the
@@ -112,7 +112,7 @@ impl SabiniwmState {
                     pointer.current_location()
                 );
             }
-            InputEvent::PointerMotionAbsolute { event, .. } => {
+            InputEvent::PointerMotionAbsolute { event } => {
                 let pointer = self.inner.seat.get_pointer().unwrap();
 
                 let output = self.inner.space.outputs().next().unwrap();
@@ -131,7 +131,7 @@ impl SabiniwmState {
                 );
                 pointer.frame(self);
             }
-            InputEvent::PointerButton { event, .. } => {
+            InputEvent::PointerButton { event } => {
                 let pointer = self.inner.seat.get_pointer().unwrap();
 
                 let button = event.button_code();
@@ -148,7 +148,7 @@ impl SabiniwmState {
                 );
                 pointer.frame(self);
             }
-            InputEvent::PointerAxis { event, .. } => {
+            InputEvent::PointerAxis { event } => {
                 let source = event.source();
 
                 let horizontal_amount = event.amount(Axis::Horizontal).unwrap_or_else(|| {
