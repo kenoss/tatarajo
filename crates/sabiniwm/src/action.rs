@@ -1,5 +1,6 @@
 use crate::state::SabiniwmState;
 use crate::view::layout_node::{LayoutMessage, LayoutMessageI};
+use crate::view::stackset::WorkspaceTag;
 use dyn_clone::DynClone;
 
 pub trait ActionFnI: std::fmt::Debug + DynClone {
@@ -158,6 +159,7 @@ impl ActionFnI for ActionWindowSwap {
 pub enum ActionWorkspaceFocus {
     Next,
     Prev,
+    WithTag(WorkspaceTag),
 }
 
 impl ActionFnI for ActionWorkspaceFocus {
@@ -165,6 +167,18 @@ impl ActionFnI for ActionWorkspaceFocus {
         let count = match self {
             Self::Next => 1,
             Self::Prev => -1,
+            Self::WithTag(tag) => {
+                let ss = state.inner.view.stackset();
+                let src = ss.workspaces.focused_index();
+                // TODO: Error handling.
+                let dst = ss
+                    .workspaces
+                    .as_vec()
+                    .iter()
+                    .position(|ws| ws.tag == *tag)
+                    .expect("workspace with the given tag exists");
+                dst as isize - src as isize
+            }
         };
         state.inner.view.update_stackset_with(|stackset| {
             let workspaces = &mut stackset.workspaces;

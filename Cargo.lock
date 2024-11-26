@@ -1533,6 +1533,7 @@ dependencies = [
  "big_s",
  "color-eyre",
  "eyre",
+ "itertools 0.12.1",
  "maplit",
  "sabiniwm",
  "time",

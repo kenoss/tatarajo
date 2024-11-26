@@ -3,6 +3,7 @@
 extern crate maplit;
 
 use big_s::S;
+use itertools::Itertools;
 use sabiniwm::action::{self, Action, ActionFnI};
 use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
 use sabiniwm::view::predefined::{LayoutMessageSelect, LayoutMessageToggle};
@@ -58,7 +59,9 @@ fn main() -> eyre::Result<()> {
     tracing_init()?;
     color_eyre::install()?;
 
-    let workspace_tags = (0..=9).map(|i| WorkspaceTag(format!("{}", i))).collect();
+    let workspace_tags = (0..=9)
+        .map(|i| WorkspaceTag(format!("{}", i)))
+        .collect_vec();
 
     let meta_keys = if should_use_udev() {
         hashmap! {
@@ -77,7 +80,7 @@ fn main() -> eyre::Result<()> {
     };
     let keyseq_serde = KeySeqSerde::new(meta_keys);
     let kbd = |s| keyseq_serde.kbd(s).unwrap();
-    let keymap = Keymap::new(hashmap! {
+    let mut keymap = hashmap! {
         kbd("H-x H-q") => action::ActionQuitSabiniwm.into_action(),
         kbd("H-x H-2") => action::ActionChangeVt(2).into_action(),
 
@@ -110,7 +113,15 @@ fn main() -> eyre::Result<()> {
         kbd("H-b") => action::ActionWorkspaceFocus::Prev.into_action(),
 
         kbd("H-k") => (action::ActionWindowKill {}).into_action(),
-    });
+    };
+    keymap.extend(workspace_tags.iter().cloned().enumerate().map(|(i, tag)| {
+        (
+            // TODO: Fix lifetime issue and use `kbd`.
+            keyseq_serde.kbd(&format!("H-{i}")).unwrap(),
+            action::ActionWorkspaceFocus::WithTag(tag).into_action(),
+        )
+    }));
+    let keymap = Keymap::new(keymap);
 
     SabiniwmState::run(workspace_tags, keymap)?;
 
