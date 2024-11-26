@@ -143,7 +143,10 @@ fn main() -> eyre::Result<()> {
             keyseq_serde
                 .kbd(&format!("H-{}", keysym_str(SHIFTED[i])))
                 .unwrap(),
-            action::ActionWindowMoveToWorkspace::WithTag(tag).into_action(),
+            action::ActionWithSavedFocus(
+                action::ActionWindowMoveToWorkspace::WithTag(tag).into_action(),
+            )
+            .into_action(),
         )
     }));
     let keymap = Keymap::new(keymap);

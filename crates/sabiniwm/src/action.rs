@@ -89,6 +89,24 @@ impl SabiniwmState {
 }
 
 #[derive(Debug, Clone)]
+pub struct ActionWithSavedFocus(pub Action);
+
+impl ActionFnI for ActionWithSavedFocus {
+    fn exec(&self, state: &mut SabiniwmState) {
+        // TODO: Save window focus.
+
+        let ss = state.inner.view.stackset();
+        let ws_index = ss.workspaces.focused_index();
+
+        state.process_action(&self.0);
+
+        state.inner.view.update_stackset_with(|stackset| {
+            stackset.workspaces.set_focused_index(ws_index);
+        });
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ActionQuitSabiniwm;
 
 impl ActionFnI for ActionQuitSabiniwm {
