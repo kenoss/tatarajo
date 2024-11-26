@@ -217,6 +217,7 @@ impl ActionFnI for ActionWorkspaceFocusNonEmpty {
 pub enum ActionWindowMoveToWorkspace {
     Next,
     Prev,
+    WithTag(WorkspaceTag),
 }
 
 impl ActionFnI for ActionWindowMoveToWorkspace {
@@ -224,6 +225,18 @@ impl ActionFnI for ActionWindowMoveToWorkspace {
         let count = match self {
             Self::Next => 1,
             Self::Prev => -1,
+            Self::WithTag(tag) => {
+                let ss = state.inner.view.stackset();
+                let src = ss.workspaces.focused_index();
+                // TODO: Error handling.
+                let dst = ss
+                    .workspaces
+                    .as_vec()
+                    .iter()
+                    .position(|ws| ws.tag == *tag)
+                    .expect("workspace with the given tag exists");
+                dst as isize - src as isize
+            }
         };
         state.inner.view.update_stackset_with(|stackset| {
             let mut workspaces = stackset.workspaces.as_mut();

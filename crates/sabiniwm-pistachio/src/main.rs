@@ -121,6 +121,31 @@ fn main() -> eyre::Result<()> {
             action::ActionWorkspaceFocus::WithTag(tag).into_action(),
         )
     }));
+    const SHIFTED: &[char] = &[')', '!', '@', '#', '$', '%', '^', '&', '*', '('];
+    fn keysym_str(c: char) -> &'static str {
+        match c {
+            '!' => "exclam",
+            '@' => "at",
+            '#' => "numbersign",
+            '$' => "dollar",
+            '%' => "percent",
+            '^' => "asciicircum",
+            '&' => "ampersand",
+            '*' => "asterisk",
+            '(' => "parenleft",
+            ')' => "parenright",
+            _ => unreachable!(),
+        }
+    }
+    keymap.extend(workspace_tags.iter().cloned().enumerate().map(|(i, tag)| {
+        (
+            // TODO: Fix lifetime issue and use `kbd`.
+            keyseq_serde
+                .kbd(&format!("H-{}", keysym_str(SHIFTED[i])))
+                .unwrap(),
+            action::ActionWindowMoveToWorkspace::WithTag(tag).into_action(),
+        )
+    }));
     let keymap = Keymap::new(keymap);
 
     SabiniwmState::run(workspace_tags, keymap)?;
