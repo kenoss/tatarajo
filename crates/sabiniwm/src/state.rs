@@ -1,7 +1,5 @@
 use crate::action::Action;
-use crate::backend::udev::UdevBackend;
-use crate::backend::winit::WinitBackend;
-use crate::backend::BackendI;
+use crate::backend::{Backend, BackendI};
 use crate::cursor::Cursor;
 use crate::envvar::EnvVar;
 use crate::input::{KeySeq, Keymap};
@@ -67,7 +65,7 @@ impl ClientData for ClientState {
 }
 
 pub struct SabiniwmState {
-    pub(crate) backend: Box<dyn BackendI>,
+    pub(crate) backend: Backend,
     pub(crate) inner: InnerState,
 }
 
@@ -115,26 +113,37 @@ pub(crate) struct InnerState {
     pub focus_update_decider: FocusUpdateDecider,
 }
 
-pub(crate) struct SabiniwmStateWithConcreteBackend<'a, Backend>
+pub(crate) struct SabiniwmStateWithConcreteBackend<'a, B>
 where
-    Backend: BackendI,
+    B: BackendI,
 {
-    pub backend: &'a mut Backend,
+    pub backend: &'a mut B,
     pub inner: &'a mut InnerState,
 }
 
 impl SabiniwmState {
     pub fn run(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) -> eyre::Result<()> {
+        use crate::backend::udev::UdevBackend;
+        #[cfg(feature = "winit")]
+        use crate::backend::winit::WinitBackend;
+
         let envvar = EnvVar::load()?;
 
         let event_loop = EventLoop::try_new().unwrap();
 
         let use_udev = envvar.generic.display.is_none() && envvar.generic.wayland_display.is_none();
 
-        let backend: Box<dyn BackendI> = if use_udev {
-            Box::new(UdevBackend::new(&envvar, event_loop.handle().clone())?)
+        let backend = if use_udev {
+            UdevBackend::new(&envvar, event_loop.handle().clone())?.into()
         } else {
-            Box::new(WinitBackend::new(event_loop.handle().clone())?)
+            #[cfg(feature = "winit")]
+            {
+                WinitBackend::new(event_loop.handle().clone())?.into()
+            }
+            #[cfg(not(feature = "winit"))]
+            {
+                unreachable!();
+            }
         };
 
         let mut this = Self::new(
@@ -159,7 +168,7 @@ impl SabiniwmState {
         keymap: Keymap<Action>,
         loop_handle: LoopHandle<'static, SabiniwmState>,
         loop_signal: LoopSignal,
-        backend: Box<dyn BackendI>,
+        backend: Backend,
     ) -> eyre::Result<SabiniwmState> {
         crate::util::panic::set_hook();
 

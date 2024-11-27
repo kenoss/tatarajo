@@ -299,4 +299,19 @@ pub(crate) mod smithay {
             fn alive(&self) -> bool;
         }
     }
+
+    pub(crate) mod wayland {
+        #[thin_delegate::external_trait_def(with_uses = true)]
+        pub(crate) mod buffer {
+            use wayland_server::protocol::wl_buffer;
+
+            #[thin_delegate::register]
+            pub trait BufferHandler {
+                /// Called when the client has destroyed the buffer.
+                ///
+                /// At this point the buffer is no longer usable by Smithay.
+                fn buffer_destroyed(&mut self, buffer: &wl_buffer::WlBuffer);
+            }
+        }
+    }
 }

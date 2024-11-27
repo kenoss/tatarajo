@@ -1,3 +1,4 @@
+use crate::backend::BackendI;
 use crate::state::SabiniwmState;
 use crate::ClientState;
 use smithay::backend::renderer::utils::on_commit_buffer_handler;

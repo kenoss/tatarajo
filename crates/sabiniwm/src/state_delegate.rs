@@ -1,4 +1,5 @@
 use crate::focus::{KeyboardFocusTarget, PointerFocusTarget};
+use crate::backend::{DmabufHandlerDelegate, BackendI};
 use crate::state::{ClientState, SabiniwmState};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::utils::surface_primary_scanout_output;

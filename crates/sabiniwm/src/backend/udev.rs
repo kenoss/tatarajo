@@ -678,17 +678,17 @@ fn get_surface_dmabuf_feedback(
 impl SabiniwmState {
     fn as_udev_mut(&mut self) -> SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         SabiniwmStateWithConcreteBackend {
-            backend: self.backend.as_mut().downcast_mut::<UdevBackend>().unwrap(),
+            backend: self.backend.as_udev_mut(),
             inner: &mut self.inner,
         }
     }
 
     fn backend_udev(&self) -> &UdevBackend {
-        self.backend.as_ref().downcast_ref().unwrap()
+        self.backend.as_udev()
     }
 
     fn backend_udev_mut(&mut self) -> &mut UdevBackend {
-        self.backend.as_mut().downcast_mut().unwrap()
+        self.backend.as_udev_mut()
     }
 }
 

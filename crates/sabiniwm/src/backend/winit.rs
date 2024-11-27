@@ -234,11 +234,7 @@ impl EventHandler<WinitEvent> for SabiniwmState {
 impl SabiniwmState {
     fn as_winit_mut(&mut self) -> SabiniwmStateWithConcreteBackend<'_, WinitBackend> {
         SabiniwmStateWithConcreteBackend {
-            backend: self
-                .backend
-                .as_mut()
-                .downcast_mut::<WinitBackend>()
-                .unwrap(),
+            backend: self.backend.as_winit_mut(),
             inner: &mut self.inner,
         }
     }
