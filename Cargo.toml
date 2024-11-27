@@ -3,5 +3,4 @@ resolver = "2"
 members = [
     "crates/sabiniwm",
     "crates/sabiniwm-pistachio",
-    "crates/sabiniwm-smallvil-based",
 ]

@@ -1542,30 +1542,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sabiniwm-smallvil-based"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "big_s",
- "bitflags 2.5.0",
- "downcast",
- "dyn-clone",
- "itertools 0.12.1",
- "maplit",
- "rstest",
- "smithay",
- "smithay-drm-extras",
- "thiserror",
- "time",
- "tracing",
- "tracing-subscriber",
- "wayland-server",
- "x11rb 0.12.0",
- "xcursor",
- "xkbcommon",
-]
-
-[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
