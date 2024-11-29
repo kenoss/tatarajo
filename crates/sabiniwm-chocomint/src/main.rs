@@ -1,3 +1,6 @@
+// This is a QWERTY version of sabiniwm-pistachio.
+// This is loosely updated. Last update is 2024-11-29.
+
 #[allow(unused_imports)]
 #[macro_use]
 extern crate maplit;
@@ -81,38 +84,38 @@ fn main() -> eyre::Result<()> {
     let keyseq_serde = KeySeqSerde::new(meta_keys);
     let kbd = |s| keyseq_serde.kbd(s).unwrap();
     let mut keymap = hashmap! {
-        kbd("H-x H-q") => action::ActionQuitSabiniwm.into_action(),
-        kbd("H-x H-2") => action::ActionChangeVt(2).into_action(),
+        kbd("H-b H-q") => action::ActionQuitSabiniwm.into_action(),
+        kbd("H-b H-2") => action::ActionChangeVt(2).into_action(),
 
-        kbd("H-x H-t") => Action::spawn("alacritty"),
-        kbd("H-x H-e") => Action::spawn("emacs"),
-        kbd("H-x H-b") => Action::spawn("firefox"),
+        kbd("H-b H-t") => Action::spawn("alacritty"),
+        kbd("H-b H-e") => Action::spawn("emacs"),
+        kbd("H-b H-b") => Action::spawn("firefox"),
 
         kbd("H-space") => LayoutMessageSelect::Next.into(),
         // Toggle Full
-        kbd("H-f") => LayoutMessageToggle.into(),
+        kbd("H-b H-f") => LayoutMessageToggle.into(),
 
-        kbd("H-d") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
-        kbd("H-h") => action::ActionMoveFocus::Prev.into_action(),
-        kbd("H-t") => action::ActionMoveFocus::Next.into_action(),
-        kbd("H-n") => action::ActionWorkspaceFocusNonEmpty::Next.into_action(),
-        kbd("H-D") => action::ActionWindowMoveToWorkspace::Prev.into_action(),
-        kbd("H-H") => action::ActionWindowSwap::Prev.into_action(),
-        kbd("H-T") => action::ActionWindowSwap::Next.into_action(),
-        kbd("H-N") => action::ActionWindowMoveToWorkspace::Next.into_action(),
-        kbd("H-o") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
-        kbd("H-e") => action::ActionMoveFocus::Prev.into_action(),
-        kbd("H-u") => action::ActionMoveFocus::Next.into_action(),
-        kbd("H-i") => action::ActionWorkspaceFocusNonEmpty::Next.into_action(),
-        kbd("H-O") => action::ActionWindowMoveToWorkspace::Prev.into_action(),
-        kbd("H-E") => action::ActionWindowSwap::Prev.into_action(),
-        kbd("H-U") => action::ActionWindowSwap::Next.into_action(),
-        kbd("H-I") => action::ActionWindowMoveToWorkspace::Next.into_action(),
+        kbd("H-h") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
+        kbd("H-k") => action::ActionMoveFocus::Prev.into_action(),
+        kbd("H-j") => action::ActionMoveFocus::Next.into_action(),
+        kbd("H-l") => action::ActionWorkspaceFocusNonEmpty::Next.into_action(),
+        kbd("H-H") => action::ActionWindowMoveToWorkspace::Prev.into_action(),
+        kbd("H-K") => action::ActionWindowSwap::Prev.into_action(),
+        kbd("H-J") => action::ActionWindowSwap::Next.into_action(),
+        kbd("H-L") => action::ActionWindowMoveToWorkspace::Next.into_action(),
+        kbd("H-s") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
+        kbd("H-d") => action::ActionMoveFocus::Prev.into_action(),
+        kbd("H-f") => action::ActionMoveFocus::Next.into_action(),
+        kbd("H-g") => action::ActionWorkspaceFocusNonEmpty::Next.into_action(),
+        kbd("H-S") => action::ActionWindowMoveToWorkspace::Prev.into_action(),
+        kbd("H-D") => action::ActionWindowSwap::Prev.into_action(),
+        kbd("H-F") => action::ActionWindowSwap::Next.into_action(),
+        kbd("H-G") => action::ActionWindowMoveToWorkspace::Next.into_action(),
 
-        kbd("H-v") => action::ActionWorkspaceFocus::Next.into_action(),
-        kbd("H-b") => action::ActionWorkspaceFocus::Prev.into_action(),
+        kbd("H-greater") => action::ActionWorkspaceFocus::Next.into_action(),
+        kbd("H-n") => action::ActionWorkspaceFocus::Prev.into_action(),
 
-        kbd("H-k") => (action::ActionWindowKill {}).into_action(),
+        kbd("H-b H-k") => (action::ActionWindowKill {}).into_action(),
     };
     keymap.extend(workspace_tags.iter().cloned().enumerate().map(|(i, tag)| {
         (
