@@ -1,7 +1,7 @@
-use crate::util::{FocusedVec, Id, NonEmptyFocusedVec};
+use crate::util::{FocusedVec, Id};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::{LayoutMessage, LayoutNode};
-use crate::view::predefined::{LayoutFull, LayoutNodeSelect, LayoutNodeToggle, LayoutTall};
+use crate::view::predefined::LayoutFull;
 use crate::view::stackset::{StackSet, WorkspaceTag};
 use crate::view::window::{Window, WindowProps};
 use itertools::Itertools;
@@ -28,24 +28,7 @@ impl View {
     pub fn new(rect: Rectangle<i32, Logical>, workspace_tags: Vec<WorkspaceTag>) -> Self {
         let mut nodes = HashMap::new();
 
-        let node = LayoutNode::from(LayoutTall {});
-        let node_id0 = node.id();
-        nodes.insert(node_id0, RefCell::new(node));
-
         let node = LayoutNode::from(LayoutFull {});
-        let node_id1 = node.id();
-        nodes.insert(node_id1, RefCell::new(node));
-
-        let layouts = NonEmptyFocusedVec::new(vec![node_id0, node_id1], 0);
-        let node = LayoutNode::from(LayoutNodeSelect::new(layouts));
-        let node_id = node.id();
-        nodes.insert(node_id, RefCell::new(node));
-
-        let node = LayoutNode::from(LayoutFull {});
-        let node_id_full = node.id();
-        nodes.insert(node_id_full, RefCell::new(node));
-
-        let node = LayoutNode::from(LayoutNodeToggle::new(node_id, node_id_full));
         let node_id = node.id();
         nodes.insert(node_id, RefCell::new(node));
 

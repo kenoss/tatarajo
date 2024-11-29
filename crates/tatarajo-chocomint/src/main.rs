@@ -9,7 +9,6 @@ use big_s::S;
 use itertools::Itertools;
 use tatarajo::action::{self, Action, ActionFnI};
 use tatarajo::input::{KeySeqSerde, Keymap, ModMask};
-use tatarajo::view::predefined::{LayoutMessageSelect, LayoutMessageToggle};
 use tatarajo::view::stackset::WorkspaceTag;
 use tatarajo::TatarajoState;
 
@@ -90,10 +89,6 @@ fn main() -> eyre::Result<()> {
         kbd("H-b H-t") => Action::spawn("alacritty"),
         kbd("H-b H-e") => Action::spawn("emacs"),
         kbd("H-b H-b") => Action::spawn("firefox"),
-
-        kbd("H-space") => LayoutMessageSelect::Next.into(),
-        // Toggle Full
-        kbd("H-b H-f") => LayoutMessageToggle.into(),
 
         kbd("H-h") => action::ActionWorkspaceFocusNonEmpty::Prev.into_action(),
         kbd("H-k") => action::ActionMoveFocus::Prev.into_action(),
