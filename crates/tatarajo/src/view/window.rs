@@ -42,21 +42,83 @@ mod props {
         }
     }
 
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct Rgba {
+        pub r: u8,
+        pub g: u8,
+        pub b: u8,
+        pub a: u8,
+    }
+
+    impl Rgba {
+        pub fn from_rgba(hex: u32) -> Self {
+            let r = (hex >> 24) as u8;
+            let g = (hex >> 16) as u8;
+            let b = (hex >> 8) as u8;
+            let a = hex as u8;
+            Self { r, g, b, a }
+        }
+
+        pub fn from_rgb(hex: u32) -> Self {
+            assert_eq!(hex >> 24, 0);
+            let r = (hex >> 16) as u8;
+            let g = (hex >> 8) as u8;
+            let b = hex as u8;
+            let a = 0xff;
+            Self { r, g, b, a }
+        }
+
+        pub fn to_f32_array(&self) -> [f32; 4] {
+            fn convert(x: u8) -> f32 {
+                x as f32 / 0xff as f32
+            }
+
+            [
+                convert(self.r),
+                convert(self.g),
+                convert(self.b),
+                convert(self.a),
+            ]
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct Border {
+        pub dim: Thickness,
+        pub active_rgba: Rgba,
+        pub inactive_rgba: Rgba,
+    }
+
     #[derive(Debug, Clone)]
     pub struct WindowProps {
         pub geometry: Rectangle<i32, Logical>,
+        pub border: Border,
     }
 }
 
 #[allow(clippy::module_inception)]
 mod window {
     use super::props::*;
+    use crate::model::grid_geometry::RectangleExt;
     use crate::util::Id;
     use itertools::Itertools;
+    use smithay::backend::renderer::element::solid::SolidColorBuffer;
     use smithay::desktop::space::SpaceElement;
     use smithay::utils::{IsAlive, Logical, Physical, Point, Rectangle, Scale};
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
+
+    struct Ssd {
+        border: SolidColorBuffer,
+    }
+
+    impl Ssd {
+        fn new() -> Self {
+            Self {
+                border: SolidColorBuffer::default(),
+            }
+        }
+    }
 
     // Note that `SpaceElement` almost necessarily requires `Clone + PartialEq` because, for example, for
     // `Space::map_element()`. And some methods is called with `&self` while it should have `&mut self`, e.g.
@@ -70,6 +132,7 @@ mod window {
 
     struct WindowInner {
         props: WindowProps,
+        ssd: Option<Ssd>,
     }
 
     impl PartialEq for Window {
@@ -85,8 +148,14 @@ mod window {
     impl Window {
         pub fn new(swindow: smithay::desktop::Window) -> Self {
             let geometry = swindow.geometry();
+            let border = Border {
+                dim: 1.into(),
+                active_rgba: Rgba::from_rgba(0x00000000),
+                inactive_rgba: Rgba::from_rgba(0x00000000),
+            };
             let inner = WindowInner {
-                props: WindowProps { geometry },
+                props: WindowProps { geometry, border },
+                ssd: Some(Ssd::new()),
             };
             let inner = Arc::new(Mutex::new(inner));
             Self {
@@ -146,6 +215,32 @@ mod window {
 
         pub fn set_props(&mut self, props: WindowProps) {
             self.inner.lock().unwrap().props = props;
+            self.update_ssd()
+        }
+
+        fn update_ssd(&mut self) {
+            use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
+
+            let Some(surface) = self.swindow.toplevel() else {
+                return;
+            };
+            let activated = surface
+                .with_pending_state(|state| state.states.contains(xdg_toplevel::State::Activated));
+
+            self.inner.lock().unwrap().update_ssd(activated);
+        }
+
+        fn update_ssd_nonmut(&self) {
+            use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
+
+            let Some(surface) = self.swindow.toplevel() else {
+                return;
+            };
+            let activated = surface
+                .with_pending_state(|state| state.states.contains(xdg_toplevel::State::Activated));
+
+            let inner = self.inner.clone();
+            inner.lock().unwrap().update_ssd(activated);
         }
     }
 
@@ -171,7 +266,7 @@ mod window {
 
         fn bbox(&self) -> Rectangle<i32, Logical> {
             let props = &self.inner.lock().unwrap().props;
-            let mut bbox = props.geometry;
+            let mut bbox = props.geometry.inflate(props.border.dim.clone());
             // Ditto.
             bbox.loc = Point::default();
 
@@ -188,6 +283,7 @@ mod window {
 
         fn set_activate(&self, activated: bool) {
             self.swindow.set_activate(activated);
+            self.update_ssd_nonmut();
         }
 
         fn output_enter(&self, output: &smithay::output::Output, overlap: Rectangle<i32, Logical>) {
@@ -200,6 +296,24 @@ mod window {
 
         fn refresh(&self) {
             self.swindow.refresh();
+        }
+    }
+
+    impl WindowInner {
+        fn update_ssd(&mut self, activated: bool) {
+            let border = &self.props.border.clone();
+            let mut size = self.props.geometry.size;
+            if let Some(ref mut ssd) = &mut self.ssd {
+                size.w += (border.dim.left + border.dim.right) as i32;
+                size.h += (border.dim.top + border.dim.bottom) as i32;
+                let rgba = if activated {
+                    &border.active_rgba
+                } else {
+                    &border.inactive_rgba
+                };
+                let color = rgba.to_f32_array();
+                ssd.border.update(size, color);
+            }
         }
     }
 
@@ -255,10 +369,37 @@ mod window {
             where
                 C: From<Self::RenderElement>,
             {
-                AsRenderElements::render_elements(&self.swindow, renderer, location, scale, alpha)
-                    .into_iter()
-                    .map(C::from)
-                    .collect_vec()
+                let mut ret = AsRenderElements::render_elements(
+                    &self.swindow,
+                    renderer,
+                    location,
+                    scale,
+                    alpha,
+                )
+                .into_iter()
+                .map(C::from)
+                .collect_vec();
+
+                let inner = self.inner.lock().unwrap();
+                if let Some(ssd) = &inner.ssd {
+                    let mut location = location;
+                    let border = &inner.props.border;
+                    location.x -= border.dim.left as i32;
+                    location.y -= border.dim.top as i32;
+
+                    ret.push(
+                        WindowRenderElement::Decoration(SolidColorRenderElement::from_buffer(
+                            &ssd.border,
+                            location,
+                            scale,
+                            alpha,
+                            smithay::backend::renderer::element::Kind::Unspecified,
+                        ))
+                        .into(),
+                    )
+                }
+
+                ret
             }
         }
     }

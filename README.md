@@ -56,7 +56,7 @@ You can implement the following topics:
 
 - [x] Implement a "Tall" layout ([xmonad Tall](https://hackage.haskell.org/package/xmonad-0.18.0/docs/XMonad-Layout.html#t:Tall)).
 - [x] Put margins for windows.
-- [ ] Decorate windows with borders.
+- [x] Decorate windows with borders.
 - [ ] ...and features you want.
 
 This repository provides an answer. You can see

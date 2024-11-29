@@ -1,6 +1,6 @@
 use crate::util::Id;
 use crate::view::stackset::StackSet;
-use crate::view::window::{Window, WindowProps};
+use crate::view::window::{Border, Rgba, Thickness, Window, WindowProps};
 use smithay::utils::{Logical, Rectangle};
 
 pub struct ViewLayoutApi<'state> {
@@ -20,7 +20,12 @@ impl ViewLayoutApi<'_> {
 
     pub fn layout_window(&mut self, id: Id<Window>, geometry: Rectangle<i32, Logical>) {
         // TODO: Check that id is not already registered.
-        let props = WindowProps { geometry };
+        let border = Border {
+            dim: Thickness::from(0),
+            active_rgba: Rgba::from_rgba(0x000000ff),
+            inactive_rgba: Rgba::from_rgba(0x000000ff),
+        };
+        let props = WindowProps { geometry, border };
         self.layout_queue.push((id, props));
     }
 }

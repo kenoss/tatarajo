@@ -131,6 +131,17 @@ impl View {
             props.geometry = props.geometry.shrink(margin.clone());
         }
 
+        use crate::view::window::{Border, Rgba};
+        let border = Border {
+            dim: Thickness::from(2),
+            active_rgba: Rgba::from_rgba(0x556b2fff),
+            inactive_rgba: Rgba::from_rgba(0x00000000),
+        };
+        for (_, props) in &mut layout_queue {
+            props.geometry = props.geometry.shrink(border.dim.clone());
+            props.border = border.clone();
+        }
+
         // Remove windows from the space that are not in layout result.
         let mut removing_window_ids = space.elements().map(|w| w.id()).collect::<HashSet<_>>();
         for (window_id, _) in &layout_queue {
