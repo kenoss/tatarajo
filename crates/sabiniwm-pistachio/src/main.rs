@@ -29,7 +29,7 @@ fn tracing_init() -> eyre::Result<()> {
     match std::env::var("RUST_LOG") {
         Err(std::env::VarError::NotPresent) => {}
         _ => {
-            let offset = UtcOffset::current_local_offset().expect("should get local offset!");
+            let offset = UtcOffset::current_local_offset().unwrap();
             let timer = OffsetTime::new(
                 offset,
                 format_description!("[hour]:[minute]:[second].[subsecond digits:3]"),
