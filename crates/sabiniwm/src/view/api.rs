@@ -22,8 +22,16 @@ impl ViewLayoutApi<'_> {
     pub fn layout_node(&mut self, id: Id<LayoutNode>, rect: Rectangle<i32, Logical>) {
         assert!(self.rect.contains_rect(rect));
 
-        // Safety: LayoutNode is borrowed only by this method and this method doesn't allow recursive use of LayoutNode.
-        // TODO: Consider to use Rc and Weak.
+        // Note that calling `RefCell::borrow_mut()` requires borrow of `self.state.nodes`, but we
+        // need mutable reference of `self.state`.
+        //
+        // The deref below is not a problem because only this method borrows `self.state.nodes` when
+        // a `ViewLayouApi` instance exists, and it doesn't allow recursive structure.
+        //
+        // TODO: Consider the following options:
+        //
+        // - Use `nodes: HashMap<Id<LayoutNode>, Rc<RefCel<LayoutNode>>>`; or
+        // - Split `ViewState` into two parts `{ nodes, rest }` like `SabiniwmState { backend, inner }`.
         let node = self.state.nodes.get(&id).unwrap().as_ptr();
         let node = unsafe { &*node };
         let mut api = ViewLayoutApi {
@@ -66,8 +74,16 @@ impl ViewHandleMessageApi<'_> {
         id: Id<LayoutNode>,
         message: &LayoutMessage,
     ) -> std::ops::ControlFlow<()> {
-        // Safety: LayoutNode is borrowed only by this method and this method doesn't allow recursive use of LayoutNode.
-        // TODO: Consider to use Rc and Weak.
+        // Note that calling `RefCell::borrow_mut()` requires borrow of `self.state.nodes`, but we
+        // need mutable reference of `self.state`.
+        //
+        // The deref below is not a problem because only this method borrows `self.state.nodes` when
+        // a `ViewMessageApi` instance exists, and it doesn't allow recursive structure.
+        //
+        // TODO: Consider the following options:
+        //
+        // - Use `nodes: HashMap<Id<LayoutNode>, Rc<RefCel<LayoutNode>>>`; or
+        // - Split `ViewState` into two parts `{ nodes, rest }` like `SabiniwmState { backend, inner }`.
         let node = self.state.nodes.get_mut(&id).unwrap().as_ptr();
         let node = unsafe { &mut *node };
         let mut api = ViewHandleMessageApi { state: self.state };
