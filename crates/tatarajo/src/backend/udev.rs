@@ -4,8 +4,8 @@ use crate::pointer::{PointerElement, CLEAR_COLOR};
 use crate::render::{output_elements, CustomRenderElement};
 use crate::render_loop::RenderLoop;
 use crate::state::{
-    post_repaint, take_presentation_feedback, InnerState, TatarajoState,
-    TatarajoStateWithConcreteBackend, SurfaceDmabufFeedback,
+    post_repaint, take_presentation_feedback, InnerState, SurfaceDmabufFeedback, TatarajoState,
+    TatarajoStateWithConcreteBackend,
 };
 use crate::util::EventHandler;
 use crate::wl_global::WlGlobal;
