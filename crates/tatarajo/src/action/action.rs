@@ -1,5 +1,4 @@
 use crate::state::TatarajoState;
-use crate::view::layout_node::{LayoutMessage, LayoutMessageI};
 use dyn_clone::DynClone;
 
 pub trait ActionFnI: std::fmt::Debug + DynClone {
@@ -37,23 +36,7 @@ impl ActionFn {
 #[derive(Debug, Clone)]
 pub enum Action {
     Spawn(String),
-    LayoutMessage(LayoutMessage),
     ActionFn(ActionFn),
-}
-
-impl From<LayoutMessage> for Action {
-    fn from(x: LayoutMessage) -> Self {
-        Self::LayoutMessage(x)
-    }
-}
-
-impl<T> From<T> for Action
-where
-    T: LayoutMessageI,
-{
-    fn from(x: T) -> Self {
-        Self::LayoutMessage(x.into())
-    }
 }
 
 impl Action {
@@ -71,12 +54,6 @@ impl TatarajoState {
                     .arg("-c")
                     .arg(s)
                     .spawn();
-            }
-            Action::LayoutMessage(message) => {
-                self.inner
-                    .view
-                    .handle_layout_message(message, &mut self.inner.space);
-                self.reflect_focus_from_stackset(None);
             }
             Action::ActionFn(f) => {
                 f.exec(self);

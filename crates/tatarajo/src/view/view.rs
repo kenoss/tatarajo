@@ -1,6 +1,6 @@
 use crate::util::{FocusedVec, Id};
-use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
-use crate::view::layout_node::{LayoutMessage, LayoutNode};
+use crate::view::api::ViewLayoutApi;
+use crate::view::layout_node::LayoutNode;
 use crate::view::predefined::LayoutFull;
 use crate::view::stackset::{StackSet, WorkspaceTag};
 use crate::view::window::{Window, WindowProps};
@@ -167,20 +167,6 @@ impl View {
         }
 
         assert!(self.state.layout_queue.is_empty());
-    }
-
-    pub fn handle_layout_message(
-        &mut self,
-        message: &LayoutMessage,
-        space: &mut smithay::desktop::Space<Window>,
-    ) {
-        let root_node_id = self.state.root_node_id;
-        let mut api = ViewHandleMessageApi {
-            state: &mut self.state,
-        };
-        api.handle_message(root_node_id, message);
-
-        self.layout(space);
     }
 
     pub fn resize_output(
