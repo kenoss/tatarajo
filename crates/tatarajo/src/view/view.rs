@@ -3,10 +3,9 @@ use crate::view::api::ViewLayoutApi;
 use crate::view::layout_node::LayoutNode;
 use crate::view::predefined::LayoutFull;
 use crate::view::stackset::{StackSet, WorkspaceTag};
-use crate::view::window::{Window, WindowProps};
+use crate::view::window::Window;
 use itertools::Itertools;
 use smithay::utils::{Logical, Rectangle, Size};
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 pub struct View {
@@ -16,30 +15,21 @@ pub struct View {
 
 pub(super) struct ViewState {
     pub(super) stackset: StackSet,
-    pub(super) nodes: HashMap<Id<LayoutNode>, RefCell<LayoutNode>>,
-    // TODO: Rename.
-    pub(super) layout_queue: Vec<(Id<Window>, WindowProps)>,
+    pub(super) node: LayoutNode,
     pub(super) windows: HashMap<Id<Window>, Window>,
-    pub(super) root_node_id: Id<LayoutNode>,
     pub(super) rect: Rectangle<i32, Logical>,
 }
 
 impl View {
     pub fn new(rect: Rectangle<i32, Logical>, workspace_tags: Vec<WorkspaceTag>) -> Self {
-        let mut nodes = HashMap::new();
-
         let node = LayoutNode::from(LayoutFull {});
-        let node_id = node.id();
-        nodes.insert(node_id, RefCell::new(node));
 
         let stackset = StackSet::new(workspace_tags);
 
         let state = ViewState {
             stackset,
-            nodes,
-            layout_queue: Vec::new(),
+            node,
             windows: HashMap::new(),
-            root_node_id: node_id,
             rect,
         };
         Self { state }
@@ -124,20 +114,19 @@ impl View {
     pub fn layout(&mut self, space: &mut smithay::desktop::Space<Window>) {
         use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
 
-        assert!(self.state.layout_queue.is_empty());
-
         // Layout
-        let root_node_id = self.state.root_node_id;
         let rect = self.state.rect;
         let mut api = ViewLayoutApi {
-            state: &mut self.state,
+            stackset: &self.state.stackset,
             rect,
+            layout_queue: vec![],
         };
-        api.layout_node(root_node_id, rect);
+        self.state.node.layout(&mut api);
+        let layout_queue = api.layout_queue;
 
         // Remove windows from the space that are not in layout result.
         let mut removing_window_ids = space.elements().map(|w| w.id()).collect::<HashSet<_>>();
-        for (window_id, _) in &self.state.layout_queue {
+        for (window_id, _) in &layout_queue {
             removing_window_ids.remove(window_id);
         }
         for window_id in removing_window_ids {
@@ -145,9 +134,9 @@ impl View {
             space.unmap_elem(window);
         }
 
-        debug!("layout_queue = {:?}", self.state.layout_queue);
+        debug!("layout_queue = {:?}", layout_queue);
         // Reflect layout to the space and surfaces.
-        for (window_id, props) in self.state.layout_queue.drain(..) {
+        for (window_id, props) in layout_queue {
             let window = self.state.windows.get_mut(&window_id).unwrap();
             let geometry = props.geometry;
             window.set_props(props);
@@ -165,8 +154,6 @@ impl View {
             });
             surface.send_pending_configure();
         }
-
-        assert!(self.state.layout_queue.is_empty());
     }
 
     pub fn resize_output(
