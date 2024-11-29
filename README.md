@@ -55,7 +55,7 @@ Note that you need to set an environment variable `TATARAJO_XKB_CONFIG`.
 You can implement the following topics:
 
 - [x] Implement a "Tall" layout ([xmonad Tall](https://hackage.haskell.org/package/xmonad-0.18.0/docs/XMonad-Layout.html#t:Tall)).
-- [ ] Put margins for windows.
+- [x] Put margins for windows.
 - [ ] Decorate windows with borders.
 - [ ] ...and features you want.
 

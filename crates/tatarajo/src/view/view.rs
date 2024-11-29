@@ -122,7 +122,14 @@ impl View {
             layout_queue: vec![],
         };
         self.state.node.layout(&mut api);
-        let layout_queue = api.layout_queue;
+        let mut layout_queue = api.layout_queue;
+
+        use crate::model::grid_geometry::RectangleExt;
+        use crate::view::window::Thickness;
+        let margin = Thickness::from(8);
+        for (_, props) in &mut layout_queue {
+            props.geometry = props.geometry.shrink(margin.clone());
+        }
 
         // Remove windows from the space that are not in layout result.
         let mut removing_window_ids = space.elements().map(|w| w.id()).collect::<HashSet<_>>();
