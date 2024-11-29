@@ -2,10 +2,10 @@ use crate::util::{FocusedVec, Id, NonEmptyFocusedVec};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::{LayoutMessage, LayoutNode};
 use crate::view::predefined::{
-    LayoutFull, LayoutNodeBorder, LayoutNodeMargin, LayoutNodeSelect, LayoutNodeToggle, LayoutTall,
+    LayoutFull, LayoutNodeMargin, LayoutNodeSelect, LayoutNodeToggle, LayoutTall,
 };
 use crate::view::stackset::{StackSet, WorkspaceTag};
-use crate::view::window::{Border, Rgba, Window, WindowProps};
+use crate::view::window::{Window, WindowProps};
 use itertools::Itertools;
 use smithay::utils::{Logical, Rectangle, Size};
 use std::cell::RefCell;
@@ -45,15 +45,6 @@ impl View {
 
         let margin = 8.into();
         let node = LayoutNode::from(LayoutNodeMargin::new(node_id, margin));
-        let node_id = node.id();
-        nodes.insert(node_id, RefCell::new(node));
-
-        let border = Border {
-            dim: 2.into(),
-            active_rgba: Rgba::from_rgba(0x556b2fff),
-            inactive_rgba: Rgba::from_rgba(0x00000000),
-        };
-        let node = LayoutNode::from(LayoutNodeBorder::new(node_id, border));
         let node_id = node.id();
         nodes.insert(node_id, RefCell::new(node));
 
