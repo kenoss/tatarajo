@@ -1498,66 +1498,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
-name = "sabiniwm"
-version = "0.0.0"
-dependencies = [
- "backtrace",
- "big_s",
- "bitflags 2.5.0",
- "derive_more",
- "downcast",
- "dyn-clone",
- "envy",
- "eyre",
- "itertools 0.12.1",
- "maplit",
- "rstest",
- "serde",
- "serde_json",
- "smithay",
- "smithay-drm-extras",
- "thin_delegate",
- "thiserror",
- "tracing",
- "wayland-server",
- "x11rb 0.12.0",
- "xcursor",
- "xkbcommon",
-]
-
-[[package]]
-name = "sabiniwm-chocomint"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "big_s",
- "color-eyre",
- "eyre",
- "itertools 0.12.1",
- "maplit",
- "sabiniwm",
- "time",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "sabiniwm-pistachio"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "big_s",
- "color-eyre",
- "eyre",
- "itertools 0.12.1",
- "maplit",
- "sabiniwm",
- "time",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1749,6 +1689,66 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tatarajo"
+version = "0.0.0"
+dependencies = [
+ "backtrace",
+ "big_s",
+ "bitflags 2.5.0",
+ "derive_more",
+ "downcast",
+ "dyn-clone",
+ "envy",
+ "eyre",
+ "itertools 0.12.1",
+ "maplit",
+ "rstest",
+ "serde",
+ "serde_json",
+ "smithay",
+ "smithay-drm-extras",
+ "thin_delegate",
+ "thiserror",
+ "tracing",
+ "wayland-server",
+ "x11rb 0.12.0",
+ "xcursor",
+ "xkbcommon",
+]
+
+[[package]]
+name = "tatarajo-chocomint"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "big_s",
+ "color-eyre",
+ "eyre",
+ "itertools 0.12.1",
+ "maplit",
+ "tatarajo",
+ "time",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "tatarajo-pistachio"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "big_s",
+ "color-eyre",
+ "eyre",
+ "itertools 0.12.1",
+ "maplit",
+ "tatarajo",
+ "time",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

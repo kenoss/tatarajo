@@ -1,4 +1,4 @@
-use crate::state::SabiniwmState;
+use crate::state::TatarajoState;
 use crate::view::layout_node::{LayoutMessage, LayoutMessageI};
 use dyn_clone::DynClone;
 
@@ -9,7 +9,7 @@ pub trait ActionFnI: std::fmt::Debug + DynClone {
     {
         Action::ActionFn(self.into())
     }
-    fn exec(&self, state: &mut SabiniwmState);
+    fn exec(&self, state: &mut TatarajoState);
 }
 
 dyn_clone::clone_trait_object!(ActionFnI);
@@ -29,7 +29,7 @@ where
 }
 
 impl ActionFn {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         self.inner.exec(state);
     }
 }
@@ -62,7 +62,7 @@ impl Action {
     }
 }
 
-impl SabiniwmState {
+impl TatarajoState {
     pub(crate) fn process_action(&mut self, action: &Action) {
         info!("{:?}", action);
         match action {

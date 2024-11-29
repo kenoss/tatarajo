@@ -1,5 +1,5 @@
 use crate::backend::BackendI;
-use crate::state::SabiniwmState;
+use crate::state::TatarajoState;
 use crate::ClientState;
 use smithay::backend::renderer::utils::on_commit_buffer_handler;
 use smithay::desktop::{layer_map_for_output, LayerSurface};
@@ -25,11 +25,11 @@ use smithay::xwayland::{X11Wm, XWaylandClientData};
 mod x11;
 mod xdg;
 
-impl BufferHandler for SabiniwmState {
+impl BufferHandler for TatarajoState {
     fn buffer_destroyed(&mut self, _buffer: &WlBuffer) {}
 }
 
-impl CompositorHandler for SabiniwmState {
+impl CompositorHandler for TatarajoState {
     fn compositor_state(&mut self) -> &mut CompositorState {
         &mut self.inner.compositor_state
     }
@@ -77,7 +77,7 @@ impl CompositorHandler for SabiniwmState {
     }
 
     fn commit(&mut self, surface: &WlSurface) {
-        X11Wm::commit_hook::<SabiniwmState>(surface);
+        X11Wm::commit_hook::<TatarajoState>(surface);
 
         on_commit_buffer_handler::<Self>(surface);
         self.backend.early_import(surface);
@@ -95,7 +95,7 @@ impl CompositorHandler for SabiniwmState {
     }
 }
 
-impl WlrLayerShellHandler for SabiniwmState {
+impl WlrLayerShellHandler for TatarajoState {
     fn shell_state(&mut self) -> &mut WlrLayerShellState {
         &mut self.inner.layer_shell_state
     }
@@ -130,7 +130,7 @@ impl WlrLayerShellHandler for SabiniwmState {
     }
 }
 
-impl SabiniwmState {
+impl TatarajoState {
     pub fn window_for_surface(&self, surface: &WlSurface) -> Option<crate::view::window::Window> {
         self.inner
             .space

@@ -1,5 +1,5 @@
 [package]
-name = "sabiniwm-pistachio"
+name = "tatarajo-chocomint"
 version = "0.0.0"
 edition = "2021"
 
@@ -10,7 +10,7 @@ color-eyre = "0.6.3"
 eyre = "0.6.12"
 itertools = "0.12.1"
 maplit = "1.0.2"
-sabiniwm = { path = "../sabiniwm" }
+tatarajo = { path = "../tatarajo" }
 time = { version = "0.3.36", features = ["macros", "local-offset"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "fmt", "std", "time"] }

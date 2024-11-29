@@ -1,6 +1,6 @@
 use crate::focus::{KeyboardFocusTarget, PointerFocusTarget};
 use crate::backend::{DmabufHandlerDelegate, BackendI};
-use crate::state::{ClientState, SabiniwmState};
+use crate::state::{ClientState, TatarajoState};
 use smithay::desktop::space::SpaceElement;
 use smithay::desktop::utils::surface_primary_scanout_output;
 use smithay::desktop::{PopupKind, PopupManager};
@@ -46,15 +46,15 @@ use smithay::wayland::xwayland_keyboard_grab::XWaylandKeyboardGrabHandler;
 use std::os::unix::io::OwnedFd;
 use std::sync::Arc;
 
-smithay::delegate_compositor!(SabiniwmState);
+smithay::delegate_compositor!(TatarajoState);
 
-impl DataDeviceHandler for SabiniwmState {
+impl DataDeviceHandler for TatarajoState {
     fn data_device_state(&self) -> &DataDeviceState {
         &self.inner.data_device_state
     }
 }
 
-impl ClientDndGrabHandler for SabiniwmState {
+impl ClientDndGrabHandler for TatarajoState {
     fn started(
         &mut self,
         _source: Option<WlDataSource>,
@@ -68,19 +68,19 @@ impl ClientDndGrabHandler for SabiniwmState {
     }
 }
 
-impl ServerDndGrabHandler for SabiniwmState {
+impl ServerDndGrabHandler for TatarajoState {
     fn send(&mut self, _mime_type: String, _fd: OwnedFd, _seat: Seat<Self>) {
         unreachable!("server-side grabs are not supported");
     }
 }
 
-smithay::delegate_data_device!(SabiniwmState);
+smithay::delegate_data_device!(TatarajoState);
 
-impl OutputHandler for SabiniwmState {}
+impl OutputHandler for TatarajoState {}
 
-smithay::delegate_output!(SabiniwmState);
+smithay::delegate_output!(TatarajoState);
 
-impl SelectionHandler for SabiniwmState {
+impl SelectionHandler for TatarajoState {
     type SelectionUserData = ();
 
     fn new_selection(
@@ -113,36 +113,36 @@ impl SelectionHandler for SabiniwmState {
     }
 }
 
-impl PrimarySelectionHandler for SabiniwmState {
+impl PrimarySelectionHandler for TatarajoState {
     fn primary_selection_state(&self) -> &PrimarySelectionState {
         &self.inner.primary_selection_state
     }
 }
 
-smithay::delegate_primary_selection!(SabiniwmState);
+smithay::delegate_primary_selection!(TatarajoState);
 
-impl DataControlHandler for SabiniwmState {
+impl DataControlHandler for TatarajoState {
     fn data_control_state(&self) -> &DataControlState {
         &self.inner.data_control_state
     }
 }
 
-smithay::delegate_data_control!(SabiniwmState);
+smithay::delegate_data_control!(TatarajoState);
 
-impl ShmHandler for SabiniwmState {
+impl ShmHandler for TatarajoState {
     fn shm_state(&self) -> &ShmState {
         &self.inner.shm_state
     }
 }
 
-smithay::delegate_shm!(SabiniwmState);
+smithay::delegate_shm!(TatarajoState);
 
-impl SeatHandler for SabiniwmState {
+impl SeatHandler for TatarajoState {
     type KeyboardFocus = KeyboardFocusTarget;
     type PointerFocus = PointerFocusTarget;
     type TouchFocus = PointerFocusTarget;
 
-    fn seat_state(&mut self) -> &mut SeatState<SabiniwmState> {
+    fn seat_state(&mut self) -> &mut SeatState<TatarajoState> {
         &mut self.inner.seat_state
     }
 
@@ -164,11 +164,11 @@ impl SeatHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_seat!(SabiniwmState);
-smithay::delegate_tablet_manager!(SabiniwmState);
-smithay::delegate_text_input_manager!(SabiniwmState);
+smithay::delegate_seat!(TatarajoState);
+smithay::delegate_tablet_manager!(TatarajoState);
+smithay::delegate_text_input_manager!(TatarajoState);
 
-impl InputMethodHandler for SabiniwmState {
+impl InputMethodHandler for TatarajoState {
     fn new_popup(&mut self, surface: PopupSurface) {
         if let Err(err) = self.inner.popups.track_popup(PopupKind::from(surface)) {
             warn!("Failed to track popup: {}", err);
@@ -193,9 +193,9 @@ impl InputMethodHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_input_method_manager!(SabiniwmState);
+smithay::delegate_input_method_manager!(TatarajoState);
 
-impl KeyboardShortcutsInhibitHandler for SabiniwmState {
+impl KeyboardShortcutsInhibitHandler for TatarajoState {
     fn keyboard_shortcuts_inhibit_state(&mut self) -> &mut KeyboardShortcutsInhibitState {
         &mut self.inner.keyboard_shortcuts_inhibit_state
     }
@@ -206,12 +206,12 @@ impl KeyboardShortcutsInhibitHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_keyboard_shortcuts_inhibit!(SabiniwmState);
-smithay::delegate_virtual_keyboard_manager!(SabiniwmState);
-smithay::delegate_pointer_gestures!(SabiniwmState);
-smithay::delegate_relative_pointer!(SabiniwmState);
+smithay::delegate_keyboard_shortcuts_inhibit!(TatarajoState);
+smithay::delegate_virtual_keyboard_manager!(TatarajoState);
+smithay::delegate_pointer_gestures!(TatarajoState);
+smithay::delegate_relative_pointer!(TatarajoState);
 
-impl PointerConstraintsHandler for SabiniwmState {
+impl PointerConstraintsHandler for TatarajoState {
     fn new_constraint(&mut self, surface: &WlSurface, pointer: &PointerHandle<Self>) {
         // XXX region
         if pointer
@@ -227,10 +227,10 @@ impl PointerConstraintsHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_pointer_constraints!(SabiniwmState);
-smithay::delegate_viewporter!(SabiniwmState);
+smithay::delegate_pointer_constraints!(TatarajoState);
+smithay::delegate_viewporter!(TatarajoState);
 
-impl XdgActivationHandler for SabiniwmState {
+impl XdgActivationHandler for TatarajoState {
     fn activation_state(&mut self) -> &mut XdgActivationState {
         &mut self.inner.xdg_activation_state
     }
@@ -275,9 +275,9 @@ impl XdgActivationHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_xdg_activation!(SabiniwmState);
+smithay::delegate_xdg_activation!(TatarajoState);
 
-impl XdgDecorationHandler for SabiniwmState {
+impl XdgDecorationHandler for TatarajoState {
     fn new_decoration(&mut self, toplevel: ToplevelSurface) {
         use xdg_decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode;
         // Set the default to client side
@@ -328,11 +328,11 @@ impl XdgDecorationHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_xdg_decoration!(SabiniwmState);
-smithay::delegate_layer_shell!(SabiniwmState);
-smithay::delegate_presentation!(SabiniwmState);
+smithay::delegate_xdg_decoration!(TatarajoState);
+smithay::delegate_layer_shell!(TatarajoState);
+smithay::delegate_presentation!(TatarajoState);
 
-impl FractionalScaleHandler for SabiniwmState {
+impl FractionalScaleHandler for TatarajoState {
     fn new_fractional_scale(
         &mut self,
         surface: smithay::reexports::wayland_server::protocol::wl_surface::WlSurface,
@@ -389,9 +389,9 @@ impl FractionalScaleHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_fractional_scale!(SabiniwmState);
+smithay::delegate_fractional_scale!(TatarajoState);
 
-impl SecurityContextHandler for SabiniwmState {
+impl SecurityContextHandler for TatarajoState {
     fn context_created(
         &mut self,
         source: SecurityContextListenerSource,
@@ -416,9 +416,9 @@ impl SecurityContextHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_security_context!(SabiniwmState);
+smithay::delegate_security_context!(TatarajoState);
 
-impl XWaylandKeyboardGrabHandler for SabiniwmState {
+impl XWaylandKeyboardGrabHandler for TatarajoState {
     fn keyboard_focus_for_xsurface(&self, surface: &WlSurface) -> Option<KeyboardFocusTarget> {
         let window = self
             .inner
@@ -429,17 +429,17 @@ impl XWaylandKeyboardGrabHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_xwayland_keyboard_grab!(SabiniwmState);
+smithay::delegate_xwayland_keyboard_grab!(TatarajoState);
 
-impl XdgForeignHandler for SabiniwmState {
+impl XdgForeignHandler for TatarajoState {
     fn xdg_foreign_state(&mut self) -> &mut XdgForeignState {
         &mut self.inner.xdg_foreign_state
     }
 }
 
-smithay::delegate_xdg_foreign!(SabiniwmState);
+smithay::delegate_xdg_foreign!(TatarajoState);
 
-impl smithay::wayland::dmabuf::DmabufHandler for SabiniwmState {
+impl smithay::wayland::dmabuf::DmabufHandler for TatarajoState {
     fn dmabuf_state(&mut self) -> &mut smithay::wayland::dmabuf::DmabufState {
         self.backend.dmabuf_state()
     }
@@ -451,11 +451,11 @@ impl smithay::wayland::dmabuf::DmabufHandler for SabiniwmState {
         notifier: smithay::wayland::dmabuf::ImportNotifier,
     ) {
         if self.backend.dmabuf_imported(global, dmabuf) {
-            let _ = notifier.successful::<SabiniwmState>();
+            let _ = notifier.successful::<TatarajoState>();
         } else {
             notifier.failed();
         }
     }
 }
 
-smithay::delegate_dmabuf!(SabiniwmState);
+smithay::delegate_dmabuf!(TatarajoState);

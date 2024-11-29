@@ -5,8 +5,8 @@ use std::path::PathBuf;
 pub(crate) struct EnvVar {
     /// Environment variables Without prefix.
     pub generic: EnvVarGeneric,
-    /// Environment variables prefixed with `SABINIWM_`
-    pub sabiniwm: EnvVarSabiniwm,
+    /// Environment variables prefixed with `TATARAJO_`
+    pub tatarajo: EnvVarTatarajo,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -16,11 +16,11 @@ pub(crate) struct EnvVarGeneric {
 }
 
 #[derive(Debug, serde::Deserialize)]
-pub(crate) struct EnvVarSabiniwm {
+pub(crate) struct EnvVarTatarajo {
     /// Prevent auto detection and use designated DRM device node.
     ///
     /// Both primary node (e.g. /dev/dri/card0) and render node (e.g. /dev/dri/renderD128) are
-    /// available. Sabiniwm infers corresponding primary/render nodes.
+    /// available. Tatarajo infers corresponding primary/render nodes.
     pub drm_device_node: Option<PathBuf>,
     #[serde(default = "default_bool::<false>")]
     pub disable_10bit: bool,
@@ -40,12 +40,12 @@ impl EnvVar {
     pub fn load() -> eyre::Result<Self> {
         Ok(Self {
             generic: envy::from_env()?,
-            sabiniwm: envy::prefixed("SABINIWM_").from_env()?,
+            tatarajo: envy::prefixed("TATARAJO_").from_env()?,
         })
     }
 
     pub fn xkb_config(&self) -> eyre::Result<Option<XkbConfig>> {
-        self.sabiniwm
+        self.tatarajo
             .xkb_config
             .as_deref()
             .map(serde_json::from_str)

@@ -4,8 +4,8 @@ use crate::pointer::{PointerElement, CLEAR_COLOR};
 use crate::render::{output_elements, CustomRenderElement};
 use crate::render_loop::RenderLoop;
 use crate::state::{
-    post_repaint, take_presentation_feedback, InnerState, SabiniwmState,
-    SabiniwmStateWithConcreteBackend, SurfaceDmabufFeedback,
+    post_repaint, take_presentation_feedback, InnerState, TatarajoState,
+    TatarajoStateWithConcreteBackend, SurfaceDmabufFeedback,
 };
 use crate::util::EventHandler;
 use crate::wl_global::WlGlobal;
@@ -112,7 +112,7 @@ pub(crate) struct UdevBackend {
 impl UdevBackend {
     pub fn new(
         envvar: &EnvVar,
-        loop_handle: LoopHandle<'static, SabiniwmState>,
+        loop_handle: LoopHandle<'static, TatarajoState>,
     ) -> eyre::Result<Self> {
         /*
          * Initialize session
@@ -122,7 +122,7 @@ impl UdevBackend {
         /*
          * Initialize the compositor
          */
-        let device_node_path = if let Some(path) = &envvar.sabiniwm.drm_device_node {
+        let device_node_path = if let Some(path) = &envvar.tatarajo.drm_device_node {
             path.clone()
         } else {
             smithay::backend::udev::primary_gpu(session.seat())
@@ -231,7 +231,7 @@ impl BackendI for UdevBackend {
             if let Err(err) = DrmNode::from_dev_id(device_id)
                 .map_err(DeviceAddError::DrmNode)
                 .and_then(|node| {
-                    let mut as_udev_mut = SabiniwmStateWithConcreteBackend {
+                    let mut as_udev_mut = TatarajoStateWithConcreteBackend {
                         backend: self,
                         inner,
                     };
@@ -273,7 +273,7 @@ impl BackendI for UdevBackend {
             DmabufFeedbackBuilder::new(self.selected_render_node.dev_id(), dmabuf_formats)
                 .build()?;
         let mut dmabuf_state = DmabufState::new();
-        let global = dmabuf_state.create_global_with_default_feedback::<SabiniwmState>(
+        let global = dmabuf_state.create_global_with_default_feedback::<TatarajoState>(
             &inner.display_handle,
             &default_feedback,
         );
@@ -340,7 +340,7 @@ impl BackendI for UdevBackend {
     }
 }
 
-impl DrmLeaseHandler for SabiniwmState {
+impl DrmLeaseHandler for TatarajoState {
     fn drm_lease_state(&mut self, node: DrmNode) -> &mut DrmLeaseState {
         self.backend_udev_mut()
             .backends
@@ -402,7 +402,7 @@ impl DrmLeaseHandler for SabiniwmState {
     }
 }
 
-delegate_drm_lease!(SabiniwmState);
+delegate_drm_lease!(TatarajoState);
 
 #[derive(Debug, Default, serde::Deserialize)]
 pub(crate) enum SurfaceCompositionPolicy {
@@ -575,7 +575,7 @@ struct SurfaceData {
     render_node: DrmNode,
     // Holds not to `drop()`.
     #[allow(unused)]
-    wl_output_global: WlGlobal<SabiniwmState, WlOutput>,
+    wl_output_global: WlGlobal<TatarajoState, WlOutput>,
     compositor: SurfaceComposition,
     dmabuf_feedback: Option<DrmSurfaceDmabufFeedback>,
     // Note that a render loop is run per CRTC. This might be not good with multiple displays.
@@ -583,7 +583,7 @@ struct SurfaceData {
     // rate.
     //
     // TODO: Investigate and support it.
-    render_loop: RenderLoop<SabiniwmState>,
+    render_loop: RenderLoop<TatarajoState>,
 }
 
 struct BackendData {
@@ -675,9 +675,9 @@ fn get_surface_dmabuf_feedback(
     })
 }
 
-impl SabiniwmState {
-    fn as_udev_mut(&mut self) -> SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
-        SabiniwmStateWithConcreteBackend {
+impl TatarajoState {
+    fn as_udev_mut(&mut self) -> TatarajoStateWithConcreteBackend<'_, UdevBackend> {
+        TatarajoStateWithConcreteBackend {
             backend: self.backend.as_udev_mut(),
             inner: &mut self.inner,
         }
@@ -692,7 +692,7 @@ impl SabiniwmState {
     }
 }
 
-impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
+impl TatarajoStateWithConcreteBackend<'_, UdevBackend> {
     fn device_added(&mut self, node: DrmNode, path: &Path) -> Result<(), DeviceAddError> {
         assert_eq!(node.ty(), NodeType::Primary);
 
@@ -748,7 +748,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                 non_desktop_connectors: Vec::new(),
                 render_node,
                 surfaces: HashMap::new(),
-                leasing_global: DrmLeaseState::new::<SabiniwmState>(
+                leasing_global: DrmLeaseState::new::<TatarajoState>(
                     &self.inner.display_handle,
                     &node,
                 )
@@ -832,7 +832,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     .non_desktop_connectors
                     .push((connector.handle(), crtc));
                 if let Some(lease_state) = device.leasing_global.as_mut() {
-                    lease_state.add_connector::<SabiniwmState>(
+                    lease_state.add_connector::<TatarajoState>(
                         connector.handle(),
                         output_name,
                         format!("{} {}", make, model),
@@ -849,8 +849,8 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                         model,
                     },
                 );
-                let wl_output_global = WlGlobal::<SabiniwmState, WlOutput>::new(
-                    output.create_global::<SabiniwmState>(&self.inner.display_handle.clone()),
+                let wl_output_global = WlGlobal::<TatarajoState, WlOutput>::new(
+                    output.create_global::<TatarajoState>(&self.inner.display_handle.clone()),
                     self.inner.display_handle.clone(),
                 );
 
@@ -898,7 +898,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     GbmBufferFlags::RENDERING | GbmBufferFlags::SCANOUT,
                 );
 
-                let color_formats = if self.inner.envvar.sabiniwm.disable_10bit {
+                let color_formats = if self.inner.envvar.tatarajo.disable_10bit {
                     SUPPORTED_FORMATS_8BIT_ONLY
                 } else {
                     SUPPORTED_FORMATS
@@ -908,7 +908,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
                     .drm
                     .create_surface(crtc, mode, &[connector.handle()])
                     .wrap_err("create drm surface")?;
-                let compositor = match &self.inner.envvar.sabiniwm.surface_composition_policy {
+                let compositor = match &self.inner.envvar.tatarajo.surface_composition_policy {
                     SurfaceCompositionPolicy::UseGbmBufferedSurface => {
                         let gbm_surface = GbmBufferedSurface::new(
                             surface,
@@ -1087,7 +1087,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         // drop the backends on this side
         if let Some(mut backend_inner) = self.backend.backends.remove(&node) {
             if let Some(mut leasing_global) = backend_inner.leasing_global.take() {
-                leasing_global.disable_global::<SabiniwmState>();
+                leasing_global.disable_global::<TatarajoState>();
             }
 
             self.backend
@@ -1336,7 +1336,7 @@ impl SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
         &mut self,
         node: DrmNode,
         crtc: crtc::Handle,
-        evt_handle: LoopHandle<'static, SabiniwmState>,
+        evt_handle: LoopHandle<'static, TatarajoState>,
     ) {
         let Some(device) = self.backend.backends.get_mut(&node) else {
             return;
@@ -1535,7 +1535,7 @@ fn dev_path_or_na(node: &DrmNode) -> String {
     }
 }
 
-impl EventHandler<UdevEvent> for SabiniwmStateWithConcreteBackend<'_, UdevBackend> {
+impl EventHandler<UdevEvent> for TatarajoStateWithConcreteBackend<'_, UdevBackend> {
     fn handle_event(&mut self, event: UdevEvent) {
         match event {
             UdevEvent::Added { device_id, path } => {
@@ -1572,7 +1572,7 @@ impl EventHandler<UdevEvent> for SabiniwmStateWithConcreteBackend<'_, UdevBacken
     }
 }
 
-impl EventHandler<InputEvent<LibinputInputBackend>> for SabiniwmState {
+impl EventHandler<InputEvent<LibinputInputBackend>> for TatarajoState {
     fn handle_event(&mut self, event: InputEvent<LibinputInputBackend>) {
         match event {
             InputEvent::DeviceAdded { mut device } => {
@@ -1646,7 +1646,7 @@ impl std::fmt::Debug for LibinputDeviceInfo<'_> {
 }
 
 impl EventHandler<smithay::backend::session::Event>
-    for SabiniwmStateWithConcreteBackend<'_, UdevBackend>
+    for TatarajoStateWithConcreteBackend<'_, UdevBackend>
 {
     fn handle_event(&mut self, event: smithay::backend::session::Event) {
         match event {
@@ -1684,7 +1684,7 @@ impl EventHandler<smithay::backend::session::Event>
                         .activate(false)
                         .expect("failed to activate drm backend");
                     if let Some(lease_global) = backend.leasing_global.as_mut() {
-                        lease_global.resume::<SabiniwmState>();
+                        lease_global.resume::<TatarajoState>();
                     }
                     for surface in backend.surfaces.values_mut() {
                         if let Err(err) = surface.compositor.reset_state() {

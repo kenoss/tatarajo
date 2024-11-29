@@ -1,11 +1,11 @@
 [package]
-name = "sabiniwm"
+name = "tatarajo"
 version = "0.0.0"
 edition = "2021"
 authors = ["keno (Ken Okada) <keno.ss57@gmail.com>"]
 description = "A tiling Wayland compositor, influenced xmonad"
-documentation = "https://docs.rs/sabiniwm"
-repository = "https://github.com/kenoss/sabiniwm"
+documentation = "https://docs.rs/tatarajo"
+repository = "https://github.com/kenoss/tatarajo"
 categories = ["gui", "graphics"]
 keywords = ["wayland", "compositor", "xmonad", "tiling"]
 license = "MIT OR Apache-2.0"

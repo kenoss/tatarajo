@@ -1,4 +1,4 @@
-use crate::state::SabiniwmState;
+use crate::state::TatarajoState;
 use smithay::desktop::{find_popup_root_surface, get_popup_toplevel_coords, PopupKind};
 use smithay::reexports::wayland_protocols::xdg::shell::server::xdg_toplevel;
 use smithay::reexports::wayland_server::protocol::wl_seat;
@@ -7,7 +7,7 @@ use smithay::wayland::shell::xdg::{
     PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
 };
 
-impl XdgShellHandler for SabiniwmState {
+impl XdgShellHandler for TatarajoState {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
         &mut self.inner.xdg_shell_state
     }
@@ -59,9 +59,9 @@ impl XdgShellHandler for SabiniwmState {
     }
 }
 
-smithay::delegate_xdg_shell!(SabiniwmState);
+smithay::delegate_xdg_shell!(TatarajoState);
 
-impl SabiniwmState {
+impl TatarajoState {
     fn unconstrain_popup(&self, popup: &PopupSurface) {
         let Ok(root) = find_popup_root_surface(&PopupKind::Xdg(popup.clone())) else {
             return;

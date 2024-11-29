@@ -1,4 +1,4 @@
-//! # sabiniwm: A tiling Wayland compositor, influenced by xmonad
+//! # tatarajo: A tiling Wayland compositor, influenced by xmonad
 //!
 //! Not documented yet. Wait for v0.1.0.
 
@@ -31,4 +31,4 @@ pub(crate) mod util;
 pub mod view;
 pub(crate) mod wl_global;
 
-pub use state::{ClientState, SabiniwmState};
+pub use state::{ClientState, TatarajoState};

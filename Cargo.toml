@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/sabiniwm",
-    "crates/sabiniwm-chocomint",
-    "crates/sabiniwm-pistachio",
+    "crates/tatarajo",
+    "crates/tatarajo-chocomint",
+    "crates/tatarajo-pistachio",
 ]

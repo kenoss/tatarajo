@@ -1,4 +1,4 @@
-use crate::state::SabiniwmState;
+use crate::state::TatarajoState;
 use smithay::desktop::{LayerSurface, PopupKind, WindowSurface};
 use smithay::input::Seat;
 use smithay::reexports::wayland_server::backend::ObjectId;
@@ -48,7 +48,7 @@ impl smithay::utils::IsAlive for KeyboardFocusTarget {}
         }
     }
 )]
-impl smithay::input::keyboard::KeyboardTarget<SabiniwmState> for KeyboardFocusTarget {}
+impl smithay::input::keyboard::KeyboardTarget<TatarajoState> for KeyboardFocusTarget {}
 
 impl smithay::wayland::seat::WaylandFocus for KeyboardFocusTarget {
     fn wl_surface(&self) -> Option<WlSurface> {
@@ -120,10 +120,10 @@ impl From<KeyboardFocusTarget> for PointerFocusTarget {
 impl smithay::utils::IsAlive for PointerFocusTarget {}
 
 #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::input::pointer)]
-impl smithay::input::pointer::PointerTarget<SabiniwmState> for PointerFocusTarget {}
+impl smithay::input::pointer::PointerTarget<TatarajoState> for PointerFocusTarget {}
 
 #[thin_delegate::derive_delegate(external_trait_def = crate::external_trait_def::smithay::input::touch)]
-impl smithay::input::touch::TouchTarget<SabiniwmState> for PointerFocusTarget {}
+impl smithay::input::touch::TouchTarget<TatarajoState> for PointerFocusTarget {}
 
 impl smithay::wayland::seat::WaylandFocus for PointerFocusTarget {
     fn wl_surface(&self) -> Option<WlSurface> {

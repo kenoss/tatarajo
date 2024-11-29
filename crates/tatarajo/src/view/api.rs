@@ -31,7 +31,7 @@ impl ViewLayoutApi<'_> {
         // TODO: Consider the following options:
         //
         // - Use `nodes: HashMap<Id<LayoutNode>, Rc<RefCel<LayoutNode>>>`; or
-        // - Split `ViewState` into two parts `{ nodes, rest }` like `SabiniwmState { backend, inner }`.
+        // - Split `ViewState` into two parts `{ nodes, rest }` like `TatarajoState { backend, inner }`.
         let node = self.state.nodes.get(&id).unwrap().as_ptr();
         let node = unsafe { &*node };
         let mut api = ViewLayoutApi {
@@ -83,7 +83,7 @@ impl ViewHandleMessageApi<'_> {
         // TODO: Consider the following options:
         //
         // - Use `nodes: HashMap<Id<LayoutNode>, Rc<RefCel<LayoutNode>>>`; or
-        // - Split `ViewState` into two parts `{ nodes, rest }` like `SabiniwmState { backend, inner }`.
+        // - Split `ViewState` into two parts `{ nodes, rest }` like `TatarajoState { backend, inner }`.
         let node = self.state.nodes.get_mut(&id).unwrap().as_ptr();
         let node = unsafe { &mut *node };
         let mut api = ViewHandleMessageApi { state: self.state };

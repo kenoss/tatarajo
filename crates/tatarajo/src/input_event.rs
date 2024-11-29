@@ -1,6 +1,6 @@
 use crate::input::keymap::KeymapEntry;
 use crate::input::KeySeq;
-use crate::state::SabiniwmState;
+use crate::state::TatarajoState;
 use crate::util::Id;
 use crate::view::window::Window;
 use smithay::backend::input::{
@@ -11,7 +11,7 @@ use smithay::input::keyboard::FilterResult;
 use smithay::input::pointer::{AxisFrame, ButtonEvent, MotionEvent};
 use smithay::utils::{Logical, Point, Serial, SERIAL_COUNTER};
 
-impl SabiniwmState {
+impl TatarajoState {
     pub(crate) fn process_input_event<I: InputBackend>(&mut self, event: InputEvent<I>) {
         let serial = SERIAL_COUNTER.next_serial();
 
@@ -23,7 +23,7 @@ impl SabiniwmState {
             InputEvent::Keyboard { event } => {
                 let time = Event::time_msec(event);
 
-                // Note that `Seat::get_keyboard()` locks a field. If we call `SabiniwmState::process_action()` in the `filter` (the
+                // Note that `Seat::get_keyboard()` locks a field. If we call `TatarajoState::process_action()` in the `filter` (the
                 // last argument), it will deadlock (if it hits a path calling e.g. `Seat::get_keyborad()` in it).
                 let action = self.inner.seat.get_keyboard().unwrap().input(
                     self,
@@ -31,7 +31,7 @@ impl SabiniwmState {
                     event.state(),
                     // Note that this `serial` will not be used for `KeybordHandler::input_forward()` if
                     // `KeyboardHandler::input_intercept()` returned `FilterResult::Intercept`. So, issuing a new `Serial` in
-                    // `SabiniwmState::process_action` is OK.
+                    // `TatarajoState::process_action` is OK.
                     serial,
                     time,
                     |this, _, keysym_handle| match event.state() {
@@ -255,7 +255,7 @@ impl FocusUpdateDecider {
 
     fn should_update_focus<I>(
         &mut self,
-        seat: &smithay::input::Seat<SabiniwmState>,
+        seat: &smithay::input::Seat<TatarajoState>,
         space: &smithay::desktop::Space<Window>,
         event: &InputEvent<I>,
     ) -> bool

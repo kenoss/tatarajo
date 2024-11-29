@@ -64,14 +64,14 @@ impl ClientData for ClientState {
     fn disconnected(&self, _client_id: ClientId, _reason: DisconnectReason) {}
 }
 
-pub struct SabiniwmState {
+pub struct TatarajoState {
     pub(crate) backend: Backend,
     pub(crate) inner: InnerState,
 }
 
 pub(crate) struct InnerState {
     pub display_handle: DisplayHandle,
-    pub loop_handle: LoopHandle<'static, SabiniwmState>,
+    pub loop_handle: LoopHandle<'static, TatarajoState>,
     pub loop_signal: LoopSignal,
 
     // desktop
@@ -84,7 +84,7 @@ pub(crate) struct InnerState {
     pub layer_shell_state: WlrLayerShellState,
     pub primary_selection_state: PrimarySelectionState,
     pub data_control_state: DataControlState,
-    pub seat_state: SeatState<SabiniwmState>,
+    pub seat_state: SeatState<TatarajoState>,
     pub keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
     pub shm_state: ShmState,
     pub xdg_activation_state: XdgActivationState,
@@ -96,9 +96,9 @@ pub(crate) struct InnerState {
     // input-related fields
     pub cursor_status: Arc<Mutex<CursorImageStatus>>,
     pub seat_name: String,
-    pub seat: Seat<SabiniwmState>,
+    pub seat: Seat<TatarajoState>,
     pub clock: Clock<Monotonic>,
-    pub pointer: PointerHandle<SabiniwmState>,
+    pub pointer: PointerHandle<TatarajoState>,
 
     // Holds not to `drop()`, which invokes `XWayland::shutdown()`.
     #[allow(unused)]
@@ -113,7 +113,7 @@ pub(crate) struct InnerState {
     pub focus_update_decider: FocusUpdateDecider,
 }
 
-pub(crate) struct SabiniwmStateWithConcreteBackend<'a, B>
+pub(crate) struct TatarajoStateWithConcreteBackend<'a, B>
 where
     B: BackendI,
 {
@@ -121,7 +121,7 @@ where
     pub inner: &'a mut InnerState,
 }
 
-impl SabiniwmState {
+impl TatarajoState {
     pub fn run(workspace_tags: Vec<WorkspaceTag>, keymap: Keymap<Action>) -> eyre::Result<()> {
         use crate::backend::udev::UdevBackend;
         #[cfg(feature = "winit")]
@@ -166,10 +166,10 @@ impl SabiniwmState {
         envvar: EnvVar,
         workspace_tags: Vec<WorkspaceTag>,
         keymap: Keymap<Action>,
-        loop_handle: LoopHandle<'static, SabiniwmState>,
+        loop_handle: LoopHandle<'static, TatarajoState>,
         loop_signal: LoopSignal,
         backend: Backend,
-    ) -> eyre::Result<SabiniwmState> {
+    ) -> eyre::Result<TatarajoState> {
         crate::util::panic::set_hook();
 
         let display = Display::new().unwrap();
@@ -301,7 +301,7 @@ impl SabiniwmState {
         let rect = Rectangle::from_loc_and_size((0, 0), (1280, 720));
         let view = View::new(rect, workspace_tags);
 
-        Ok(SabiniwmState {
+        Ok(TatarajoState {
             backend,
             inner: InnerState {
                 display_handle,
@@ -339,7 +339,7 @@ impl SabiniwmState {
         })
     }
 
-    fn run_loop(&mut self, mut event_loop: EventLoop<'_, SabiniwmState>) -> eyre::Result<()> {
+    fn run_loop(&mut self, mut event_loop: EventLoop<'_, TatarajoState>) -> eyre::Result<()> {
         event_loop.run(None, self, |state| {
             let should_reflect = state.inner.view.refresh(&mut state.inner.space);
             if should_reflect {
@@ -480,7 +480,7 @@ pub(crate) fn take_presentation_feedback(
     output_presentation_feedback
 }
 
-impl EventHandler<XWaylandEvent> for SabiniwmState {
+impl EventHandler<XWaylandEvent> for TatarajoState {
     fn handle_event(&mut self, event: XWaylandEvent) {
         match event {
             XWaylandEvent::Ready {

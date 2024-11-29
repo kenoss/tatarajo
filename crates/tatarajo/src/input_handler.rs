@@ -1,10 +1,10 @@
 use crate::focus::PointerFocusTarget;
-use crate::state::SabiniwmState;
+use crate::state::TatarajoState;
 use smithay::desktop::{layer_map_for_output, WindowSurfaceType};
 use smithay::utils::{Logical, Point};
 use smithay::wayland::shell::wlr_layer::Layer as WlrLayer;
 
-impl SabiniwmState {
+impl TatarajoState {
     pub fn surface_under(
         &self,
         pos: Point<f64, Logical>,

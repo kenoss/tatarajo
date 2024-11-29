@@ -1,4 +1,4 @@
-# sabiniwm
+# tatarajo
 
 A tiling Wayland compositor, influenced by xmonad
 

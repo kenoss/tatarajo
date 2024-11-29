@@ -3,8 +3,8 @@ use crate::pointer::PointerElement;
 use crate::render::{render_output, CustomRenderElement};
 use crate::render_loop::RenderLoop;
 use crate::state::{
-    post_repaint, take_presentation_feedback, InnerState, SabiniwmState,
-    SabiniwmStateWithConcreteBackend,
+    post_repaint, take_presentation_feedback, InnerState, TatarajoState,
+    TatarajoStateWithConcreteBackend,
 };
 use crate::util::EventHandler;
 use eyre::WrapErr;
@@ -34,7 +34,7 @@ const OUTPUT_NAME: &str = "winit";
 pub(crate) struct WinitBackend {
     backend: WinitGraphicsBackend<GlesRenderer>,
     output: smithay::output::Output,
-    render_loop: RenderLoop<SabiniwmState>,
+    render_loop: RenderLoop<TatarajoState>,
     damage_tracker: OutputDamageTracker,
     dmabuf_state: DmabufState,
     dmabuf_global: OnceCell<DmabufGlobal>,
@@ -44,7 +44,7 @@ pub(crate) struct WinitBackend {
 }
 
 impl WinitBackend {
-    pub(crate) fn new(loop_handle: LoopHandle<'static, SabiniwmState>) -> eyre::Result<Self> {
+    pub(crate) fn new(loop_handle: LoopHandle<'static, TatarajoState>) -> eyre::Result<Self> {
         let (backend, winit_event_loop) = winit::init::<GlesRenderer>()
             .map_err(|e| eyre::eyre!("{}", e))
             .wrap_err("initializing winit backend")?;
@@ -152,14 +152,14 @@ impl BackendI for WinitBackend {
         };
         let dmabuf_global = if let Some(dmabuf_feedback) = &self.dmabuf_feedback {
             self.dmabuf_state
-                .create_global_with_default_feedback::<SabiniwmState>(
+                .create_global_with_default_feedback::<TatarajoState>(
                     &inner.display_handle,
                     dmabuf_feedback,
                 )
         } else {
             // If we failed to build dmabuf feedback, we fall back to dmabuf v3.
             // Note: egl on Mesa requires either v4 or wl_drm (initialized with bind_wl_display).
-            self.dmabuf_state.create_global::<SabiniwmState>(
+            self.dmabuf_state.create_global::<TatarajoState>(
                 &inner.display_handle,
                 self.backend.renderer().dmabuf_formats().collect(),
             )
@@ -196,7 +196,7 @@ impl BackendI for WinitBackend {
     }
 }
 
-impl EventHandler<WinitEvent> for SabiniwmState {
+impl EventHandler<WinitEvent> for TatarajoState {
     fn handle_event(&mut self, event: WinitEvent) {
         match event {
             WinitEvent::CloseRequested => {
@@ -231,16 +231,16 @@ impl EventHandler<WinitEvent> for SabiniwmState {
     }
 }
 
-impl SabiniwmState {
-    fn as_winit_mut(&mut self) -> SabiniwmStateWithConcreteBackend<'_, WinitBackend> {
-        SabiniwmStateWithConcreteBackend {
+impl TatarajoState {
+    fn as_winit_mut(&mut self) -> TatarajoStateWithConcreteBackend<'_, WinitBackend> {
+        TatarajoStateWithConcreteBackend {
             backend: self.backend.as_winit_mut(),
             inner: &mut self.inner,
         }
     }
 }
 
-impl SabiniwmStateWithConcreteBackend<'_, WinitBackend> {
+impl TatarajoStateWithConcreteBackend<'_, WinitBackend> {
     fn render(&mut self) {
         let mut cursor_guard = self.inner.cursor_status.lock().unwrap();
 

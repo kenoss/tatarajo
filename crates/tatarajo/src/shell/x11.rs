@@ -1,5 +1,5 @@
 use crate::focus::KeyboardFocusTarget;
-use crate::state::SabiniwmState;
+use crate::state::TatarajoState;
 use smithay::utils::{Logical, Rectangle};
 use smithay::wayland::selection::data_device::{
     clear_data_device_selection, current_data_device_selection_userdata,
@@ -14,7 +14,7 @@ use smithay::xwayland::xwm::{Reorder, ResizeEdge as X11ResizeEdge, XwmId};
 use smithay::xwayland::{X11Surface, X11Wm, XwmHandler};
 use std::os::unix::io::OwnedFd;
 
-impl XwmHandler for SabiniwmState {
+impl XwmHandler for TatarajoState {
     fn xwm_state(&mut self, _xwm: XwmId) -> &mut X11Wm {
         self.inner.xwm.as_mut().unwrap()
     }

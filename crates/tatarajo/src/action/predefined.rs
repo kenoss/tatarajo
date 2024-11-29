@@ -1,13 +1,13 @@
 use crate::action::action::{Action, ActionFnI};
 use crate::backend::BackendI;
-use crate::state::SabiniwmState;
+use crate::state::TatarajoState;
 use crate::view::stackset::WorkspaceTag;
 
 #[derive(Debug, Clone)]
 pub struct ActionWithSavedFocus(pub Action);
 
 impl ActionFnI for ActionWithSavedFocus {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         // TODO: Save window focus.
 
         let ss = state.inner.view.stackset();
@@ -22,10 +22,10 @@ impl ActionFnI for ActionWithSavedFocus {
 }
 
 #[derive(Debug, Clone)]
-pub struct ActionQuitSabiniwm;
+pub struct ActionQuitTatarajo;
 
-impl ActionFnI for ActionQuitSabiniwm {
-    fn exec(&self, state: &mut SabiniwmState) {
+impl ActionFnI for ActionQuitTatarajo {
+    fn exec(&self, state: &mut TatarajoState) {
         state.inner.loop_signal.stop();
     }
 }
@@ -34,7 +34,7 @@ impl ActionFnI for ActionQuitSabiniwm {
 pub struct ActionChangeVt(pub i32);
 
 impl ActionFnI for ActionChangeVt {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         state.backend.change_vt(self.0);
     }
 }
@@ -46,7 +46,7 @@ pub enum ActionMoveFocus {
 }
 
 impl ActionFnI for ActionMoveFocus {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         let count = match self {
             Self::Next => 1,
             Self::Prev => -1,
@@ -66,7 +66,7 @@ pub enum ActionWindowSwap {
 }
 
 impl ActionFnI for ActionWindowSwap {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         let count = match self {
             Self::Next => 1,
             Self::Prev => -1,
@@ -96,7 +96,7 @@ pub enum ActionWorkspaceFocus {
 }
 
 impl ActionFnI for ActionWorkspaceFocus {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         let count = match self {
             Self::Next => 1,
             Self::Prev => -1,
@@ -128,7 +128,7 @@ pub enum ActionWorkspaceFocusNonEmpty {
 }
 
 impl ActionFnI for ActionWorkspaceFocusNonEmpty {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         let direction = match self {
             Self::Next => 1,
             Self::Prev => -1,
@@ -154,7 +154,7 @@ pub enum ActionWindowMoveToWorkspace {
 }
 
 impl ActionFnI for ActionWindowMoveToWorkspace {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         let count = match self {
             Self::Next => 1,
             Self::Prev => -1,
@@ -194,7 +194,7 @@ impl ActionFnI for ActionWindowMoveToWorkspace {
 pub struct ActionWindowKill {}
 
 impl ActionFnI for ActionWindowKill {
-    fn exec(&self, state: &mut SabiniwmState) {
+    fn exec(&self, state: &mut TatarajoState) {
         use smithay::desktop::WindowSurface;
 
         let Some(window) = state.inner.view.focused_window_mut() else {

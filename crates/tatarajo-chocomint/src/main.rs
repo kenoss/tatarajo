@@ -1,4 +1,4 @@
-// This is a QWERTY version of sabiniwm-pistachio.
+// This is a QWERTY version of tatarajo-pistachio.
 // This is loosely updated. Last update is 2024-11-29.
 
 #[allow(unused_imports)]
@@ -7,11 +7,11 @@ extern crate maplit;
 
 use big_s::S;
 use itertools::Itertools;
-use sabiniwm::action::{self, Action, ActionFnI};
-use sabiniwm::input::{KeySeqSerde, Keymap, ModMask};
-use sabiniwm::view::predefined::{LayoutMessageSelect, LayoutMessageToggle};
-use sabiniwm::view::stackset::WorkspaceTag;
-use sabiniwm::SabiniwmState;
+use tatarajo::action::{self, Action, ActionFnI};
+use tatarajo::input::{KeySeqSerde, Keymap, ModMask};
+use tatarajo::view::predefined::{LayoutMessageSelect, LayoutMessageToggle};
+use tatarajo::view::stackset::WorkspaceTag;
+use tatarajo::TatarajoState;
 
 fn should_use_udev() -> bool {
     matches!(
@@ -46,7 +46,7 @@ fn tracing_init() -> eyre::Result<()> {
 
             if should_use_udev() {
                 let log_file =
-                    std::io::LineWriter::new(std::fs::File::create("/tmp/sabiniwm.log")?);
+                    std::io::LineWriter::new(std::fs::File::create("/tmp/tatarajo.log")?);
 
                 fmt.with_writer(std::sync::Mutex::new(log_file)).init();
             } else {
@@ -84,7 +84,7 @@ fn main() -> eyre::Result<()> {
     let keyseq_serde = KeySeqSerde::new(meta_keys);
     let kbd = |s| keyseq_serde.kbd(s).unwrap();
     let mut keymap = hashmap! {
-        kbd("H-b H-q") => action::ActionQuitSabiniwm.into_action(),
+        kbd("H-b H-q") => action::ActionQuitTatarajo.into_action(),
         kbd("H-b H-2") => action::ActionChangeVt(2).into_action(),
 
         kbd("H-b H-t") => Action::spawn("alacritty"),
@@ -154,7 +154,7 @@ fn main() -> eyre::Result<()> {
     }));
     let keymap = Keymap::new(keymap);
 
-    SabiniwmState::run(workspace_tags, keymap)?;
+    TatarajoState::run(workspace_tags, keymap)?;
 
     Ok(())
 }

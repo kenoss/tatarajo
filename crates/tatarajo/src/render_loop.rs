@@ -291,7 +291,7 @@ where
     fn next_deadline(&self) -> Instant {
         // TODO:
         //
-        // - Subtract a duration for sabiniwm's render so that we can submit a next frame before
+        // - Subtract a duration for tatarajo's render so that we can submit a next frame before
         //   VSync. See also
         //   https://github.com/Smithay/smithay/blob/8e49b9bb1849f0ead1ba2c7cd76802fc12ad6ac3/anvil/src/udev.rs#L1305
         // - Use `last_render_ended_at` for base point.
