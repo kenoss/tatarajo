@@ -1,9 +1,7 @@
 use crate::util::{FocusedVec, Id, NonEmptyFocusedVec};
 use crate::view::api::{ViewHandleMessageApi, ViewLayoutApi};
 use crate::view::layout_node::{LayoutMessage, LayoutNode};
-use crate::view::predefined::{
-    LayoutFull, LayoutNodeMargin, LayoutNodeSelect, LayoutNodeToggle, LayoutTall,
-};
+use crate::view::predefined::{LayoutFull, LayoutNodeSelect, LayoutNodeToggle, LayoutTall};
 use crate::view::stackset::{StackSet, WorkspaceTag};
 use crate::view::window::{Window, WindowProps};
 use itertools::Itertools;
@@ -40,11 +38,6 @@ impl View {
 
         let layouts = NonEmptyFocusedVec::new(vec![node_id0, node_id1], 0);
         let node = LayoutNode::from(LayoutNodeSelect::new(layouts));
-        let node_id = node.id();
-        nodes.insert(node_id, RefCell::new(node));
-
-        let margin = 8.into();
-        let node = LayoutNode::from(LayoutNodeMargin::new(node_id, margin));
         let node_id = node.id();
         nodes.insert(node_id, RefCell::new(node));
 
