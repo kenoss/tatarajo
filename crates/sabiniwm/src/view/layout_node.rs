@@ -33,6 +33,7 @@ impl LayoutMessage {
 
 pub trait LayoutNodeI {
     fn layout(&self, api: &mut ViewLayoutApi<'_>);
+
     // The defalut implementation is for leaf node.
     fn handle_message(
         &mut self,
