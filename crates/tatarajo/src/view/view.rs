@@ -1,7 +1,7 @@
 use crate::util::{FocusedVec, Id};
 use crate::view::api::ViewLayoutApi;
 use crate::view::layout_node::LayoutNode;
-use crate::view::predefined::LayoutFull;
+use crate::view::predefined::LayoutTall;
 use crate::view::stackset::{StackSet, WorkspaceTag};
 use crate::view::window::Window;
 use itertools::Itertools;
@@ -22,7 +22,7 @@ pub(super) struct ViewState {
 
 impl View {
     pub fn new(rect: Rectangle<i32, Logical>, workspace_tags: Vec<WorkspaceTag>) -> Self {
-        let node = LayoutNode::from(LayoutFull {});
+        let node = LayoutNode::from(LayoutTall {});
 
         let stackset = StackSet::new(workspace_tags);
 
